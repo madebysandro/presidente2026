@@ -335,7 +335,7 @@ export function render(m, root) {
 		const ov = document.createElement("div");
 		ov.className = "a-intro";
 		ov.setAttribute("aria-hidden", "true");
-		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em></div>
+		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-multidao" src="midia/multidao-flavio.jpg" alt=""><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-multidao" src="midia/multidao-lula.jpg" alt=""><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em><small class="a-i-ia">Ilustrações geradas por IA</small></div>
       <div class="a-i-txt"><p class="a-i-data"><span>25 de outubro</span></p><p class="a-i-sub">2º turno para presidente</p><p class="a-i-faltam">faltam <b>20</b> dias</p></div>`;
 		document.body.append(ov);
 		document.documentElement.style.overflow = "hidden";
@@ -350,8 +350,12 @@ export function render(m, root) {
 		for (let k = 1; k <= passos; k++) tm.push(setTimeout(() => rolar(n, 20 - k), 700 + k * 55));
 		const t1 = 700 + passos * 55 + 300;
 		anim(q(".a-i-txt"), [{ opacity: 1 }, { opacity: 0 }], { delay: t1, duration: 300 });
-		anim(q(".a-i-f"), [{ transform: "scaleX(0)" }, { transform: "none" }], { delay: t1, duration: 700 });
-		anim(q(".a-i-l"), [{ transform: "scaleX(0)" }, { transform: "none" }], { delay: t1, duration: 700 });
+		anim(q(".a-i-f"), [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { delay: t1, duration: 700 });
+		anim(q(".a-i-l"), [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { delay: t1, duration: 700 });
+		// as duas multidões andam devagar em direção à divisa
+		anim(q(".a-i-f .a-i-multidao"), [{ transform: "translateX(-5%) scale(1.1)" }, { transform: "translateX(3%) scale(1.1)" }], { delay: t1, duration: 3200, easing: "linear" });
+		anim(q(".a-i-l .a-i-multidao"), [{ transform: "translateX(5%) scale(1.1)" }, { transform: "translateX(-3%) scale(1.1)" }], { delay: t1, duration: 3200, easing: "linear" });
+		anim(q(".a-i-ia"), [{ opacity: 0 }, { opacity: 0.85 }], { delay: t1 + 600, duration: 400 });
 		anim(q(".a-i-faixa em"), [{ transform: "scaleY(0)" }, { transform: "none" }], { delay: t1 + 500, duration: 500 });
 		for (const r of ov.querySelectorAll(".a-i-rosto")) {
 			anim(r, [{ opacity: 0, transform: "translateY(40px) scale(.9)" }, { opacity: 1, transform: "none" }], { delay: t1 + 250, duration: 650 });
