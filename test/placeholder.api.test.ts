@@ -1,12 +1,12 @@
 /**
  * Aceite #7: UI pública sem Tela 2 / Pará; placeholder + CSP.
  */
-import { exports } from "cloudflare:workers";
+import { fetchWorker } from "./helpers/fetch-worker";
 import { describe, expect, it } from "vitest";
 
 describe("Página pública placeholder (#7)", () => {
 	it("serve marca + em breve com CSP base", async () => {
-		const res = await exports.default.fetch(
+		const res = await fetchWorker(
 			new Request("http://presidente2026.test/"),
 		);
 		expect(res.status).toBe(200);
@@ -21,7 +21,7 @@ describe("Página pública placeholder (#7)", () => {
 	});
 
 	it("rotas /api desconhecidas devolvem 404 curto", async () => {
-		const res = await exports.default.fetch(
+		const res = await fetchWorker(
 			new Request("http://presidente2026.test/api/tela2"),
 		);
 		expect(res.status).toBe(404);

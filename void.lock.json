@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "source": {
+    "name": "presidente2026",
+    "compatibility_date": "2026-08-22",
+    "workers_dev": false,
+    "routes": [
+      {
+        "pattern": "presidente2026.win",
+        "custom_domain": true
+      }
+    ],
+    "assets": {
+      "directory": "./public",
+      "binding": "ASSETS",
+      "run_worker_first": true
+    },
+    "vars": {
+      "TSE_BASE": "https://resultados.tse.jus.br/oficial",
+      "ELEICAO_FEDERAL": "6258"
+    },
+    "cache": {
+      "enabled": true
+    },
+    "observability": {
+      "enabled": true,
+      "traces": {
+        "enabled": true
+      }
+    },
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "PESQUISAS",
+          "class_name": "PesquisasDurableObject"
+        },
+        {
+          "name": "POLLER",
+          "class_name": "PollerDurableObject"
+        }
+      ]
+    },
+    "migrations": [
+      {
+        "tag": "void-durable-pesquisas-v1",
+        "new_sqlite_classes": [
+          "PesquisasDurableObject"
+        ]
+      },
+      {
+        "tag": "void-durable-poller-v1",
+        "new_sqlite_classes": [
+          "PollerDurableObject"
+        ]
+      }
+    ]
+  },
+  "resolved": {
+    "name": "presidente2026",
+    "compatibility_date": "2026-08-22",
+    "workers_dev": false,
+    "routes": [
+      {
+        "pattern": "presidente2026.win",
+        "custom_domain": true
+      }
+    ],
+    "assets": {
+      "directory": "./public",
+      "binding": "ASSETS",
+      "run_worker_first": true
+    },
+    "vars": {
+      "TSE_BASE": "https://resultados.tse.jus.br/oficial",
+      "ELEICAO_FEDERAL": "6258"
+    },
+    "cache": {
+      "enabled": true
+    },
+    "observability": {
+      "enabled": true,
+      "traces": {
+        "enabled": true
+      }
+    },
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "PESQUISAS",
+          "class_name": "PesquisasDurableObject"
+        },
+        {
+          "name": "POLLER",
+          "class_name": "PollerDurableObject"
+        }
+      ]
+    },
+    "migrations": [
+      {
+        "tag": "void-durable-pesquisas-v1",
+        "new_sqlite_classes": [
+          "PesquisasDurableObject"
+        ]
+      },
+      {
+        "tag": "void-durable-poller-v1",
+        "new_sqlite_classes": [
+          "PollerDurableObject"
+        ]
+      }
+    ]
+  },
+  "text": "{\n  \"name\": \"presidente2026\",\n  \"compatibility_date\": \"2026-08-22\",\n  \"workers_dev\": false,\n  \"routes\": [\n    {\n      \"pattern\": \"presidente2026.win\",\n      \"custom_domain\": true\n    }\n  ],\n  \"assets\": {\n    \"directory\": \"./public\",\n    \"binding\": \"ASSETS\",\n    \"run_worker_first\": true\n  },\n  \"vars\": {\n    \"TSE_BASE\": \"https://resultados.tse.jus.br/oficial\",\n    \"ELEICAO_FEDERAL\": \"6258\"\n  },\n  \"cache\": {\n    \"enabled\": true\n  },\n  \"observability\": {\n    \"enabled\": true,\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"PESQUISAS\",\n        \"class_name\": \"PesquisasDurableObject\"\n      },\n      {\n        \"name\": \"POLLER\",\n        \"class_name\": \"PollerDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"void-durable-pesquisas-v1\",\n      \"new_sqlite_classes\": [\n        \"PesquisasDurableObject\"\n      ]\n    },\n    {\n      \"tag\": \"void-durable-poller-v1\",\n      \"new_sqlite_classes\": [\n        \"PollerDurableObject\"\n      ]\n    }\n  ]\n}\n"
+}

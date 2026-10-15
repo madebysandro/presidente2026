@@ -4,7 +4,7 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"lib": ["ES2022"],
-		"types": ["@cloudflare/vitest-pool-workers/types", "vite/client"],
+		"types": ["@cloudflare/vitest-pool-workers/types", "vite/client", "void/env"],
 		"strict": true,
 		"noEmit": true,
 		"skipLibCheck": true,
@@ -13,5 +13,14 @@
 		"resolveJsonModule": true,
 		"forceConsistentCasingInFileNames": true
 	},
-	"include": ["src/**/*.ts", "test/**/*.ts", "worker-configuration.d.ts"]
+	"include": [
+		"src/**/*.ts",
+		"test/**/*.ts",
+		"routes/**/*.ts",
+		"durable-objects/**/*.ts",
+		"middleware/**/*.ts",
+		"void.config.ts",
+		"vite.config.ts",
+		"worker-configuration.d.ts"
+	]
 }

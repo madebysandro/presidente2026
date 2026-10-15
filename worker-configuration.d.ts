@@ -5,13 +5,13 @@ interface __BaseEnv_Env {
 	ASSETS: Fetcher;
 	TSE_BASE: "https://resultados.tse.jus.br/oficial";
 	ELEICAO_FEDERAL: "6258";
-	POLLER: DurableObjectNamespace<import("./src/index").PollerApuracao>;
-	PESQUISAS: DurableObjectNamespace<import("./src/index").Pesquisas>;
+	POLLER: DurableObjectNamespace<import("./src/poller/poller").PollerApuracao>;
+	PESQUISAS: DurableObjectNamespace<import("./src/pesquisas/pesquisas").Pesquisas>;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./src/index");
-		durableNamespaces: "PollerApuracao" | "Pesquisas";
+		durableNamespaces: "PollerDurableObject" | "PesquisasDurableObject";
 	}
 	interface Env extends __BaseEnv_Env {}
 }
