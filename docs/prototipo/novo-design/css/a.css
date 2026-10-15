@@ -79,3 +79,20 @@ body[data-v="A"] {
   .a-dia.eleicao .a-n small { color: inherit; }
   .a-det-num b { font-size: 34px; }
 }
+
+/* movimento */
+.a-conta b, .a-veredito b { display: inline-block; }
+.a-dia.hoje { overflow: hidden; }
+.a-prog { position: absolute; left: 0; bottom: 0; width: 0; height: 3px; background: var(--tinta); transition: width 1s linear; }
+.a-barra i { transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.a-fantasma { position: fixed; z-index: 50; margin: 0; transform-origin: top left; pointer-events: none; }
+.a-rever {
+  all: unset; margin-left: auto; color: var(--tinta); font-size: 13px; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.a-rever:focus-visible { outline: 2px solid var(--f); outline-offset: 2px; }
+.a-graf svg .t-pt, .a-graf svg .t-rot { transform-box: fill-box; transform-origin: center; }
+.a-pesq { transition: background .2s; }
+@media (prefers-reduced-motion: reduce) {
+  .a-prog, .a-barra i, .a-pesq { transition: none; }
+}

@@ -22,7 +22,7 @@ export const diaSemana = (s) => SEMANA[new Date(dia(s) * 864e5).getUTCDay()];
 export const libEfetiva = (r) => (r.liberacao > r.campoFim ? r.liberacao : r.campoFim);
 export const lider = (v) => (v >= 0 ? F : L);
 
-function mediaEm(pub, d) {
+export function mediaEm(pub, d) {
 	const desde = iso(dia(d) - 14);
 	const ult = new Map();
 	for (const p of pub) if (p.data <= d && p.data > desde) ult.set(p.cnpj, p);
@@ -135,15 +135,15 @@ export function tendencia(el, m, { alto = 220, ate25 = false } = {}) {
 	const X = (d) => mg.l + ((d - x0) / (x1 - x0)) * pw;
 	const lim = Math.ceil(Math.max(6, ...m.pub.map((p) => Math.abs(p.v)) ) / 2) * 2;
 	const Y = (v) => mg.t + (1 - (v + lim) / (2 * lim)) * ph;
-	const vis = m.pub.filter((p) => !off.has(p.cnpj));
 	const porInst = new Map();
-	for (const p of vis) porInst.set(p.cnpj, [...(porInst.get(p.cnpj) ?? []), p]);
+	for (const p of m.pub) porInst.set(p.cnpj, [...(porInst.get(p.cnpj) ?? []), p]);
+	const off_ = (cnpj) => (off.has(cnpj) ? "off" : "");
 	const linhas = [...porInst.values()]
 		.filter((ps) => ps.length > 1)
-		.map((ps) => `<path d="${ps.map((p, i) => `${i ? "L" : "M"}${X(dia(p.data))},${Y(p.v)}`).join("")}" fill="none" stroke="${c("--suave")}" stroke-width="1" opacity=".6"/>`)
+		.map((ps) => `<path class="t-inst ${off_(ps[0].cnpj)}" data-cnpj="${ps[0].cnpj}" d="${ps.map((p, i) => `${i ? "L" : "M"}${X(dia(p.data))},${Y(p.v)}`).join("")}" fill="none" stroke="${c("--suave")}" stroke-width="1"/>`)
 		.join("");
-	const pts = vis
-		.map((p) => `<circle cx="${X(dia(p.data))}" cy="${Y(p.v)}" r="4.5" fill="${p.v >= 0 ? c("--f") : c("--l")}"><title>${esc(p.nome)}, campo até ${ddmm(p.data)}: Flávio ${p1.format(p.vf)}%, Lula ${p1.format(p.vl)}%</title></circle>`)
+	const pts = m.pub
+		.map((p, i) => `<circle class="t-pt ${off_(p.cnpj)}" data-cnpj="${p.cnpj}" data-ordem="${i}" cx="${X(dia(p.data))}" cy="${Y(p.v)}" r="4.5" fill="${p.v >= 0 ? c("--f") : c("--l")}"><title>${esc(p.nome)}, campo até ${ddmm(p.data)}: Flávio ${p1.format(p.vf)}%, Lula ${p1.format(p.vl)}%</title></circle>`)
 		.join("");
 	const dM = m.serieMedia.map((s, i) => `${i ? "L" : "M"}${X(dia(s.data))},${Y(s.v)}`).join("");
 	const u = m.serieMedia.at(-1);
@@ -156,8 +156,8 @@ export function tendencia(el, m, { alto = 220, ate25 = false } = {}) {
     <text x="${W - mg.r + 6}" y="${mg.t + 8}">Flávio +${lim}</text><text x="${W - mg.r + 6}" y="${mg.t + ph}">Lula +${lim}</text>
     <line x1="${X(dia(m.hoje))}" x2="${X(dia(m.hoje))}" y1="${mg.t}" y2="${mg.t + ph}" stroke="${c("--regua")}" stroke-dasharray="2 3"/>
     ${datas}${linhas}
-    <path d="${dM}" fill="none" stroke="${c("--tinta")}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path class="t-media" d="${dM}" fill="none" stroke="${c("--tinta")}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
     ${pts}
-    <text x="${X(dia(u.data)) + 8}" y="${Y(u.v) - 8}" style="fill:${c("--tinta")};font-weight:600">média ${u.v >= 0 ? "Flávio" : "Lula"} +${p1.format(Math.abs(u.v))}</text>
+    <text class="t-rot" x="${X(dia(u.data)) + 8}" y="${Y(u.v) - 8}" style="fill:${c("--tinta")};font-weight:600">média ${u.v >= 0 ? "Flávio" : "Lula"} +${p1.format(Math.abs(u.v))}</text>
   </svg>`;
 }
