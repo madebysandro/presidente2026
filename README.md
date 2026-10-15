@@ -52,10 +52,20 @@ npm run dev
 
 ## Deploy
 
-- Produção só a partir da `main`, workflow [void-deploy.yml](.github/workflows/void-deploy.yml).
-- Secret do repositório: `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit + recursos ligados). Opcional: `CLOUDFLARE_ACCOUNT_ID`.
-- Sem preview de branch.
-- Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
+Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy e sem `CLOUDFLARE_API_TOKEN` no GitHub).
+
+Trigger (Worker → Settings → Builds), alinhado a [Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/):
+
+| Setting | Valor |
+| --- | --- |
+| Git branch | `main` |
+| Root directory | `/` |
+| Build command | `npm run build` |
+| Deploy command | `npx void deploy --platform cloudflare` |
+| Node.js | `24.21` (arquivo [`.nvmrc`](.nvmrc); default do build image já é 24.21.x) |
+| Preview builds | desligado |
+
+Workers Builds instala deps do lockfile antes do build; o token de deploy fica no painel Cloudflare (não no GitHub). Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 

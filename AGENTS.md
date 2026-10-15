@@ -5,5 +5,5 @@
 - Fidelidade visual (fase pesquisas): branch `prototipo/pesquisas`, commit `b1fe8ea`, direção A · Três semanas. Checklist em `docs/prototipo/README.md` quando a página entrar.
 - Guardrail: barra rosa, variantes B/C do protótipo de pesquisas, Three.js, mascotes e confetti ficam de fora.
 - Stack: Void (`void` + Vite). Config em `void.config.ts` / `void.lock.json`. Docs: https://void.cloud
-- Deploy: produção só na `main`, via `.github/workflows/void-deploy.yml` (`void deploy --platform cloudflare`); sem preview de branch. Secret `CLOUDFLARE_API_TOKEN` (e opcionalmente `CLOUDFLARE_ACCOUNT_ID`) no repositório.
+- Deploy: produção só na `main`, via Cloudflare Workers Builds (sem workflow de deploy no GitHub). Build `npm run build`; deploy `npx void deploy --platform cloudflare`; root `/`; Node `24.21` (`.nvmrc`). Sem preview de branch.
 - Models: `.cursor/rules/pstack-models.mdc` (gerado por `/setup-pstack`, budget medium / high).
