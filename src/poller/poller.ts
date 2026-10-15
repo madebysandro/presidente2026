@@ -185,7 +185,10 @@ export class PollerApuracao extends DurableObject<Env> {
 			novoBackoff = null;
 
 			const idsCargos = metas.map((m) => m.id);
+			// #7: lista de UFs ainda vazia — não gravar encerrada no mesmo
+			// ele-6258, senão a Fase 2 (UFs) acha o DO já morto.
 			estado.encerrada =
+				SIGLAS_UF_CICLO.length > 0 &&
 				cicloCompleto &&
 				escoposProntosParaEncerrar(
 					estado,

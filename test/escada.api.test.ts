@@ -130,17 +130,19 @@ describe("Poller — escada sem mudança (#24)", () => {
 		expectativaIntervalo(ok.proximaConsulta!, tOk, 120);
 	});
 
-	it("com encerrada === true, nenhum alarme é reagendado", async () => {
+	it("a 100% com ciclo mínimo sem UFs, segue a escada (não trava encerrada)", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		await forcarConsulta();
 		const fim = await lerApuracao();
-		expect(fim.encerrada).toBe(true);
-		expect(fim.proximaConsulta).toBeNull();
-		expect(await lerAlarme()).toBeNull();
+		expect(fim.encerrada).toBeFalsy();
+		expect(fim.proximaConsulta).toEqual(expect.any(Number));
+		expect(await lerAlarme()).toEqual(expect.any(Number));
 
+		const t = Date.now();
 		await forcarConsulta();
-		expect((await lerApuracao()).proximaConsulta).toBeNull();
-		expect(await lerAlarme()).toBeNull();
+		const segundo = await lerApuracao();
+		expect(segundo.encerrada).toBeFalsy();
+		expectativaIntervalo(segundo.proximaConsulta!, t, 60);
 	});
 
 	it("com 100% e tf = n, a escada sobe em ciclos sem mudança", async () => {
