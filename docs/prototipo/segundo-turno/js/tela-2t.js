@@ -151,7 +151,7 @@ function momentos(hist, viradas, P, encerrada) {
 
 /* ---------- gráfico da vantagem (SVG, sem biblioteca) ---------- */
 
-export function pintarMargem(hist, viradas) {
+export function pintarMargem(hist, viradas, ref = null) {
 	const el = document.querySelector("[data-margem]");
 	if (!el) return;
 	const W = Math.max(280, Math.floor(el.clientWidth || 320));
@@ -165,7 +165,7 @@ export function pintarMargem(hist, viradas) {
 	});
 	// Escala pelas leituras a partir de 10% apurado: as primeiras urnas oscilam muito e achatariam o resto.
 	const firmes = pts.filter((p) => p.ap >= 10);
-	const maxAbs = Math.max(2, ...(firmes.length ? firmes : pts).map((p) => Math.abs(p.v)));
+	const maxAbs = Math.max(2, ...(firmes.length ? firmes : pts).map((p) => Math.abs(p.v)), ref ? Math.abs(ref.v) : 0);
 	const passo = [1, 2, 5, 10, 20].find((s) => (maxAbs * 1.15) / s <= 3) ?? 10;
 	const lim = Math.ceil((maxAbs * 1.15) / passo) * passo;
 	const X = (v) => m.l + (v / 100) * pw;
@@ -204,12 +204,14 @@ export function pintarMargem(hist, viradas) {
 		)
 		.join("");
 	const fora = pts.some((p) => Math.abs(p.v) > lim) ? `<text class="t" x="${X(pts[0].ap) + 4}" y="${m.t + 26}">↑ início fora da escala (${pf.format(Math.abs(pts[0].v))})</text>` : "";
+	// PROTO-PESQ (variante B): a média das pesquisas como referência tracejada
+	const linhaRef = ref ? `<line class="pq-ref" x1="${m.l}" x2="${W - m.r}" y1="${Y(ref.v)}" y2="${Y(ref.v)}"/><text class="t" x="${W - m.r + 6}" y="${Y(ref.v) + 4}">${esc(ref.rotulo)}</text>` : "";
 	const cUlt = cor(ult.v >= 0 ? K22 : K13);
 	const ponta = `<circle class="ping" cx="${X(ult.ap)}" cy="${Y(ult.v)}" r="4" fill="${cUlt}"/><circle class="pt" cx="${X(ult.ap)}" cy="${Y(ult.v)}" r="4" fill="${cUlt}"/>
     <text class="v" x="${Math.min(X(ult.ap) + 8, W - m.r + 4)}" y="${Y(ult.v) + (ult.v >= 0 ? -8 : 16)}">${pf.format(Math.abs(ult.v))}</text>`;
 	el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Vantagem em pontos percentuais ao longo da apuração">
     <defs>${clips}</defs>${falta}${grade}<line class="eixo" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ph}" y2="${m.t + ph}"/>${zero}${rot}
-    ${serie}${fora}${marcasVirada}${ponta}
+    ${linhaRef}${serie}${fora}${marcasVirada}${ponta}
     <line class="mira" x1="-10" x2="-10" y1="${m.t}" y2="${m.t + ph}"/>
     <rect class="hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}"/>
   </svg><div class="db-tip" hidden></div>`;

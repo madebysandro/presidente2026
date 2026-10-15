@@ -1,0 +1,552 @@
+{
+ "hoje": "2026-10-15",
+ "geradoEm": "2026-10-15 (CSV do TSE gerado 15/10 05:46)",
+ "registros": [
+  {
+   "registro": "BR-08134/2026",
+   "cnpj": "29550908000150",
+   "instituto": "PODERDATA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-05",
+   "campoFim": "2026-10-07",
+   "liberacao": "2026-10-08",
+   "entrevistas": 3000,
+   "margem": 1.8,
+   "confianca": 95.0,
+   "nome": "PoderData"
+  },
+  {
+   "registro": "BR-09623/2026",
+   "cnpj": "45613076000120",
+   "instituto": "INSTITUTO VOX BRASIL OPINIAO E PESQUISAS LTDA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-05",
+   "campoFim": "2026-10-07",
+   "liberacao": "2026-10-09",
+   "entrevistas": 2100,
+   "margem": 2.15,
+   "confianca": 95.0,
+   "nome": "Vox Brasil"
+  },
+  {
+   "registro": "BR-00933/2026",
+   "cnpj": "11849437000110",
+   "instituto": "IPESPE INST DE PESQUISAS SOCIAIS POLITICAS E ECONOMICAS",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-06",
+   "campoFim": "2026-10-08",
+   "liberacao": "2026-10-10",
+   "entrevistas": 1500,
+   "margem": 2.6,
+   "confianca": 95.45,
+   "nome": "Ipespe"
+  },
+  {
+   "registro": "BR-02949/2026",
+   "cnpj": "07630546000175",
+   "instituto": "DATAFOLHA INSTITUTO DE PESQUISAS LTDA.",
+   "contratantes": [
+    "Folha de S.Paulo",
+    "TV Globo"
+   ],
+   "campoInicio": "2026-10-06",
+   "campoFim": "2026-10-08",
+   "liberacao": "2026-10-08",
+   "entrevistas": 2520,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Datafolha"
+  },
+  {
+   "registro": "BR-03663/2026",
+   "cnpj": "19259002000128",
+   "instituto": "ATLASINTEL",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-03",
+   "campoFim": "2026-10-08",
+   "liberacao": "2026-10-09",
+   "entrevistas": 5000,
+   "margem": 1.0,
+   "confianca": 95.0,
+   "nome": "AtlasIntel"
+  },
+  {
+   "registro": "BR-03576/2026",
+   "cnpj": "51772470000104",
+   "instituto": "DATATRENDS",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-07",
+   "campoFim": "2026-10-09",
+   "liberacao": "2026-10-11",
+   "entrevistas": 2000,
+   "margem": 2.19,
+   "confianca": 95.0,
+   "nome": "Datatrends"
+  },
+  {
+   "registro": "BR-00650/2026",
+   "cnpj": "52908063000144",
+   "instituto": "100 CIDADES",
+   "contratantes": [
+    "Futura"
+   ],
+   "campoInicio": "2026-10-07",
+   "campoFim": "2026-10-10",
+   "liberacao": "2026-10-13",
+   "entrevistas": 2000,
+   "margem": 2.2,
+   "confianca": 95.0,
+   "nome": "100% Cidades"
+  },
+  {
+   "registro": "BR-01209/2026",
+   "cnpj": "29550908000150",
+   "instituto": "PODERDATA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-10",
+   "campoFim": "2026-10-12",
+   "liberacao": "2026-10-13",
+   "entrevistas": 3000,
+   "margem": 1.8,
+   "confianca": 95.0,
+   "nome": "PoderData"
+  },
+  {
+   "registro": "BR-07877/2026",
+   "cnpj": "05270800000146",
+   "instituto": "GRUPO GERP GERP MERCADO GERP OPINIAO GERPAUDIT",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-08",
+   "campoFim": "2026-10-12",
+   "liberacao": "2026-10-13",
+   "entrevistas": 2400,
+   "margem": 2.04,
+   "confianca": 95.55,
+   "nome": "GERP"
+  },
+  {
+   "registro": "BR-07997/2026",
+   "cnpj": "11077560000160",
+   "instituto": "NEXUS",
+   "contratantes": [
+    "BTG Pactual"
+   ],
+   "campoInicio": "2026-10-10",
+   "campoFim": "2026-10-12",
+   "liberacao": "2026-10-13",
+   "entrevistas": 2000,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Nexus"
+  },
+  {
+   "registro": "BR-08729/2026",
+   "cnpj": "22445600000104",
+   "instituto": "QUAEST PESQUISAS, CONSULTORIA E PROJETOS LTDA.",
+   "contratantes": [
+    "Editora Globo",
+    "TV Globo"
+   ],
+   "campoInicio": "2026-10-10",
+   "campoFim": "2026-10-13",
+   "liberacao": "2026-10-14",
+   "entrevistas": 2154,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Quaest"
+  },
+  {
+   "registro": "BR-04629/2026",
+   "cnpj": "10340949000194",
+   "instituto": "INDEXA PESQUISAS",
+   "contratantes": [
+    "Agência Estado"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-14",
+   "liberacao": "2026-10-15",
+   "entrevistas": 2000,
+   "margem": 2.19,
+   "confianca": 95.0,
+   "nome": "Indexa"
+  },
+  {
+   "registro": "BR-08028/2026",
+   "cnpj": "41522141000151",
+   "instituto": "PALVER",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-10",
+   "campoFim": "2026-10-14",
+   "liberacao": "2026-10-15",
+   "entrevistas": 5000,
+   "margem": 3.0,
+   "confianca": 95.0,
+   "nome": "Palver"
+  },
+  {
+   "registro": "BR-00223/2026",
+   "cnpj": "11849437000110",
+   "instituto": "IPESPE INST DE PESQUISAS SOCIAIS POLITICAS E ECONOMICAS",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-15",
+   "liberacao": "2026-10-17",
+   "entrevistas": 1500,
+   "margem": 2.6,
+   "confianca": 95.45,
+   "nome": "Ipespe"
+  },
+  {
+   "registro": "BR-00466/2026",
+   "cnpj": "07630546000175",
+   "instituto": "DATAFOLHA INSTITUTO DE PESQUISAS LTDA.",
+   "contratantes": [
+    "Folha de S.Paulo"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-15",
+   "liberacao": "2026-10-15",
+   "entrevistas": 2520,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Datafolha"
+  },
+  {
+   "registro": "BR-00652/2026",
+   "cnpj": "19090489000168",
+   "instituto": "MDA-PESQUISA DE OPINIAO PUBLICA E CONSULT. ESTATIST. LTDA - EPP",
+   "contratantes": [
+    "CNT"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-15",
+   "liberacao": "2026-10-16",
+   "entrevistas": 2002,
+   "margem": 2.2,
+   "confianca": 95.0,
+   "nome": "MDA"
+  },
+  {
+   "registro": "BR-03764/2026",
+   "cnpj": "52908063000144",
+   "instituto": "100 CIDADES",
+   "contratantes": [
+    "Futura"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-15",
+   "liberacao": "2026-10-16",
+   "entrevistas": 2000,
+   "margem": 2.2,
+   "confianca": 95.0,
+   "nome": "100% Cidades"
+  },
+  {
+   "registro": "BR-04258/2026",
+   "cnpj": "29550908000150",
+   "instituto": "PODERDATA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-15",
+   "liberacao": "2026-10-16",
+   "entrevistas": 3000,
+   "margem": 1.8,
+   "confianca": 95.0,
+   "nome": "PoderData"
+  },
+  {
+   "registro": "BR-00152/2026",
+   "cnpj": "51751580000190",
+   "instituto": "INSTITUTO RANKING PESQUISA",
+   "contratantes": [
+    "Fonte 83"
+   ],
+   "campoInicio": "2026-10-14",
+   "campoFim": "2026-10-16",
+   "liberacao": "2026-10-19",
+   "entrevistas": 2100,
+   "margem": 2.15,
+   "confianca": 95.0,
+   "nome": "Ranking"
+  },
+  {
+   "registro": "BR-01107/2026",
+   "cnpj": "00654576000172",
+   "instituto": "VERITA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-12",
+   "campoFim": "2026-10-16",
+   "liberacao": "2026-10-17",
+   "entrevistas": 15554,
+   "margem": 1.0,
+   "confianca": 95.0,
+   "nome": "Verita"
+  },
+  {
+   "registro": "BR-05187/2026",
+   "cnpj": "05270800000146",
+   "instituto": "GRUPO GERP GERP MERCADO GERP OPINIAO GERPAUDIT",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-14",
+   "campoFim": "2026-10-16",
+   "liberacao": "2026-10-13",
+   "entrevistas": 2400,
+   "margem": 2.04,
+   "confianca": 95.55,
+   "nome": "GERP"
+  },
+  {
+   "registro": "BR-08809/2026",
+   "cnpj": "04942645000102",
+   "instituto": "INSTITUTO PHOENIX & ASSOCIADOS",
+   "contratantes": [
+    "Correio Continental (RO)"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-16",
+   "liberacao": "2026-10-18",
+   "entrevistas": 3999,
+   "margem": 1.55,
+   "confianca": 95.0,
+   "nome": "Phoenix"
+  },
+  {
+   "registro": "BR-04332/2026",
+   "cnpj": "45613076000120",
+   "instituto": "INSTITUTO VOX BRASIL OPINIAO E PESQUISAS LTDA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-15",
+   "campoFim": "2026-10-17",
+   "liberacao": "2026-10-18",
+   "entrevistas": 2100,
+   "margem": 2.15,
+   "confianca": 95.0,
+   "nome": "Vox Brasil"
+  },
+  {
+   "registro": "BR-04454/2026",
+   "cnpj": "51772470000104",
+   "instituto": "DATATRENDS",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-15",
+   "campoFim": "2026-10-17",
+   "liberacao": "2026-10-19",
+   "entrevistas": 2000,
+   "margem": 2.19,
+   "confianca": 95.0,
+   "nome": "Datatrends"
+  },
+  {
+   "registro": "BR-06715/2026",
+   "cnpj": "52908063000144",
+   "instituto": "100 CIDADES",
+   "contratantes": [
+    "Futura"
+   ],
+   "campoInicio": "2026-10-16",
+   "campoFim": "2026-10-17",
+   "liberacao": "2026-10-19",
+   "entrevistas": 2000,
+   "margem": 2.2,
+   "confianca": 95.0,
+   "nome": "100% Cidades"
+  },
+  {
+   "registro": "BR-02418/2026",
+   "cnpj": "19259002000128",
+   "instituto": "ATLASINTEL",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-13",
+   "campoFim": "2026-10-18",
+   "liberacao": "2026-10-19",
+   "entrevistas": 5000,
+   "margem": 1.0,
+   "confianca": 95.0,
+   "nome": "AtlasIntel"
+  },
+  {
+   "registro": "BR-02586/2026",
+   "cnpj": "29550908000150",
+   "instituto": "PODERDATA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-16",
+   "campoFim": "2026-10-18",
+   "liberacao": "2026-10-19",
+   "entrevistas": 3000,
+   "margem": 1.8,
+   "confianca": 95.0,
+   "nome": "PoderData"
+  },
+  {
+   "registro": "BR-04499/2026",
+   "cnpj": "11077560000160",
+   "instituto": "NEXUS",
+   "contratantes": [
+    "BTG Pactual"
+   ],
+   "campoInicio": "2026-10-16",
+   "campoFim": "2026-10-18",
+   "liberacao": "2026-10-19",
+   "entrevistas": 2000,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Nexus"
+  },
+  {
+   "registro": "BR-00820/2026",
+   "cnpj": "22400349000153",
+   "instituto": "ALFA INTELIGENCIA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-15",
+   "campoFim": "2026-10-19",
+   "liberacao": "2026-10-20",
+   "entrevistas": 2700,
+   "margem": 1.9,
+   "confianca": 95.0,
+   "nome": "Alfa Inteligência"
+  },
+  {
+   "registro": "BR-02952/2026",
+   "cnpj": "22345021000181",
+   "instituto": "REAL TIME BIG DATA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-15",
+   "campoFim": "2026-10-19",
+   "liberacao": "2026-10-20",
+   "entrevistas": 2000,
+   "margem": 2.0,
+   "confianca": 95.0,
+   "nome": "Real Time Big Data"
+  },
+  {
+   "registro": "BR-06396/2026",
+   "cnpj": "00654576000172",
+   "instituto": "VERITA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-15",
+   "campoFim": "2026-10-19",
+   "liberacao": "2026-10-20",
+   "entrevistas": 15554,
+   "margem": 1.0,
+   "confianca": 95.0,
+   "nome": "Verita"
+  },
+  {
+   "registro": "BR-07896/2026",
+   "cnpj": "24899123000174",
+   "instituto": "INSTITUTO FRANCA DE PESQUISA PESQUISA E ASSESSORIA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-16",
+   "campoFim": "2026-10-20",
+   "liberacao": "2026-10-20",
+   "entrevistas": 3000,
+   "margem": 1.8,
+   "confianca": 95.0,
+   "nome": "Instituto Franca"
+  },
+  {
+   "registro": "BR-06957/2026",
+   "cnpj": "55686336000141",
+   "instituto": "VETOR ARROW INSTITUTO DE PESQUISA E OPINIAO LTDA",
+   "contratantes": [
+    "recursos próprios"
+   ],
+   "campoInicio": "2026-10-22",
+   "campoFim": "2026-10-23",
+   "liberacao": "2026-10-20",
+   "entrevistas": 3000,
+   "margem": null,
+   "confianca": null,
+   "nome": "Vetor"
+  }
+ ],
+ "resultados": {
+  "BR-02949/2026": {
+   "flavio": 49,
+   "lula": 45,
+   "brancoNulo": 5,
+   "naoSabe": 1,
+   "validosFlavio": 52,
+   "validosLula": 48,
+   "fonte": "https://www.metropoles.com/brasil/datafolha-2o-turno-flavio-tem-52-e-lula-48",
+   "cadastradoEm": "2026-10-08T21:12:00-03:00"
+  },
+  "BR-08134/2026": {
+   "flavio": 49,
+   "lula": 44,
+   "brancoNulo": 5,
+   "naoSabe": 2,
+   "validosFlavio": 53,
+   "validosLula": 47,
+   "fonte": "https://sbtnews.sbt.com.br/noticia/politica/poder-data-aya-flavio-53-x-47-lula-em-votos-validos",
+   "cadastradoEm": "2026-10-08T19:40:00-03:00"
+  },
+  "BR-03663/2026": {
+   "flavio": 51.1,
+   "lula": 45.7,
+   "brancoNuloNaoSabe": 3.2,
+   "validosFlavio": 52.8,
+   "validosLula": 47.2,
+   "fonte": "https://www.brasildefato.com.br/2026/10/09/pesquisa-atlasintelbloomberg-mostra-flavio-bolsonaro-com-528-dos-votos-validos-no-2o-turno-e-lula-com-472/",
+   "cadastradoEm": "2026-10-09T12:05:00-03:00"
+  },
+  "BR-01209/2026": {
+   "flavio": 48,
+   "lula": 46,
+   "brancoNulo": 5,
+   "naoSabe": 2,
+   "validosFlavio": 51,
+   "validosLula": 49,
+   "fonte": "https://sbtnews.sbt.com.br/noticia/eleicoes/poder-data-aya-flavio-tem-51-e-lula-49-no-segundo-turno",
+   "cadastradoEm": "2026-10-13T18:22:00-03:00"
+  },
+  "BR-08729/2026": {
+   "flavio": 46,
+   "lula": 44,
+   "brancoNulo": 9,
+   "naoSabe": 1,
+   "fonte": "https://www.poder360.com.br/poder-eleicoes-2026/flavio-tem-46-e-lula-tem-44-no-2o-turno-diz-quaest/",
+   "cadastradoEm": "2026-10-14T20:31:00-03:00"
+  }
+ }
+}

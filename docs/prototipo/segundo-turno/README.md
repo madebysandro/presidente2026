@@ -81,3 +81,17 @@ Resultado em 11/10/2026: **8/8 casos ok**. As capturas ficaram em `/tmp/proto2t-
 ## Decisões e perguntas em aberto
 
 Estão em [DESIGN-NOTAS.md](DESIGN-NOTAS.md).
+
+## Módulo de pesquisas (branch `prototipo/pesquisas`, 15/10/2026)
+
+Pergunta: como a página mostra as pesquisas antes das 17h, ao lado da apuração ao vivo e no "Pesquisas × urnas"?
+
+```bash
+python3 -m http.server 8766 -d docs/prototipo/segundo-turno
+# http://localhost:8766/?variant=A&momento=pre
+```
+
+- `?variant=A|B|C`, setas ← → ou a barra: **A · Placar** (média como placar de duelo, tabela, "Vêm aí" na lateral), **B · Linha do tempo** (gráfico até 25/10 como herói, feed cronológico; ao vivo a média vira marca no cabo de guerra e linha no gráfico da apuração), **C · Por instituto** (tabela de institutos que liga/desliga o gráfico; no fim, ranking).
+- `?momento=pre|aovivo|encerrado`, botões da barra ou tecla `m`.
+- Dados reais: `dados/pesquisas.json` = 33 registros nacionais do CSV de dados abertos do TSE (15/10) + 5 pesquisas com números da imprensa. A média é calculada em 15/10 em todos os momentos; a apuração continua fictícia (`js/mock-2t.js`).
+- Código: `js/pesquisas.js`, `css/proto-pesq.css`; patches marcados `PROTO-PESQ` em `js/app-2t.js` e `js/tela-2t.js`.

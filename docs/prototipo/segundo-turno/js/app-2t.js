@@ -6,16 +6,20 @@ import { atualizarFaixaDados, iniciarFaixaStatus, novidadeStatus } from "./movim
 import { capturarFlip, flip } from "./movimento/flip.js";
 import { barraViva, ligarBarras } from "./movimento/fluxo-barras.js";
 import { gerar } from "./mock-2t.js";
-import { montarSwitcher, varianteAtual } from "./proto-switcher.js";
+import { estadoProto, MOMENTOS, montarSwitcher } from "./proto-switcher.js";
+import { DESENHOS, depois as depoisPQ, modelo } from "./pesquisas.js";
 import { alternarTema, aplicarTema, ativar, conta, definirArquivoCongelado, deltaPp, pf, spark, temaSalvo } from "./tela1-util.js";
 import { cartaoColegios, cartaoComparacao, cartaoComparecimento, cartaoDuelo, cartaoEstados, cartaoExterior, destaques2t, pintarMargem } from "./tela-2t.js";
 
 const app = document.querySelector("#app");
 aplicarTema(temaSalvo());
-const variante = varianteAtual();
+const { desenho, momento } = estadoProto();
+const variante = MOMENTOS[momento].mock;
+const D = DESENHOS[desenho];
 montarSwitcher();
 
-const [e1, col] = await Promise.all(["dados/estado-1t.json", "dados/colegios-1t.json"].map(async (u) => (await fetch(u)).json()));
+const [e1, col, pesqDados] = await Promise.all(["dados/estado-1t.json", "dados/colegios-1t.json", "dados/pesquisas.json"].map(async (u) => (await fetch(u)).json()));
+const pq = modelo(pesqDados);
 const { dados, hist, viradas } = gerar(e1, col, variante);
 const P = dados.cargos.presidente;
 const pre = variante === "pre";
@@ -56,34 +60,44 @@ function kpis() {
 
 function corpo() {
 	const ctx = { P, an: dados.analise.majoritarias.presidente, hist, viradas, ufs: dados.ufs, colegios: dados.colegios, compExterior: dados.compExterior, e1, col, pre, encerrada };
-	return `<div class="t2-grade">
+	// PROTO-PESQ: cartão das pesquisas ao vivo/encerrada (A e C na coluna da direita; B em faixa inteira).
+	const extra = pre ? "" : encerrada ? D.encerrado(pq, P) : D.aoVivo(pq, P);
+	const direita = desenho !== "B";
+	return `<div class="t2-grade ${extra && direita ? "pq-com-cartao" : ""}">
       ${cartaoDuelo(ctx)}
+      ${direita ? extra : ""}
       ${cartaoExterior(ctx)}
       ${cartaoComparecimento(ctx)}
       ${cartaoComparacao(ctx)}
+      ${direita ? "" : extra}
       ${cartaoEstados(ctx)}
       ${cartaoColegios(ctx)}
     </div>`;
 }
 
+const refMargem = !pre && desenho === "B" ? D.refMargem(pq) : null;
+
 function pintar(entrada) {
 	const antes = capturarFlip();
 	definirArquivoCongelado(encerrada);
-	const itens = destaques2t({ P, ufs: dados.ufs, colegios: dados.colegios, viradas, pre, encerrada }).map((d) => `<span>${d}</span>`).join("");
+	const mdTxt = `<b>Pesquisas</b>média de ${pq.media.n} institutos: Flávio ${pf.format(pq.media.vf)}% × Lula ${pf.format(pq.media.vl)}% dos válidos`;
+	const itens = [...(pre ? [mdTxt] : []), ...destaques2t({ P, ufs: dados.ufs, colegios: dados.colegios, viradas, pre, encerrada })].map((d) => `<span>${d}</span>`).join("");
 	app.classList.toggle("db-entrada", entrada);
 	app.innerHTML = `<div class="db">
     <header class="db-topo">
-      <div class="db-marca"><b>Apuração 2026 · 2º turno</b><span>Presidente · Brasil · 25/10 · dados oficiais do TSE</span></div>
+      <div class="db-marca"><b>Presidente 2026 · 2º turno</b><span>Pesquisas registradas no TSE e apuração ao vivo · 25/10</span></div>
     </header>
     <div class="db-ticker" aria-label="Destaques do 2º turno"><b><i></i>DESTAQUES</b>
       <div class="db-janela"><div class="db-rolo">${itens}${itens}</div></div></div>
-    ${kpis()}
+    ${pre ? `${D.pre(pq)}<h2 class="pq-secao">Apuração <small>começa às 17h de 25/10 · o arquivo oficial do 2º turno já está publicado, zerado</small></h2>` : kpis()}
     <main class="db-tela">${corpo()}</main>
     <p class="db-rodape">Estimativas de votos a apurar, virada e "para onde foram os votos" supõem que as seções ainda não apuradas se comportam como as já apuradas; o TSE não publica transferência de votos entre turnos. Use-as como referência, não como previsão.
       <span class="db-arquivo">Fonte oficial: <a href="https://resultados.tse.jus.br/" target="_blank" rel="noopener">resultados.tse.jus.br</a>.</span></p>
   </div>`;
 	ativar();
-	pintarMargem(hist, viradas);
+	pintarMargem(hist, viradas, refMargem);
+	if (!pre && desenho === "B") D.marcar(pq);
+	depoisPQ(pq);
 	ligarBarras();
 	flip(antes);
 	app.classList.remove("db-entrada");
@@ -92,7 +106,7 @@ function pintar(entrada) {
 let redim;
 addEventListener("resize", () => {
 	clearTimeout(redim);
-	redim = setTimeout(() => pintarMargem(hist, viradas), 150);
+	redim = setTimeout(() => pintarMargem(hist, viradas, refMargem), 150);
 });
 
 pintar(true);
