@@ -144,3 +144,25 @@ body[data-v="A"] {
   .a-ponto, .a-vem { animation: none; }
   .a-relogio .odo > span { transition: none; }
 }
+
+/* ---------- rostos (fotos oficiais do TSE, 161×225, mesmo tratamento para os dois) ---------- */
+.a-rosto, .a-ponta, .a-mini-rosto, .a-i-rosto { object-fit: cover; object-position: 50% 22%; border-radius: 50%; background: var(--regua); }
+.a-rosto { width: .9em; height: .9em; margin-right: .18em; vertical-align: -.08em; box-shadow: 0 0 0 .05em var(--papel), 0 0 0 .1em currentColor; }
+.a-cabo-linha { grid-column: 1 / -1; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 10px; align-items: center; margin-top: 14px; }
+.a-cabo-linha .a-cabo { grid-column: auto; margin-top: 0; }
+.a-ponta { width: 44px; height: 44px; }
+.a-ponta:first-child { box-shadow: 0 0 0 3px var(--f); }
+.a-ponta:last-child { box-shadow: 0 0 0 3px var(--l); }
+.a-mini-rosto { width: 34px; height: 34px; margin: 0 8px; vertical-align: -6px; }
+.a-det-num .a-f .a-mini-rosto { margin-left: 0; box-shadow: 0 0 0 2px var(--f); }
+.a-det-num .a-l .a-mini-rosto { margin-right: 0; box-shadow: 0 0 0 2px var(--l); }
+.a-i-f, .a-i-l { gap: 18px; }
+.a-i-rosto { width: clamp(110px, 16vw, 200px); height: clamp(110px, 16vw, 200px); box-shadow: 0 0 0 5px #fff; }
+@media (max-width: 760px) {
+  .a-cabo-linha { grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 8px; }
+  .a-ponta { width: 34px; height: 34px; }
+  .a-mini-rosto { width: 26px; height: 26px; }
+}
+.a-rosto, .a-mini-rosto { display: inline-block; }
+.a-veredito h1 > span { white-space: nowrap; }
+.a-veredito h1 { font-size: clamp(32px, 5vw, 64px); }

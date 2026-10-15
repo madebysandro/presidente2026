@@ -4,7 +4,7 @@
  * se recalcula a cada chegada. Relógio vivo, barrinha que voa até o detalhe, gráfico que se desenha.
  * Tudo com Web Animations API; "reduzir movimento" mostra o estado final direto.
  */
-import { ELEICAO, chips, contagem, desligados, dia, ddmm, diaSemana, esc, fichaTexto, iso, libEfetiva, ligarChips, mediaEm, n1, p1, porExtenso, tendencia, totaisTexto } from "./dados.js";
+import { ELEICAO, F, L, chips, contagem, desligados, dia, ddmm, diaSemana, esc, fichaTexto, iso, libEfetiva, ligarChips, mediaEm, n1, p1, porExtenso, tendencia, totaisTexto } from "./dados.js";
 
 export const nome = "Três semanas";
 const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -116,13 +116,14 @@ export function render(m, root) {
     <header class="a-topo">
       <p class="a-marca">Presidente 2026, 2º turno</p>
       <div class="a-veredito">
-        <h1><span class="a-f">Flávio <b data-vf>${p1.format(m.media.vf)}</b></span> <span class="a-x">a</span> <span class="a-l">Lula <b data-vl>${p1.format(m.media.vl)}</b></span></h1>
+        <h1><span class="a-f"><img class="a-rosto" src="${F.foto}" alt="" width="161" height="225">Flávio <b data-vf>${p1.format(m.media.vf)}</b></span> <span class="a-x">a</span> <span class="a-l"><img class="a-rosto" src="${L.foto}" alt="" width="161" height="225">Lula <b data-vl>${p1.format(m.media.vl)}</b></span></h1>
         <p>É a média das últimas pesquisas de <span data-n>${m.media.n}</span> institutos, em votos válidos. Cada quadrado abaixo é um dia da reta final.</p>
       </div>
       <div class="a-conta"><b data-conta>${contagem().d}</b><span>dias e<br><span class="a-relogio" data-relogio></span><br>até a votação</span></div>
+      <div class="a-cabo-linha"><img class="a-ponta" src="${F.foto}" alt="" width="161" height="225">
       <div class="a-cabo" role="img" aria-label="Flávio ${p1.format(m.media.vf)}%, Lula ${p1.format(m.media.vl)}%, margem de erro média de ${n1.format(margem)} ponto${margem === 1 ? "" : "s"}">
         <i class="a-cabo-f" style="width:${m.media.vf}%"></i><span class="a-cabo-margem" style="left:${m.media.vf - margem}%;width:${2 * margem}%"></span><em class="a-cabo-50"></em>
-      </div>
+      </div><img class="a-ponta" src="${L.foto}" alt="" width="161" height="225"></div>
       <p class="a-cabo-leg">A faixa clara é a margem de erro média dessas pesquisas, ${n1.format(margem)} ponto${margem === 1 ? "" : "s"} para cada lado: a divisa real pode estar em qualquer lugar dela.</p>
       ${proxima ? `<p class="a-proxima"><span class="a-ponto" aria-hidden="true"></span><span>${esc(proxima.nomes)} podem divulgar a partir de ${porExtenso(proxima.d)}, <b data-proxima></b>.</span></p>` : ""}
     </header>
@@ -133,7 +134,7 @@ export function render(m, root) {
     <div class="a-leg"><span class="a-leg-pub">pesquisa divulgada</span><span class="a-leg-vem">registrada no TSE, ainda não divulgada</span><span class="a-leg-sem">liberada, números ainda não cadastrados</span>
       <button type="button" class="a-rever">Rever as três semanas</button></div>
     <section class="a-det" aria-live="polite">
-      <div class="a-det-num"><span class="a-f">Flávio <b data-dvf>${p1.format(ultima.vf)}</b></span><span class="a-l">Lula <b data-dvl>${p1.format(ultima.vl)}</b></span></div>
+      <div class="a-det-num"><span class="a-f"><img class="a-mini-rosto" src="${F.foto}" alt="" width="161" height="225">Flávio <b data-dvf>${p1.format(ultima.vf)}</b></span><span class="a-l">Lula <b data-dvl>${p1.format(ultima.vl)}</b><img class="a-mini-rosto" src="${L.foto}" alt="" width="161" height="225"></span></div>
       <div class="a-barra" data-dbarra><i style="width:${ultima.vf}%"></i><i style="width:${ultima.vl}%"></i></div>
       <div data-dtxt>${textoDetalhe(ultima)}</div>
     </section>
@@ -334,7 +335,7 @@ export function render(m, root) {
 		const ov = document.createElement("div");
 		ov.className = "a-intro";
 		ov.setAttribute("aria-hidden", "true");
-		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em></div>
+		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em></div>
       <div class="a-i-txt"><p class="a-i-data"><span>25 de outubro</span></p><p class="a-i-sub">2º turno para presidente</p><p class="a-i-faltam">faltam <b>20</b> dias</p></div>`;
 		document.body.append(ov);
 		document.documentElement.style.overflow = "hidden";
@@ -352,6 +353,10 @@ export function render(m, root) {
 		anim(q(".a-i-f"), [{ transform: "scaleX(0)" }, { transform: "none" }], { delay: t1, duration: 700 });
 		anim(q(".a-i-l"), [{ transform: "scaleX(0)" }, { transform: "none" }], { delay: t1, duration: 700 });
 		anim(q(".a-i-faixa em"), [{ transform: "scaleY(0)" }, { transform: "none" }], { delay: t1 + 500, duration: 500 });
+		for (const r of ov.querySelectorAll(".a-i-rosto")) {
+			anim(r, [{ opacity: 0, transform: "translateY(40px) scale(.9)" }, { opacity: 1, transform: "none" }], { delay: t1 + 250, duration: 650 });
+			anim(r, [{ opacity: 1 }, { opacity: 0 }], { delay: t1 + 1900, duration: 200, fill: "forwards" });
+		}
 		for (const [sel, x] of [[".a-i-f span", -40], [".a-i-l span", 40]]) {
 			anim(q(sel), [{ opacity: 0, transform: `translateX(${x}px)` }, { opacity: 1, transform: "none" }], { delay: t1 + 350, duration: 500 });
 			anim(q(sel), [{ opacity: 1 }, { opacity: 0 }], { delay: t1 + 1900, duration: 200, fill: "forwards" });
