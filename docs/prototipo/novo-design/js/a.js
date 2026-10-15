@@ -202,7 +202,6 @@ export function render(m, root) {
 		const tHoje = iHoje * PASSO;
 		const cabeca = root.querySelector(".a-veredito h1");
 		cabeca.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: 3 * PASSO, fill: "backwards" });
-		relogio.textContent = "dias até a votação";
 
 		celulas.forEach((cel, i) => {
 			const d = cel.dataset.d;
@@ -371,12 +370,13 @@ export function render(m, root) {
 		const t2 = t1 + 2050;
 		tm.push(
 			setTimeout(() => {
+				comecar(); // o calendário começa a correr enquanto a faixa voa para o topo
+				// mede o destino só depois que o calendário começou (nada mais mexe no layout do topo)
 				const alvo = root.querySelector(".a-cabo").getBoundingClientRect();
 				const faixa = q(".a-i-faixa");
 				const r = faixa.getBoundingClientRect();
 				anim(faixa, [{ transform: "none" }, { transform: `translate(${alvo.left - r.left}px, ${alvo.top - r.top}px) scale(${alvo.width / r.width}, ${alvo.height / r.height})` }], { duration: 750 });
 				anim(ov, [{ backgroundColor: "rgb(242 244 247)" }, { backgroundColor: "rgb(242 244 247 / 0)" }], { duration: 750 });
-				comecar(); // o calendário começa a correr enquanto a faixa voa para o topo
 			}, t2),
 		);
 		let comecou = false;
