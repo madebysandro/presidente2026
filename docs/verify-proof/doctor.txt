@@ -1,0 +1,6 @@
+VERIFY_URL=http://127.0.0.1:8792
+pid=5959 alive
+GET / ok + CSP
+apuracao json ok; no Pará/proporcional cargos
+GET /api/tela2 → 404 não achei
+doctor: PASS

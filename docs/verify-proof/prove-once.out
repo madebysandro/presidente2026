@@ -1,0 +1,27 @@
+ready http://127.0.0.1:8792 pid=5959
+VERIFY_URL=http://127.0.0.1:8792
+pid=5959 alive
+GET / ok + CSP
+apuracao_http=200
+apuracao json ok; no Pará/proporcional cargos
+GET /api/tela2 → 404 não achei
+doctor: PASS
+Navigating to http://127.0.0.1:8792/
+Capturing screenshot into /tmp/presidente2026-verify-prove1792102736/evidence/home.png
+prove-once assertions OK
+PROOF_OK RUN_ID=prove1792102736
+EVIDENCE=/tmp/presidente2026-verify-prove1792102736/evidence
+total 172
+drwxr-xr-x 2 ubuntu ubuntu   4096 Oct 15 22:19 .
+drwxr-xr-x 4 ubuntu ubuntu   4096 Oct 15 22:18 ..
+-rw-r--r-- 1 ubuntu ubuntu      3 Oct 15 22:18 api404.code.txt
+-rw-r--r-- 1 ubuntu ubuntu     10 Oct 15 22:18 api404.txt
+-rw-r--r-- 1 ubuntu ubuntu   1275 Oct 15 22:18 apuracao.json
+-rw-r--r-- 1 ubuntu ubuntu    157 Oct 15 22:18 doctor.txt
+-rw-r--r-- 1 ubuntu ubuntu    131 Oct 15 22:18 historico.json
+-rw-r--r-- 1 ubuntu ubuntu    448 Oct 15 22:18 home.headers.txt
+-rw-r--r-- 1 ubuntu ubuntu    551 Oct 15 22:18 home.html
+-rw-r--r-- 1 ubuntu ubuntu 136478 Oct 15 22:19 home.png
+stopped pid=5959
+stopped pid=6002
+cleanup done; evidence at /tmp/presidente2026-verify-prove1792102736/evidence
