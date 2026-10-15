@@ -1,14 +1,14 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "apuracao-2026",
+	"name": "presidente2026",
 	"main": "src/index.ts",
 	// Teto do workerd embutido em @cloudflare/vitest-pool-workers@0.22 (testes locais).
 	"compatibility_date": "2026-08-22",
-	// Mantém o subdomínio workers.dev além do domínio próprio.
-	"workers_dev": true,
+	// Sem workers.dev: a API do agente não deve ter segundo endereço público (spec D0).
+	"workers_dev": false,
 	"routes": [
 		{
-			"pattern": "apuracao.madebysandro.app",
+			"pattern": "presidente2026.win",
 			"custom_domain": true
 		}
 	],
@@ -22,6 +22,10 @@
 			{
 				"name": "POLLER",
 				"class_name": "PollerApuracao"
+			},
+			{
+				"name": "PESQUISAS",
+				"class_name": "Pesquisas"
 			}
 		]
 	},
@@ -29,12 +33,15 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["PollerApuracao"]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["Pesquisas"]
 		}
 	],
 	"vars": {
 		"TSE_BASE": "https://resultados.tse.jus.br/oficial",
-		"ELEICAO_FEDERAL": "6257",
-		"ELEICAO_ESTADUAL": "6259"
+		"ELEICAO_FEDERAL": "6258"
 	},
 	// Habilita Workers Caching para honrar Cache-Control/s-maxage de /api/apuracao.
 	"cache": {

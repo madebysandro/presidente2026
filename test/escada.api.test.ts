@@ -2,10 +2,13 @@
  * Issue #24 — escada de intervalo do poller quando o ciclo não traz mudança.
  * Seam: GET /api/apuracao (`proximaConsulta`) + alarme do Durable Object.
  */
-import { runInDurableObject } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { PollerApuracao } from "../src/poller/poller";
+import {
+	forcarConsulta,
+	lerAlarme,
+	limparPoller,
+} from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
 
 /** Escada acordada na issue #24 (segundos). */
@@ -21,31 +24,10 @@ type ApuracaoApi = {
 
 async function lerApuracao(): Promise<ApuracaoApi> {
 	const resposta = await exports.default.fetch(
-		new Request("http://apuracao.test/api/apuracao"),
+		new Request("http://presidente2026.test/api/apuracao"),
 	);
 	expect(resposta.status).toBe(200);
 	return resposta.json() as Promise<ApuracaoApi>;
-}
-
-async function forcarConsulta() {
-	const stub = env.POLLER.getByName(
-		"singleton",
-	) as DurableObjectStub<PollerApuracao>;
-	await stub.consultarAgora();
-}
-
-async function limparPoller() {
-	const stub = env.POLLER.getByName("singleton");
-	await runInDurableObject(stub, async (_inst, state) => {
-		await state.storage.deleteAll();
-	});
-}
-
-async function lerAlarme(): Promise<number | null> {
-	const stub = env.POLLER.getByName("singleton");
-	return runInDurableObject(stub, async (_inst, state) =>
-		state.storage.getAlarm(),
-	);
 }
 
 function expectativaIntervalo(

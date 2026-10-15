@@ -1,52 +1,19 @@
 <!doctype html>
-<html lang="pt-BR" data-tema="escuro">
+<html lang="pt-BR">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Apuração 2026</title>
+		<title>Presidente 2026 · 2º turno</title>
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-		<link rel="stylesheet" href="/css/tokens.css" />
-		<link rel="stylesheet" href="/css/tema.css" />
-		<script type="module">
-			import { aplicarTema, temaSalvo } from "/js/tela1-util.js";
-			aplicarTema(temaSalvo());
-		</script>
+		<link rel="stylesheet" href="/css/placeholder.css" />
 	</head>
-	<body data-tema="escuro">
-		<!-- Faixa fixa fora de #app: odômetro/anel/ciclo não reiniciam no redesenho (#13). -->
-		<div id="status-d" hidden>
-			<div class="sd-esq">
-				<span class="sd-vivo"><i></i><span class="sd-vivo-txt">Ao vivo</span></span>
-				<b class="sd-relogio" aria-hidden="true"></b>
-			</div>
-			<div class="sd-meio">
-				<div class="sd-base">
-					<span class="sd-rot sd-rot-tse">Dados do TSE</span>
-					<b class="sd-tse"></b>
-					<span class="sd-idade"></span>
-				</div>
-				<div class="sd-novidade" hidden aria-live="polite"></div>
-			</div>
-			<div class="sd-dir">
-				<span class="sd-rot sd-rot-prox">Próxima consulta</span>
-				<svg class="sd-anel" viewBox="0 0 20 20" aria-hidden="true">
-					<circle class="sd-trilha" cx="10" cy="10" r="8"></circle>
-					<circle class="sd-arco" cx="10" cy="10" r="8"></circle>
-				</svg>
-				<b class="sd-seg"></b>
-				<button
-					type="button"
-					class="db-tema"
-					data-tema-toggle
-					title="Alternar tema claro/escuro"
-					aria-label="Alternar tema claro/escuro"
-				>
-					◐
-				</button>
-			</div>
-			<i class="sd-ciclo"></i>
-		</div>
-		<div id="app"></div>
-		<script type="module" src="/js/app.js"></script>
+	<body>
+		<main class="shell">
+			<p class="marca">Presidente 2026 · 2º turno</p>
+			<h1>Em breve</h1>
+			<p class="apoio">
+				Pesquisas e apuração nacional — só Presidente, eleição 6258.
+			</p>
+		</main>
 	</body>
 </html>

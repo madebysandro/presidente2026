@@ -1,5 +1,7 @@
+import type { Leitura } from "./tipos";
+
 /** Leituras úteis de um cargo (sem repetir hora+apurado idênticos). */
-export function pontos(hist, id) {
+export function pontos(hist: Leitura[], id: string): Leitura[] {
 	return hist.filter(
 		(p, i) =>
 			p.c[id] &&
