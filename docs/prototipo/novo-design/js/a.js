@@ -335,7 +335,7 @@ export function render(m, root) {
 		const ov = document.createElement("div");
 		ov.className = "a-intro";
 		ov.setAttribute("aria-hidden", "true");
-		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-multidao" src="midia/multidao-flavio.jpg" alt=""><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-multidao" src="midia/multidao-lula.jpg" alt=""><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em><small class="a-i-ia">Ilustrações geradas por IA</small></div>
+		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-multidao" src="midia/multidao-flavio.jpg" alt=""><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-multidao" src="midia/multidao-lula.jpg" alt=""><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em><small class="a-i-ia">Imagens geradas por IA</small></div>
       <div class="a-i-txt"><p class="a-i-data"><span>25 de outubro</span></p><p class="a-i-sub">2º turno para presidente</p><p class="a-i-faltam">faltam <b>20</b> dias</p></div>`;
 		document.body.append(ov);
 		document.documentElement.style.overflow = "hidden";

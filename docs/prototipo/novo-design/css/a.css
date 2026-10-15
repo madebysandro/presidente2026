@@ -169,6 +169,6 @@ body[data-v="A"] {
 
 /* ---------- multidões (ilustrações geradas por IA, tingidas pela cor de cada lado) ---------- */
 .a-i-f, .a-i-l { overflow: hidden; }
-.a-i-multidao { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mix-blend-mode: multiply; opacity: .7; pointer-events: none; }
+.a-i-multidao { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mix-blend-mode: multiply; opacity: .62; pointer-events: none; }
 .a-i-f > :not(.a-i-multidao), .a-i-l > :not(.a-i-multidao) { position: relative; z-index: 1; }
 .a-i-ia { position: absolute; z-index: 2; left: 50%; top: 16px; transform: translateX(-50%); color: #fff; font: 500 12px/1 "Archivo", sans-serif; white-space: nowrap; }
