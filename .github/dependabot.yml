@@ -1,8 +1,7 @@
 version: 2
-# ponytail: package.json overrides pin undici 7.30.0 and sharp 0.35.5.
-# Ceiling: @cloudflare/vitest-pool-workers@0.22.0 (latest) vendors miniflare with
-# undici 7.29.0 and sharp 0.35.2. wrangler's miniflare is already at 7.29.1 / 0.35.4.
-# Drop the overrides when the pool ships those patched copies.
+# package.json overrides pin undici 7.30.0 and sharp 0.35.5.
+# Ceiling: @cloudflare/vitest-pool-workers@0.22.0 vendors miniflare with
+# undici 7.29.0 and sharp 0.35.2. Drop the overrides when the pool ships patches.
 updates:
   - package-ecosystem: npm
     directory: "/"

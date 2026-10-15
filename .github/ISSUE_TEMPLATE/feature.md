@@ -1,6 +1,6 @@
 ---
 name: Feature
-about: Pedido de mudança no painel
+about: Pedido de mudança em presidente2026.win
 title: ""
 labels: ""
 ---
