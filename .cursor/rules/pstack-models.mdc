@@ -1,0 +1,24 @@
+---
+description: pstack per-role model choices (overrides skill defaults)
+alwaysApply: true
+---
+# pstack model configuration. One line per role. Delete a line to fall back to the skill default.
+# `inherit-parent` or `auto` as a value: the role runs on the parent chat model (omit Task `model`). Alias entries in a panel list still count toward its fan-out.
+# budget: medium (high)
+feature, refactoring: auto
+bug-fix: auto
+perf-issue: auto
+hillclimb: auto
+judgment and prose: claude-opus-5-5-high
+hardest tasks: claude-opus-5-5-high
+how explorer: auto
+how explainer: claude-opus-5-5-high
+why investigators: auto
+why synthesizer: claude-opus-5-5-high
+reflect tooling: auto
+reflect judgment, divergent, synthesizer: claude-opus-5-5-high
+arena runners: auto, claude-opus-5-5-high
+arena cross-judge pool: claude-opus-5-5-high
+swarm workers: auto
+architect runners: auto, claude-opus-5-5-high
+interrogate reviewers: claude-opus-5-5-high

@@ -5,4 +5,4 @@
 - Fidelidade visual (fase pesquisas): branch `prototipo/pesquisas`, commit `b1fe8ea`, direção A · Três semanas. Checklist em `docs/prototipo/README.md` quando a página entrar.
 - Guardrail: barra rosa, variantes B/C do protótipo de pesquisas, Three.js, mascotes e confetti ficam de fora.
 - Deploy: produção só na `main`, pela Cloudflare Workers Builds; sem preview de branch.
-- Rules: se `.cursor/rules/ponytail.mdc` não carregar no boot do cloud agent, releia o arquivo do disco.
+- Rules: modelos pstack em `.cursor/rules/pstack-models.mdc` (sempre aplicado).
