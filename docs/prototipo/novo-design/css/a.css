@@ -15,7 +15,6 @@ body[data-v="A"] {
 .a-x { color: var(--suave); font-weight: 400; font-size: .5em; vertical-align: .3em; }
 .a-conta { display: flex; align-items: center; gap: 12px; }
 .a-conta b { font: 800 clamp(56px, 8vw, 104px)/.85 "Archivo", sans-serif; font-stretch: 125%; }
-.a-conta span { color: var(--suave); font-size: 14px; line-height: 1.3; }
 
 .a-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .a-sem-tit { padding: 0 8px 2px; color: var(--suave); font-size: 13px; }
@@ -95,4 +94,53 @@ body[data-v="A"] {
 .a-pesq { transition: background .2s; }
 @media (prefers-reduced-motion: reduce) {
   .a-prog, .a-barra i, .a-pesq { transition: none; }
+}
+
+/* ---------- motion: barra do cabo de guerra, odômetro, formigas, pulso ---------- */
+.a-cabo { grid-column: 1 / -1; position: relative; display: flex; height: 14px; margin-top: 14px; overflow: hidden; border-radius: 3px; background: var(--l); }
+.a-cabo-f { background: var(--f); }
+.a-cabo-margem { position: absolute; top: 0; bottom: 0; background: rgb(255 255 255 / .4); }
+.a-cabo-50 { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--tinta); }
+.a-cabo-leg { grid-column: 1 / -1; max-width: 80ch; color: var(--suave); font-size: 13px; }
+.a-proxima { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 15px; }
+.a-ponto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tinta); animation: a-pulso 1.6s ease-out infinite; }
+@keyframes a-pulso { from { box-shadow: 0 0 0 0 rgb(23 32 43 / .45); } to { box-shadow: 0 0 0 10px rgb(23 32 43 / 0); } }
+.a-hoje { display: inline-flex; align-items: center; gap: 6px; }
+.a-conta > span { color: var(--suave); font-size: 14px; line-height: 1.35; }
+.a-relogio { display: inline-flex; color: var(--tinta); font-size: 20px; font-weight: 700; font-stretch: 112%; }
+.a-relogio .odo { display: inline-block; height: 1em; overflow: hidden; line-height: 1em; }
+.a-relogio .odo > span { display: block; line-height: 1em; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+.a-relogio .odo-sep { line-height: 1em; }
+.a-vem {
+  border: 0; padding: 3px 8px;
+  background:
+    linear-gradient(90deg, var(--suave) 50%, transparent 0) 0 0 / 8px 1px repeat-x,
+    linear-gradient(90deg, var(--suave) 50%, transparent 0) 0 100% / 8px 1px repeat-x,
+    linear-gradient(0deg, var(--suave) 50%, transparent 0) 0 0 / 1px 8px repeat-y,
+    linear-gradient(0deg, var(--suave) 50%, transparent 0) 100% 0 / 1px 8px repeat-y;
+  animation: a-formigas .9s linear infinite;
+}
+@keyframes a-formigas { to { background-position: 8px 0, -8px 100%, 0 -8px, 100% 8px; } }
+
+/* ---------- vinheta de abertura ---------- */
+.a-intro { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; overflow: hidden; background: rgb(242 244 247); }
+.a-i-faixa { position: absolute; inset: 0; display: flex; transform-origin: top left; }
+.a-i-f, .a-i-l { position: relative; display: grid; align-content: center; padding: 0 5vw; color: #fff; font-style: normal; }
+.a-i-f { background: var(--f); transform-origin: left; }
+.a-i-l { flex: 1; justify-items: end; text-align: right; background: var(--l); transform-origin: right; }
+.a-i-f span, .a-i-l span { display: grid; font: 600 clamp(20px, 3vw, 36px)/1.1 "Archivo", sans-serif; }
+.a-i-f b, .a-i-l b { font: 800 clamp(64px, 15vw, 230px)/.9 "Archivo", sans-serif; font-stretch: 112%; letter-spacing: -.03em; }
+.a-i-faixa em { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; margin-left: -1.5px; background: #fff; transform-origin: top; }
+.a-i-txt { position: relative; z-index: 1; display: grid; justify-items: center; gap: 12px; padding: 0 16px; text-align: center; }
+.a-i-data { overflow: hidden; font: 800 clamp(44px, 10vw, 150px)/1.02 "Archivo", sans-serif; font-stretch: 118%; letter-spacing: -.03em; }
+.a-i-data span { display: inline-block; }
+.a-i-sub { color: var(--suave); font-size: clamp(16px, 2vw, 22px); }
+.a-i-faltam { font-size: clamp(18px, 2.4vw, 28px); }
+.a-i-faltam b { display: inline-block; min-width: 1.3em; font-weight: 800; }
+@media (max-width: 760px) {
+  .a-relogio { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a-ponto, .a-vem { animation: none; }
+  .a-relogio .odo > span { transition: none; }
 }
