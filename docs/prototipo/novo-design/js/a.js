@@ -335,7 +335,7 @@ export function render(m, root) {
 		const ov = document.createElement("div");
 		ov.className = "a-intro";
 		ov.setAttribute("aria-hidden", "true");
-		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><img class="a-i-multidao" src="midia/multidao-flavio.jpg" alt=""><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><img class="a-i-multidao" src="midia/multidao-lula.jpg" alt=""><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em><small class="a-i-ia">Imagens geradas por IA</small></div>
+		ov.innerHTML = `<div class="a-i-faixa"><i class="a-i-f" style="width:${m.media.vf}%"><video class="a-i-multidao" poster="midia/multidao-flavio.jpg" muted playsinline preload="auto"><source src="midia/multidao-flavio.webm" type="video/webm"><source src="midia/multidao-flavio.mp4" type="video/mp4"></video><img class="a-i-rosto" src="${F.foto}" alt="" width="161" height="225"><span>Flávio<b>${p1.format(m.media.vf)}</b></span></i><i class="a-i-l"><video class="a-i-multidao" poster="midia/multidao-lula.jpg" muted playsinline preload="auto"><source src="midia/multidao-lula.webm" type="video/webm"><source src="midia/multidao-lula.mp4" type="video/mp4"></video><img class="a-i-rosto" src="${L.foto}" alt="" width="161" height="225"><span>Lula<b>${p1.format(m.media.vl)}</b></span></i><em></em><small class="a-i-ia">Imagens geradas por IA</small></div>
       <div class="a-i-txt"><p class="a-i-data"><span>25 de outubro</span></p><p class="a-i-sub">2º turno para presidente</p><p class="a-i-faltam">faltam <b>20</b> dias</p></div>`;
 		document.body.append(ov);
 		document.documentElement.style.overflow = "hidden";
@@ -352,6 +352,8 @@ export function render(m, root) {
 		anim(q(".a-i-txt"), [{ opacity: 1 }, { opacity: 0 }], { delay: t1, duration: 300 });
 		anim(q(".a-i-f"), [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { delay: t1, duration: 700 });
 		anim(q(".a-i-l"), [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { delay: t1, duration: 700 });
+		// os vídeos começam quando os campos abrem; se não carregarem, fica o pôster (a foto)
+		tm.push(setTimeout(() => ov.querySelectorAll("video").forEach((v) => v.play().catch(() => {})), t1));
 		// as duas multidões andam devagar em direção à divisa
 		anim(q(".a-i-f .a-i-multidao"), [{ transform: "translateX(-5%) scale(1.1)" }, { transform: "translateX(3%) scale(1.1)" }], { delay: t1, duration: 3200, easing: "linear" });
 		anim(q(".a-i-l .a-i-multidao"), [{ transform: "translateX(5%) scale(1.1)" }, { transform: "translateX(-3%) scale(1.1)" }], { delay: t1, duration: 3200, easing: "linear" });
