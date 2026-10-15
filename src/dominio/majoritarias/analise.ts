@@ -1,7 +1,5 @@
+import { pontos } from "../pontos-hist";
 import type { Cargo, Leitura } from "../tipos";
-
-// @ts-expect-error JS compartilhado com o front (public/js/pontos-hist.js)
-import { pontos } from "../../../public/js/pontos-hist.js";
 
 /** Candidato citado na análise (defensor / perseguidor / tendência). */
 export type RefCandidatoAnalise = {

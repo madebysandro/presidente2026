@@ -1,6 +1,6 @@
 ---
 name: Bug
-about: Algo no painel, no poller ou no deploy quebrou
+about: Algo no site, no poller ou no deploy quebrou
 title: ""
 labels: ""
 ---

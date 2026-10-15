@@ -1,17 +1,17 @@
 {
-	"name": "apuracao-2026",
+	"name": "presidente2026",
 	"version": "0.1.0",
 	"private": true,
 	"license": "MIT",
 	"type": "module",
-	"description": "Painel de apuração 2026 (Presidente e Pará) com dados oficiais do TSE, no Cloudflare Workers.",
-	"homepage": "https://apuracao.madebysandro.app",
+	"description": "Pesquisas e apuração do 2º turno 2026 (Presidente nacional) em presidente2026.win.",
+	"homepage": "https://presidente2026.win",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/madebysandro/apuracao-2026.git"
+		"url": "git+https://github.com/madebysandro/presidente2026.git"
 	},
 	"bugs": {
-		"url": "https://github.com/madebysandro/apuracao-2026/issues"
+		"url": "https://github.com/madebysandro/presidente2026/issues"
 	},
 	"engines": {
 		"node": "22.x"

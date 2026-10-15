@@ -2,10 +2,13 @@
  * Issue #24 — escada de intervalo do poller quando o ciclo não traz mudança.
  * Seam: GET /api/apuracao (`proximaConsulta`) + alarme do Durable Object.
  */
-import { runInDurableObject } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { PollerApuracao } from "../src/poller/poller";
+import {
+	forcarConsulta,
+	lerAlarme,
+	limparPoller,
+} from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
 
 /** Escada acordada na issue #24 (segundos). */
@@ -21,31 +24,10 @@ type ApuracaoApi = {
 
 async function lerApuracao(): Promise<ApuracaoApi> {
 	const resposta = await exports.default.fetch(
-		new Request("http://apuracao.test/api/apuracao"),
+		new Request("http://presidente2026.test/api/apuracao"),
 	);
 	expect(resposta.status).toBe(200);
 	return resposta.json() as Promise<ApuracaoApi>;
-}
-
-async function forcarConsulta() {
-	const stub = env.POLLER.getByName(
-		"singleton",
-	) as DurableObjectStub<PollerApuracao>;
-	await stub.consultarAgora();
-}
-
-async function limparPoller() {
-	const stub = env.POLLER.getByName("singleton");
-	await runInDurableObject(stub, async (_inst, state) => {
-		await state.storage.deleteAll();
-	});
-}
-
-async function lerAlarme(): Promise<number | null> {
-	const stub = env.POLLER.getByName("singleton");
-	return runInDurableObject(stub, async (_inst, state) =>
-		state.storage.getAlarm(),
-	);
 }
 
 function expectativaIntervalo(
@@ -148,17 +130,19 @@ describe("Poller — escada sem mudança (#24)", () => {
 		expectativaIntervalo(ok.proximaConsulta!, tOk, 120);
 	});
 
-	it("com encerrada === true, nenhum alarme é reagendado", async () => {
+	it("a 100% com ciclo mínimo sem UFs, segue a escada (não trava encerrada)", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		await forcarConsulta();
 		const fim = await lerApuracao();
-		expect(fim.encerrada).toBe(true);
-		expect(fim.proximaConsulta).toBeNull();
-		expect(await lerAlarme()).toBeNull();
+		expect(fim.encerrada).toBeFalsy();
+		expect(fim.proximaConsulta).toEqual(expect.any(Number));
+		expect(await lerAlarme()).toEqual(expect.any(Number));
 
+		const t = Date.now();
 		await forcarConsulta();
-		expect((await lerApuracao()).proximaConsulta).toBeNull();
-		expect(await lerAlarme()).toBeNull();
+		const segundo = await lerApuracao();
+		expect(segundo.encerrada).toBeFalsy();
+		expectativaIntervalo(segundo.proximaConsulta!, t, 60);
 	});
 
 	it("com 100% e tf = n, a escada sobe em ciclos sem mudança", async () => {

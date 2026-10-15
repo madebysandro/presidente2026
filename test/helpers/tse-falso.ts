@@ -210,7 +210,7 @@ const SENADOR_INICIO = (() => {
 
 export const URLS_TSE = {
 	presidente:
-		"https://resultados.tse.jus.br/oficial/ele2026/6257/dados/br/br-c0001-e006257-u.json",
+		"https://resultados.tse.jus.br/oficial/ele2026/6258/dados/br/br-c0001-e006258-u.json",
 	governador:
 		"https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pa/pa-c0003-e006259-u.json",
 	senador:
@@ -536,7 +536,7 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		),
 		// Presidente por UF / exterior: …/dados/{uf}/{uf}-c0001-e006257-u.json
 		http.get(
-			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6257\/dados\/([a-z]{2})\/\1-c0001-e006257-u\.json/,
+			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1-c0001-e006258-u\.json/,
 			({ request, params }) => {
 				const uf = String(params[0] ?? "");
 				const ifNoneMatch = request.headers.get("if-none-match");
