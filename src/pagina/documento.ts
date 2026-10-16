@@ -1,9 +1,12 @@
+import { escHtml } from "../dominio/texto";
+import type { PayloadPesquisas } from "../pesquisas/tipos";
+import { dadosAbertura } from "./abertura";
 import { htmlCalendario } from "./calendario";
 import { htmlComoCalculamos, htmlRodape, htmlVantagem } from "./grafico";
 import { htmlTopo } from "./topo";
-import type { PayloadPesquisas } from "../pesquisas/tipos";
 
 export function documentoPesquisas(payload: PayloadPesquisas, agora: Date): string {
+	const abertura = escHtml(JSON.stringify(dadosAbertura(payload)));
 	return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -14,7 +17,7 @@ export function documentoPesquisas(payload: PayloadPesquisas, agora: Date): stri
 <link rel="stylesheet" href="/css/tres-semanas.css">
 </head>
 <body>
-<main class="a">
+<main class="a" data-abertura="${abertura}">
 ${htmlTopo(payload, agora)}
 ${htmlCalendario(payload, agora)}
 ${htmlVantagem(payload)}
@@ -24,6 +27,7 @@ ${htmlRodape()}
 <script src="/js/relogio.js" defer></script>
 <script src="/js/calendario.js" defer></script>
 <script src="/js/grafico.js" defer></script>
+<script src="/js/movimento.js" defer></script>
 </body>
 </html>`;
 }
