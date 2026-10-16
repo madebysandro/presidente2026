@@ -9,7 +9,9 @@ import {
 	montarAplicar,
 	registrosDoTse,
 } from "./importar";
+import { registrar } from "../log";
 import { chaveConfere } from "./chave";
+import { eventoImport } from "./log-import";
 import { bindingDeixaPassar } from "./limite-plataforma";
 import { confirmarHtml, lerFonte } from "./ler-fonte";
 import { montarPublico } from "./montar-publico";
@@ -122,30 +124,36 @@ export class Pesquisas extends DurableObject<Env> {
 
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
-		this.garantirEsquema();
-		const metaBase = this.lerMeta();
-		const lote = await this.prepararLote(metaBase);
-		if (lote === null) {
-			return this.ctx.blockConcurrencyWhile(async () => {
-				const meta = this.lerMeta();
-				if (!meta) throw new Error("304 sem import anterior");
-				return { kind: "nao_modificado" as const, meta };
-			});
-		}
-		return this.ctx.blockConcurrencyWhile(async () =>
-			this.aplicarLote(opts.motivo, lote),
-		);
+		return medirImport(opts.motivo, async () => {
+			this.garantirEsquema();
+			const metaBase = this.lerMeta();
+			const lote = await this.prepararLote(metaBase);
+			if (lote === null) {
+				return this.ctx.blockConcurrencyWhile(async () => {
+					const meta = this.lerMeta();
+					if (!meta) throw new Error("304 sem import anterior");
+					return { kind: "nao_modificado" as const, meta };
+				});
+			}
+			return this.ctx.blockConcurrencyWhile(async () =>
+				this.aplicarLote(opts.motivo, lote),
+			);
+		});
 	}
 
 	async garantirImportInicial(): Promise<void> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
-		const lote = await this.prepararLote(null);
-		if (lote === null) throw new Error("304 sem import anterior");
-		await this.ctx.blockConcurrencyWhile(async () => {
-			if (this.contarRegistros() === 0 && this.lerMeta() === null) {
-				this.aplicarLote("primeiro_acesso", lote);
-			}
+		await medirImport("primeiro_acesso", async () => {
+			const lote = await this.prepararLote(null);
+			if (lote === null) throw new Error("304 sem import anterior");
+			return this.ctx.blockConcurrencyWhile(async () => {
+				if (this.contarRegistros() === 0 && this.lerMeta() === null) {
+					return this.aplicarLote("primeiro_acesso", lote);
+				}
+				const meta = this.lerMeta();
+				return meta ? { kind: "nao_modificado" as const, meta } : null;
+			});
 		});
 	}
 
@@ -1190,6 +1198,22 @@ export class Pesquisas extends DurableObject<Env> {
 			classificacao: lerClassificacao(row.classificacao),
 			removidoDoTse: Number(row.removido_do_tse) === 1,
 		}));
+	}
+}
+
+/** Um evento por import. `null` = nada foi feito, nada a registrar. */
+async function medirImport<T extends Changeset | null>(
+	motivo: MotivoImport,
+	importar: () => Promise<T>,
+): Promise<T> {
+	const inicio = Date.now();
+	try {
+		const changeset = await importar();
+		if (changeset) registrar(eventoImport(motivo, changeset, Date.now() - inicio));
+		return changeset;
+	} catch (erro) {
+		registrar(eventoImport(motivo, { kind: "erro", erro }, Date.now() - inicio));
+		throw erro;
 	}
 }
 
