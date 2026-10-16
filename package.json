@@ -21,13 +21,11 @@
 		"prepare:void": "void prepare",
 		"dev": "vite",
 		"build": "void prepare && tsc --noEmit && vite build",
-		"test": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest run",
-		"test:watch": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest",
+		"test": "void prepare && vite build && node scripts/preparar-teste-void.mjs && vitest run",
+		"test:watch": "void prepare && vite build && node scripts/preparar-teste-void.mjs && vitest",
 		"smoke": "node scripts/smoke-vinheta.mjs",
 		"ensaio": "npm run build && node scripts/ensaio-noite.mjs",
-		"deploy": "void deploy --platform cloudflare",
-		"deploy:wrangler": "wrangler deploy -c dist/ssr/wrangler.json",
-		"cf-typegen": "wrangler types -c .void-wrangler.jsonc"
+		"deploy": "void deploy --platform cloudflare"
 	},
 	"overrides": {
 		"undici": "7.30.0",
@@ -37,12 +35,12 @@
 		"@cloudflare/vitest-pool-workers": "^0.23.0",
 		"@msw/cloudflare": "^0.2.0",
 		"@types/node": "^26.6.5",
+		"miniflare": "5.20261012.0-beta",
 		"msw": "^3.0.3",
 		"playwright-core": "^1.64.1",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
 		"vitest": "^5.0.3",
-		"void": "^1.1.11",
-		"wrangler": "^4.147.0"
+		"void": "^1.1.11"
 	}
 }

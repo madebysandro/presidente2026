@@ -1,7 +1,6 @@
 .DS_Store
 node_modules/
 .playwright-mcp/
-.wrangler/
 .dev.vars
 .env
 .env.*
@@ -13,10 +12,10 @@ prototipo-apuracao/public/media/raw/
 artifacts/
 screenshots/
 shots/
-.void-wrangler.jsonc
-wrangler.vitest.jsonc
+.void-*
+/.w*
+worker.vitest.json
 node_modules
 dist
 .void
-.wrangler
 *.tsbuildinfo

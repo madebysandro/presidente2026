@@ -21,7 +21,6 @@
 		"durable-objects/**/*.ts",
 		"middleware/**/*.ts",
 		"void.config.ts",
-		"vite.config.ts",
-		"worker-configuration.d.ts"
+		"vite.config.ts"
 	]
 }

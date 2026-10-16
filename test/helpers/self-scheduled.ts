@@ -1,9 +1,8 @@
 import { SELF } from "cloudflare:test";
 
 /**
- * Forma tipada do `Fetcher.scheduled` (workers-types experimental).
- * O `Fetcher` gerado em worker-configuration.d.ts ainda não declara o método;
- * o patch em scripts/patch-vpw-import-meta.mjs expõe a implementação no isolate.
+ * Forma tipada do `Fetcher.scheduled`.
+ * O patch em scripts/patch-vpw-import-meta.mjs expõe a implementação no isolate.
  */
 export type OpcoesCronSelf = {
 	cron?: string;

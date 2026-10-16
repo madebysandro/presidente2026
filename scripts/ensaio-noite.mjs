@@ -7,14 +7,14 @@
  * reduzir movimento. Sobe sozinho; não pede clique.
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
+import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { chromium } from "playwright-core";
-import { createTestHarness } from "wrangler";
+import { acharConfigDoBuild, modulosDoBundle, opcoesMiniflare, RAIZ } from "./runtime-local.mjs";
 
-const RAIZ = new URL("..", import.meta.url).pathname;
 const ABERTURA = Date.parse("2026-10-25T17:00:00-03:00");
 const REL_PESQUISAS = Date.parse("2026-10-16T12:00:00-03:00");
 /** 30 s antes da abertura: a escada de 60 s seria depois das 17h e tem de cair na hora. */
@@ -114,23 +114,31 @@ function tseFalso(corpos) {
 	};
 }
 
-function configDoEnsaio(origem) {
-	const built = JSON.parse(readFileSync(join(RAIZ, "dist/ssr/wrangler.json"), "utf8"));
-	const config = {
-		...built,
+function runtimeDoEnsaio(origem) {
+	const build = acharConfigDoBuild(join(RAIZ, "dist/ssr"));
+	const { ratelimits: _semTaxa, ...config } = build.json;
+	const opcoes = opcoesMiniflare({
+		config,
+		base: build.dir,
 		vars: {
-			...built.vars,
+			...config.vars,
 			TSE_BASE: origem,
 			CDN_PESQUISAS: origem,
 			CHAVE_AGENTE: "ensaio-local",
 		},
-	};
-	delete config.ratelimits;
-	delete config.configPath;
-	delete config.userConfigPath;
-	const caminho = join(RAIZ, "dist/ssr/wrangler.ensaio.json");
-	writeFileSync(caminho, JSON.stringify(config));
-	return caminho;
+	});
+	const convertido = convertV4MiniflareOptions({
+		name: config.name,
+		modules: modulosDoBundle(build.dir),
+		modulesRoot: build.dir,
+		compatibilityDate: opcoes.compatibilityDate,
+		compatibilityFlags: opcoes.compatibilityFlags,
+		bindings: opcoes.bindings,
+		durableObjects: opcoes.durableObjects,
+		assets: opcoes.assets,
+	});
+	convertido.workers[0].config.limits = { cpuMs: opcoes.limits.cpuMs };
+	return new Miniflare(convertido);
 }
 
 async function poller(worker) {
@@ -224,22 +232,13 @@ const corpos = await corposDaNoite();
 const tse = tseFalso(corpos);
 const portaTse = await ouvir(tse.servidor);
 const origemTse = `http://127.0.0.1:${portaTse}`;
-const configPath = configDoEnsaio(origemTse);
-
-const servidor = createTestHarness({
-	workers: [
-		{
-			configPath,
-			prebuiltWorkerDir: join(RAIZ, "dist/ssr"),
-		},
-	],
-});
+const servidor = runtimeDoEnsaio(origemTse);
 
 let browser;
 try {
-	const { url } = await servidor.listen();
+	const url = await servidor.ready;
 	const origem = url.href;
-	const worker = servidor.getWorker();
+	const worker = { getEnv: () => servidor.getBindings() };
 	console.log(`worker ${origem} · tse falso ${origemTse}`);
 
 	browser = await chromium.launch({
@@ -361,13 +360,13 @@ try {
 } catch (erro) {
 	anotar("roteiro", false, erro instanceof Error ? erro.stack || erro.message : String(erro));
 	try {
-		console.log(servidor.getLogs().slice(-30));
+		console.log(erro instanceof Error ? erro.message : String(erro));
 	} catch {
 		// o harness pode não ter subido
 	}
 } finally {
 	if (browser) await browser.close();
-	await servidor.close();
+	await servidor.dispose();
 	tse.servidor.close();
 }
 
