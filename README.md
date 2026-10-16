@@ -41,7 +41,8 @@ npm run dev
 | `npm test` | Gera `.void-wrangler.jsonc` + Vitest (`vitest-pool-workers`), TSE falso via MSW |
 | `npm run build` | `tsc --noEmit` + `vite build` (Void) |
 | `npm run dev` | `vite` com `voidPlugin` |
-| `npm run deploy` | `void deploy --platform cloudflare` |
+| `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback do Void) |
+| `npm run deploy:wrangler` | Fallback: `wrangler deploy -c dist/ssr/wrangler.json` (após `npm run build`) |
 
 ## Vars
 
@@ -52,20 +53,46 @@ npm run dev
 
 ## Deploy
 
-Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy e sem `CLOUDFLARE_API_TOKEN` no GitHub).
+Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy).
 
-Trigger (Worker → Settings → Builds), alinhado a [Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/):
+`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. O fallback seguro (sem readiness do Void) é `npm run deploy:wrangler` após `npm run build`, ou seja `npx wrangler deploy -c dist/ssr/wrangler.json`.
 
-| Setting | Valor |
+### account_id e token (Void verify)
+
+O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Sem isso, o Void em CI pode falhar ao inspecionar o Worker com `Could not verify existing Cloudflare Worker` (ele chama `deployments.status` + `versions.view` no account/Worker pinados).
+
+No Workers Builds o token do painel já entra no ambiente como `CLOUDFLARE_API_TOKEN` (Wrangler/Void leem essa var). **Não** é preciso criar uma build variable `CLOUDFLARE_API_TOKEN` extra se o token do Build Configuration for o padrão.
+
+Permissões do token padrão (Create new token no Builds) bastam para o verify:
+
+- Account → Account Settings → Read
+- Account → Workers Scripts → Edit (inclui leitura de deployments/versions)
+
+Não é necessário Account Settings além do Read já incluso, nem um segundo token, salvo se o token atual estiver stale/deletado.
+
+### Trigger de produção
+
+Enquanto o `void deploy` não for provado num build, o Deploy command do trigger pode permanecer no fallback wrangler. Depois da prova (log com readiness OK), Sandro troca só o Deploy command.
+
+| Setting | Valor alvo |
 | --- | --- |
 | Git branch | `main` |
 | Root directory | `/` |
 | Build command | `npm run build` |
-| Deploy command | `npx void deploy --platform cloudflare` |
-| Node.js | `24.21` (arquivo [`.nvmrc`](.nvmrc); default do build image já é 24.21.x) |
+| Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
+| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
 | Preview builds | desligado |
+| API token | o do Builds (Create new token se stale) |
 
-Workers Builds instala deps do lockfile antes do build; o token de deploy fica no painel Cloudflare (não no GitHub). Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
+#### Cliques no dashboard (Sandro)
+
+1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
+2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (permissions padrão acima) e salve.
+3. **Não** adicione `CLOUDFLARE_API_TOKEN` em Build variables/secrets só por causa do Void: o token do passo 2 já autentica o deploy command.
+4. Depois de um build verde com `npx void deploy --platform cloudflare` e readiness no log: em Deploy command, troque o fallback wrangler por `npx void deploy --platform cloudflare` e salve. O site continua no ar; só o próximo push/`Retry build` usa o novo comando.
+5. Se o void deploy falhar de novo: reverta o Deploy command para `npx wrangler deploy -c dist/ssr/wrangler.json` e rode **Retry build**.
+
+Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 
