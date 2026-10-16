@@ -17,7 +17,7 @@
 		"node": ">=24.21.0"
 	},
 	"scripts": {
-		"postinstall": "node scripts/patch-vpw-import-meta.mjs",
+		"postinstall": "node scripts/patch-vpw-self-scheduled.mjs",
 		"prepare:void": "void prepare",
 		"dev": "vite",
 		"build": "void prepare && tsc --noEmit && vite build",
@@ -41,7 +41,7 @@
 		"playwright-core": "^1.64.1",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
-		"vitest": "^5.0.3",
+		"vitest": "^4.1.12",
 		"void": "^1.1.11"
 	}
 }

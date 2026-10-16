@@ -2,7 +2,7 @@ import { SELF } from "cloudflare:test";
 
 /**
  * Forma tipada do `Fetcher.scheduled`.
- * O patch em scripts/patch-vpw-import-meta.mjs expõe a implementação no isolate.
+ * O patch em scripts/patch-vpw-self-scheduled.mjs expõe a implementação no isolate.
  */
 export type OpcoesCronSelf = {
 	cron?: string;
