@@ -2,7 +2,7 @@
  * Issue #19 adaptada a #7: com UFs ainda fora do ciclo, o DO ele-6258
  * NÃO grava encerrada (senão a Fase 2 herda o alarme morto).
  */
-import { exports } from "cloudflare:workers";
+import { fetchWorker } from "./helpers/fetch-worker";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	forcarConsulta,
@@ -24,7 +24,7 @@ type ApuracaoApi = {
 };
 
 async function lerApuracao(): Promise<ApuracaoApi> {
-	const resposta = await exports.default.fetch(
+	const resposta = await fetchWorker(
 		new Request("http://presidente2026.test/api/apuracao"),
 	);
 	expect(resposta.status).toBe(200);
@@ -103,7 +103,7 @@ describe("Poller — encerramento adiado até UFs (#7)", () => {
 		const estado = await lerApuracao();
 		expect(estado.encerrada).toBeFalsy();
 
-		const hist = await exports.default.fetch(
+		const hist = await fetchWorker(
 			new Request("http://presidente2026.test/api/historico"),
 		);
 		expect(hist.status).toBe(200);

@@ -2,7 +2,7 @@
  * Issue #24 — escada de intervalo do poller quando o ciclo não traz mudança.
  * Seam: GET /api/apuracao (`proximaConsulta`) + alarme do Durable Object.
  */
-import { exports } from "cloudflare:workers";
+import { fetchWorker } from "./helpers/fetch-worker";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	forcarConsulta,
@@ -23,7 +23,7 @@ type ApuracaoApi = {
 };
 
 async function lerApuracao(): Promise<ApuracaoApi> {
-	const resposta = await exports.default.fetch(
+	const resposta = await fetchWorker(
 		new Request("http://presidente2026.test/api/apuracao"),
 	);
 	expect(resposta.status).toBe(200);

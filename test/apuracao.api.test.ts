@@ -1,8 +1,8 @@
 /**
  * Aceite #7: GET /api/apuracao com TSE falso do 6258 — só Presidente Brasil.
  */
+import { fetchWorker } from "./helpers/fetch-worker";
 import { runDurableObjectAlarm } from "cloudflare:test";
-import { exports } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	forcarConsulta,
@@ -40,7 +40,7 @@ type ApuracaoApi = {
 };
 
 async function lerApuracao(opts?: { headers?: HeadersInit }) {
-	const resposta = await exports.default.fetch(
+	const resposta = await fetchWorker(
 		new Request("http://presidente2026.test/api/apuracao", {
 			headers: opts?.headers,
 		}),
