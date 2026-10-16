@@ -32,6 +32,20 @@ describe("Página pública (#7, #10)", () => {
 		expect(res.headers.get("x-content-type-options")).toBe("nosniff");
 	});
 
+	it("GET / responde com cache-control no-cache (#62)", async () => {
+		instalarCdnPesquisas({
+			pesquisa: bytesDeDataUrl(dia0PesquisaUrl),
+			contratante: bytesDeDataUrl(dia0ContratanteUrl),
+			etagPesquisa: '"dia0-pesquisa"',
+			etagContratante: '"dia0-contratante"',
+			condicional304: false,
+		});
+		const res = await fetchWorker(new Request("http://presidente2026.test/"));
+		expect(res.status).toBe(200);
+		expect(res.headers.get("content-type") ?? "").toMatch(/text\/html/);
+		expect(res.headers.get("cache-control")).toBe("no-cache");
+	});
+
 	it("GET /api/tela2 devolve 404 JSON (não HTML)", async () => {
 		const res = await fetchWorker(
 			new Request("http://presidente2026.test/api/tela2", {
