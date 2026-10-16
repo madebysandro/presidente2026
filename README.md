@@ -41,7 +41,8 @@ npm run dev
 | `npm test` | Gera `.void-wrangler.jsonc` + Vitest (`vitest-pool-workers`), TSE falso via MSW |
 | `npm run build` | `tsc --noEmit` + `vite build` (Void) |
 | `npm run dev` | `vite` com `voidPlugin` |
-| `npm run deploy` | `void deploy --platform cloudflare` |
+| `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback do Void) |
+| `npm run deploy:wrangler` | Fallback: `wrangler deploy -c dist/ssr/wrangler.json` (após `npm run build`) |
 
 ## Vars
 
@@ -52,20 +53,47 @@ npm run dev
 
 ## Deploy
 
-Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy e sem `CLOUDFLARE_API_TOKEN` no GitHub).
+Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy).
 
-Trigger (Worker → Settings → Builds), alinhado a [Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/):
+`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. O fallback seguro (sem readiness do Void) é `npm run deploy:wrangler` após `npm run build`, ou seja `npx wrangler deploy -c dist/ssr/wrangler.json`.
 
-| Setting | Valor |
-| --- | --- |
-| Git branch | `main` |
-| Root directory | `/` |
-| Build command | `npm run build` |
-| Deploy command | `npx void deploy --platform cloudflare` |
-| Node.js | `24.21` (arquivo [`.nvmrc`](.nvmrc); default do build image já é 24.21.x) |
-| Preview builds | desligado |
+`routing.notFound` fica em `"none"` para o `createAssetFallback` do Void não trocar GET `/api/*` 404 por `index.html` (modo SPA padrão quando só há rotas de API).
 
-Workers Builds instala deps do lockfile antes do build; o token de deploy fica no painel Cloudflare (não no GitHub). Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
+### account_id e token (Void verify)
+
+O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Só o lock não basta: o Void materializa a config a partir do bloco `cloudflare` e descarta `account_id` que exista só no lock. Sem pin na config, o CI não-interativo para antes do verify (seleção de account / `CLOUDFLARE_ACCOUNT_ID`).
+
+A string `Could not verify existing Cloudflare Worker` só aparece **depois** do account resolvido: o Void chama `cf workers deployments list` / `versions get` (e, com DO migrations, ainda lê o script). Qualquer falha nessa leitura — token sem escopo, account errado, nome do Worker, rede — vira essa mensagem. Pin do `account_id` é necessário, mas não prova sozinho que o token do Builds consegue as leituras.
+
+No Workers Builds o API token do Build Configuration autentica o deploy command como `CLOUDFLARE_API_TOKEN` (Void/`cf` leem essa var; com token presente o `whoami` é pulado). Uma build variable com o mesmo nome **substitui** o token injetado — só use se o log do Builds mostrar `deployments`/`versions` falhando com o token do painel.
+
+Para o gate de verify, o código do Void precisa conseguir ler deployments/versions/scripts: na prática **Account → Workers Scripts → Edit**. Account Settings Read não é consultado nesse passo. O token padrão “Create new token” do Builds já traz Workers Scripts Edit (e também Account Settings Read + Zone Workers Routes Edit, úteis no publish de rota/`presidente2026.win` depois do verify). Sufficiency do token do Builds fica **não provada** até um log de build mostrar essas leituras OK + readiness; se falhar, leia o stderr do passo de deploy antes de criar token custom.
+
+### Trigger de produção
+
+| Setting | Agora (wrangler, site no ar) | Alvo a provar no próximo Retry |
+| --- | --- | --- |
+| Git branch | `main` | `main` |
+| Root directory | `/` | `/` |
+| Build command | `npm run build` | `npm run build` |
+| Deploy command | `npx wrangler deploy -c dist/ssr/wrangler.json` | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
+| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) | igual |
+| Preview builds | desligado | desligado |
+| API token | token do Builds | igual (Create new token se stale) |
+
+Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
+
+Não dá para ter log verde de `void deploy` com o Deploy command ainda em wrangler: o flip do comando **é** o experimento. Em falha, volte ao wrangler e Retry (site volta pelo deploy wrangler).
+
+#### Cliques no dashboard (Sandro)
+
+1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
+2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (Workers Scripts Edit no padrão) e salve.
+3. Em Deploy command, troque `npx wrangler deploy -c dist/ssr/wrangler.json` por `npx void deploy --platform cloudflare` e salve → **Retry build** (trigger `0eac68b6-…`).
+4. No log desse build: confirme verify (`deployments`/`versions`) + readiness. Se OK, mantenha o comando alvo.
+5. Se falhar: coloque de volta `npx wrangler deploy -c dist/ssr/wrangler.json`, **Retry build**, e só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
+
+Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 
