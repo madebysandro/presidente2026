@@ -15,6 +15,7 @@ export default defineConfig({
 		},
 	},
 	routing: {
+		notFound: "none",
 		headers: {
 			"/*": [
 				"Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://resultados.tse.jus.br; media-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
@@ -31,6 +32,7 @@ export default defineConfig({
 	},
 	cloudflare: {
 		name: "presidente2026",
+		account_id: "aaec42ffcbeebcd4cda5beff4af4c439",
 		compatibility_date: "2026-08-22",
 		workers_dev: false,
 		routes: [
