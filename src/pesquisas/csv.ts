@@ -1,8 +1,4 @@
-/**
- * CSV do TSE: separador `;`, campos entre aspas, aspas duplicadas,
- * quebra de linha dentro das aspas. O texto já vem em Unicode (windows-1252 decodificado).
- */
-export function parseCsv(texto: string): Record<string, string>[] {
+export function parseCsvTse(texto: string): Record<string, string>[] {
 	const src = texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto;
 	const linhas: string[][] = [];
 	let linha: string[] = [];

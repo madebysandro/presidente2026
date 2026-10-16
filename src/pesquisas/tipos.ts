@@ -1,4 +1,3 @@
-/** Nacional publica. Estadual e ambígua ficam no banco e fora do site. */
 export type Classificacao = "nacional" | "estadual" | "ambigua";
 
 export type RegistroId = string;
@@ -76,7 +75,6 @@ export type FichaPublica = {
 	entrevistas: number;
 };
 
-/** Fase pesquisas: ainda sem resultado do agente, média vazia. */
 export type PayloadPesquisas = {
 	hoje: string;
 	atualizadoEm: string;

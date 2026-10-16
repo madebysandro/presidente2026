@@ -1,17 +1,12 @@
 import type { Classificacao } from "./tipos";
 import { normalizarTexto } from "./texto";
 
-/**
- * "Pará" só conta com acento no texto original. No texto normalizado,
- * "para" é português ("para a distribuição"), não o estado.
- */
-const PARA = /(?<![\p{L}\p{N}_])pará(?![\p{L}\p{N}_])/iu;
+const PARA_COM_ACENTO = /(?<![\p{L}\p{N}_])pará(?![\p{L}\p{N}_])/iu;
 
 const SIGLAS =
 	"AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO";
 
-/** Sigla em maiúscula e só nestes contextos. "no SE" é Sudeste, não Sergipe. "UF" não é estado. */
-const SIGLA = new RegExp(
+const SIGLA_EM_CONTEXTO = new RegExp(
 	`(?:(?:estado\\s+d[oa]|d[oa]|todo\\s+o)\\s+(${SIGLAS})\\b|\\((${SIGLAS})\\)|cidade/(${SIGLAS})\\b|cidade\\s+-\\s+(${SIGLAS})\\b)`,
 	"g",
 );
@@ -99,8 +94,8 @@ function ufsCitadas(original: string, texto: string): Set<string> {
 	for (const [padrao, sigla] of UFS_NOME) {
 		if (padrao.test(texto)) achadas.add(sigla);
 	}
-	if (PARA.test(original)) achadas.add("PA");
-	for (const m of original.matchAll(new RegExp(SIGLA.source, "g"))) {
+	if (PARA_COM_ACENTO.test(original)) achadas.add("PA");
+	for (const m of original.matchAll(new RegExp(SIGLA_EM_CONTEXTO.source, "g"))) {
 		const sigla = m.slice(1).find((g): g is string => Boolean(g));
 		if (sigla) achadas.add(sigla);
 	}

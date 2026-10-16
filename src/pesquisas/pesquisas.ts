@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { URL_ZIP_CONTRATANTE, URL_ZIP_PESQUISA } from "./fontes";
-import { parseCsv } from "./csv";
-import { geradoEmDoCsv, montarAplicar, registrosDoTse } from "./importar";
+import { parseCsvTse } from "./csv";
+import { geradoEmBrasiliaDoCsv, montarAplicar, registrosDoTse } from "./importar";
 import { montarPublico } from "./montar-publico";
 import type {
 	Changeset,
@@ -87,15 +87,17 @@ export class Pesquisas extends DurableObject<Env> {
 		}
 		const zipPesquisa = await corpoGarantido(URL_ZIP_PESQUISA, pesquisa);
 		const zipContratante = await corpoGarantido(URL_ZIP_CONTRATANTE, contratante);
-		const linhasPesquisa = parseCsv(await extrairCsvBrasil(zipPesquisa.bytes));
-		const linhasContratante = parseCsv(await extrairCsvBrasil(zipContratante.bytes));
+		const linhasPesquisa = parseCsvTse(await extrairCsvBrasil(zipPesquisa.bytes));
+		const linhasContratante = parseCsvTse(
+			await extrairCsvBrasil(zipContratante.bytes),
+		);
 		const changeset = montarAplicar({
 			anteriores: this.lerRegistros(),
 			lidos: registrosDoTse(linhasPesquisa, linhasContratante),
 			em: new Date().toISOString(),
 			motivo: opts.motivo,
 			origem: {
-				geradoEm: geradoEmDoCsv(linhasPesquisa),
+				geradoEm: geradoEmBrasiliaDoCsv(linhasPesquisa),
 				etagPesquisa: zipPesquisa.etag,
 				etagContratante: zipContratante.etag,
 				lastModifiedPesquisa: zipPesquisa.lastModified,

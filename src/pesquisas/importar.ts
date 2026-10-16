@@ -20,8 +20,9 @@ export function registroId(protocolo: string): string {
 	return `BR-${m[1]}/${m[2]}`;
 }
 
-/** `15/10/2026` + `05:46:43` → instante de Brasília. */
-export function geradoEmDoCsv(linhas: Record<string, string>[]): string | null {
+export function geradoEmBrasiliaDoCsv(
+	linhas: Record<string, string>[],
+): string | null {
 	const data = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(linhas[0]?.DT_GERACAO ?? "");
 	const hora = /^(\d{2}):(\d{2}):(\d{2})$/.exec(linhas[0]?.HH_GERACAO ?? "");
 	if (!data || !hora) return null;

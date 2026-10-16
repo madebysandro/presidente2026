@@ -1,7 +1,8 @@
 import { normalizarTexto } from "./texto";
 
-/** Trecho do nome do TSE → nome curto de exibição. O mais específico vem antes. */
-const INSTITUTOS: ReadonlyArray<readonly [string, string]> = [
+const INSTITUTOS_ESPECIFICO_PRIMEIRO: ReadonlyArray<
+	readonly [string, string]
+> = [
 	["real time big data", "Real Time Big Data"],
 	["real time midia", "Real Time Big Data"],
 	["alfa inteligencia", "Alfa Inteligência"],
@@ -41,7 +42,7 @@ const CONTRATANTES: ReadonlyArray<readonly [string, string]> = [
 
 export function nomeInstituto(empresa: string, fantasia: string): string {
 	const texto = normalizarTexto(`${fantasia} ${empresa}`);
-	for (const [trecho, nome] of INSTITUTOS) {
+	for (const [trecho, nome] of INSTITUTOS_ESPECIFICO_PRIMEIRO) {
 		if (texto.includes(trecho)) return nome;
 	}
 	const base = fantasia && fantasia !== "#NULO#" ? fantasia : empresa;

@@ -3,7 +3,6 @@ export function liberacaoEfetiva(liberacao: string, campoFim: string): string {
 	return liberacao > campoFim ? liberacao : campoFim;
 }
 
-/** Calendário de Brasília, que é o "hoje" da publicação. */
 export function dataBrasilia(agora: Date): string {
 	const partes = new Intl.DateTimeFormat("en-US", {
 		timeZone: "America/Sao_Paulo",
