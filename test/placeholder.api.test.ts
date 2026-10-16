@@ -20,11 +20,14 @@ describe("Página pública placeholder (#7)", () => {
 		expect(csp).toMatch(/img-src 'self' https:\/\/resultados\.tse\.jus\.br/);
 	});
 
-	it("rotas /api desconhecidas devolvem 404 curto", async () => {
+	it("GET /api/tela2 devolve 404 JSON (não HTML)", async () => {
 		const res = await fetchWorker(
 			new Request("http://presidente2026.test/api/tela2"),
 		);
 		expect(res.status).toBe(404);
-		expect(await res.text()).toBe("não achei");
+		expect(res.headers.get("content-type") ?? "").toMatch(/application\/json/);
+		const corpo = await res.text();
+		expect(corpo).toBe('{"error":"não achei"}');
+		expect(corpo).not.toMatch(/<!doctype html>/i);
 	});
 });
