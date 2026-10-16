@@ -75,7 +75,7 @@ Gravar no Worker (o Void pede o valor no stdin; não cole o valor na linha de co
 npx void secret put CHAVE_AGENTE
 ```
 
-Rode na conta do Worker `presidente2026`. A chave está em `env.ts` (`string().optional()`): `void deploy` só exige no remoto as chaves obrigatórias, e esta ainda pode não existir em produção — sem ela o site sobe e o agente recebe `401`. O nome não entra em `void.config.ts`.
+Rode na conta do Worker `presidente2026`. O nome do segredo não entra em `void.config.ts`.
 
 **Rotação:** o mesmo comando de novo. Em seguida troque o arquivo no computador do Grok Bot. A chave antiga passa a receber `401`, e esse `401` entra na auditoria.
 
@@ -181,11 +181,7 @@ npm run dev
 
 Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy).
 
-`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade; restaura código e triggers; não desfaz migração de banco nem de classe de Durable Object) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. `npx void project logs` acompanha o tail ao vivo.
-
-O modo em `void.config.ts` é `staged` (padrão do Void): o tráfego só muda depois do readiness. `npx void deploy --platform cloudflare --atomic` fica só para deploy com migração de classe de Durable Object — o atômico publica antes da checagem, e essa migração não tem rollback.
-
-Antes do deploy, na máquina já autenticada na Cloudflare (não entra no CI e não usa token no log): `npx void env check --remote`.
+`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. O rollback da Void restaura o código; não desfaz migração de banco.
 
 `routing.notFound` fica em `"none"` para o `createAssetFallback` do Void não trocar GET `/api/*` 404 por `index.html` (modo SPA padrão quando só há rotas de API).
 
