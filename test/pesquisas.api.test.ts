@@ -1,7 +1,7 @@
 /**
  * Aceite #7 (sanidade do DO) e #8 (import TSE + GET /api/pesquisas).
  */
-import { runInDurableObject, SELF } from "cloudflare:test";
+import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import cronFonte from "../crons/import-pesquisas-tse.ts?raw";
@@ -21,6 +21,7 @@ import {
 	NACIONAIS,
 	VEM_AI_EM_15_10,
 } from "./helpers/nacionais-oracle";
+import { selfComScheduled } from "./helpers/self-scheduled";
 import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratante.zip?inline";
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
 import dia1ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia1_contratante.zip?inline";
@@ -353,13 +354,7 @@ describe("import do TSE e GET /api/pesquisas (#8)", () => {
 		expect((await stubPesquisas().obterEstado()).registros).toBe(0);
 		expect(cronFonte).toContain('["0 9 * * *", "0 15 * * *", "0 21 * * *"]');
 		expect(cronFonte).toContain('motivo: "cron"');
-		const selfComCron = SELF as typeof SELF & {
-			scheduled: (opts: {
-				cron: string;
-				scheduledTime: Date;
-			}) => Promise<{ outcome: string }>;
-		};
-		const resultado = await selfComCron.scheduled({
+		const resultado = await selfComScheduled().scheduled({
 			cron: "0 9 * * *",
 			scheduledTime: new Date("2026-10-16T09:00:00Z"),
 		});
