@@ -15,6 +15,7 @@ export default defineConfig({
 		},
 	},
 	routing: {
+		notFound: "none",
 		headers: {
 			"/*": [
 				"Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://resultados.tse.jus.br; media-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",

@@ -37,6 +37,7 @@ config.assets = {
 	directory: "./public",
 	binding: "ASSETS",
 	run_worker_first: true,
+	not_found_handling: "none",
 };
 
 writeFileSync(out, `${JSON.stringify(config, null, 2)}\n`);

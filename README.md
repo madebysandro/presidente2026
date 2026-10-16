@@ -57,6 +57,8 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 `npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. O fallback seguro (sem readiness do Void) é `npm run deploy:wrangler` após `npm run build`, ou seja `npx wrangler deploy -c dist/ssr/wrangler.json`.
 
+`routing.notFound` fica em `"none"` para o `createAssetFallback` do Void não trocar GET `/api/*` 404 por `index.html` (modo SPA padrão quando só há rotas de API).
+
 ### account_id e token (Void verify)
 
 O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Sem isso, o Void em CI pode falhar ao inspecionar o Worker com `Could not verify existing Cloudflare Worker` (ele chama `deployments.status` + `versions.view` no account/Worker pinados).
