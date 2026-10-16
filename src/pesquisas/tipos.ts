@@ -75,13 +75,70 @@ export type FichaPublica = {
 	entrevistas: number;
 };
 
+export type TotaisPublicos = {
+	flavio: number;
+	lula: number;
+	brancoNulo: number | null;
+	naoSabe: number | null;
+	brancoNuloNaoSabe: number | null;
+};
+
+export type PesquisaPublicada = {
+	registro: RegistroId;
+	cnpj: string;
+	instituto: string;
+	contratantes: string[];
+	campoInicio: string;
+	campoFim: string;
+	liberacao: string;
+	liberacaoEfetiva: string;
+	entrevistas: number;
+	margem: number;
+	confianca: number;
+	totais: TotaisPublicos;
+	validosPublicados: { flavio: number; lula: number } | null;
+	vf: number;
+	vl: number;
+	v: number;
+	fonte: string;
+	cadastradoEm: string;
+	substituidoEm: string | null;
+};
+
+export type ResultadoGuardado = {
+	registro: RegistroId;
+	totais: TotaisPublicos;
+	validosPublicados: { flavio: number; lula: number } | null;
+	vf: number;
+	vl: number;
+	v: number;
+	fonte: string;
+	margem: number;
+	confianca: number;
+	cadastradoEm: string;
+	substituidoEm: string | null;
+};
+
+export type AuditoriaAgente = {
+	id: number;
+	em: string;
+	rota: string;
+	metodo: string;
+	ip: string;
+	chaveValida: boolean;
+	registro: string | null;
+	corpo: string;
+	status: number;
+	motivos: string[];
+};
+
 export type PayloadPesquisas = {
 	hoje: string;
 	atualizadoEm: string;
 	registroTse: { geradoEm: string | null; etag: string | null };
 	media: null;
 	serieMedia: [];
-	publicadas: [];
+	publicadas: PesquisaPublicada[];
 	liberadasSemNumero: FichaPublica[];
 	vemAi: FichaPublica[];
 };
