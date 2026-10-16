@@ -279,6 +279,8 @@ export type TseFalso = {
 	urlPresidente: string;
 	urlDepfed: string;
 	urlDepest: string;
+	/** Próxima URL que contém este trecho responde com erro HTTP. */
+	simularErroUrl: (trecho: string, status?: number) => void;
 	/** Ciclo vigente para UFs / sequência da noite. */
 	cicloAtual: () => string;
 	/** Substitui o Presidente `br` por corpos sintéticos; `avancar` anda na lista. */
@@ -334,6 +336,7 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 			retryAfter?: number;
 		} | null,
 		corposSinteticos: null as object[] | null,
+		erroUrl: null as { trecho: string; status: number } | null,
 	};
 	const modoProp = opcoes.proporcionais ?? "real";
 	const sequenciaNoite = opcoes.sequenciaNoite ?? false;
@@ -554,6 +557,15 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 				const uf = String(params[0] ?? "");
 				const cd = String(params[1] ?? "");
 				const ifNoneMatch = request.headers.get("if-none-match");
+				if (
+					estado.erroUrl &&
+					request.url.includes(estado.erroUrl.trecho)
+				) {
+					const status = estado.erroUrl.status;
+					estado.erroUrl = null;
+					estado.pedidos.push({ url: request.url, ifNoneMatch });
+					return new HttpResponse("falha município", { status });
+				}
 				const meta = resolver(`pres-${uf}`);
 				if (!meta) {
 					estado.pedidos.push({ url: request.url, ifNoneMatch });
@@ -653,6 +665,9 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		urlPresidente: URLS_TSE.presidente,
 		urlDepfed: URLS_TSE.depfed,
 		urlDepest: URLS_TSE.depest,
+		simularErroUrl(trecho: string, status = 404) {
+			estado.erroUrl = { trecho, status };
+		},
 		cicloAtual: () => cicloPresidente(),
 		usarNoiteSintetica(corpos: object[]) {
 			estado.corposSinteticos = corpos;

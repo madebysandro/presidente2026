@@ -221,6 +221,16 @@ describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 		expect(await lerAlarme()).toBe(dados.proximaConsulta);
 	});
 
+	it("um resto que não fecha segundo ainda termina no horário", async () => {
+		tse.definirCacheControl("max-age=10");
+		const fixo = ABERTURA_2T_MS - 1_500;
+		await stubPoller().fixarAgora(fixo);
+		await forcarConsulta();
+		const dados = await lerApuracao();
+		expect(dados.proximaConsulta).toBe(ABERTURA_2T_MS);
+		expect(dados.proximaConsulta!).toBeLessThanOrEqual(ABERTURA_2T_MS);
+	});
+
 	it("dez segundos antes das 17h a espera cabe no que falta", async () => {
 		tse.definirCacheControl("max-age=10");
 		const fixo = ABERTURA_2T_MS - 10_000;
@@ -274,6 +284,25 @@ describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 		expect(tipos).toContain("metade");
 		expect(fim.analise?.momentos?.find((m) => m.tipo === "abre")?.n).toBe("22");
 		expect(fim.analise?.fechamento).toBeNull();
+	});
+
+	it("404 num colégio não segura o encerramento nem a leitura", async () => {
+		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
+		tse.simularErroUrl("71072", 404);
+		await forcarConsulta();
+		const dados = await lerApuracao();
+		expect(dados.erro).toBeNull();
+		expect(dados.encerrada).toBe(true);
+		expect(dados.proximaConsulta).toBeNull();
+		expect(dados.colegios?.["71072"]).toBeUndefined();
+		expect(Object.keys(dados.colegios ?? {})).toHaveLength(9);
+		expect(dados.analise?.majoritarias?.presidente?.vantagemVotos).toEqual(
+			expect.any(Number),
+		);
+		const hist = await fetchWorker(
+			new Request("http://presidente2026.test/api/historico"),
+		);
+		expect(((await hist.json()) as unknown[]).length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("encerrada tira a estimativa e publica comparecimento com o 1º turno", async () => {

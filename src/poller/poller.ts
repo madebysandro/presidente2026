@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { faseDe, limitarEspera } from "../apuracao/abertura";
+import { faseDe, limitarEsperaMs } from "../apuracao/abertura";
 import {
 	anexarReferenciaColegio,
 	comparacaoTurnos,
@@ -157,12 +157,12 @@ export class PollerApuracao extends DurableObject<Env> {
 			return;
 		}
 		const agora = await this.agora();
-		const espera = limitarEspera(
+		const espera = limitarEsperaMs(
 			30,
 			agora,
 			estado.cargos.presidente?.apurado ?? 0,
 		);
-		await this.ctx.storage.setAlarm(agora + espera * 1000);
+		await this.ctx.storage.setAlarm(agora + espera);
 	}
 
 	private async consultar(): Promise<void> {
@@ -193,47 +193,58 @@ export class PollerApuracao extends DurableObject<Env> {
 		estado.ufs ??= {};
 		estado.colegios ??= {};
 
+		let erroGating: ErroTse | null = null;
 		try {
 			for (const alvo of alvosCiclo()) {
-				const url = urlDoAlvo(cfg, alvo);
-				const { maxAge, json, etag } = await buscarArquivoTse(
-					url,
-					etags[alvo.chave],
-				);
-				maxAgeCiclo = Math.max(maxAgeCiclo, maxAge);
-				if (etag) etags[alvo.chave] = etag;
-				if (!json) {
-					if (
-						alvo.tipo !== "municipio" &&
-						!this.escopoGuardado(estado, alvo.chave)
-					) {
-						cicloCompleto = false;
-					}
-					continue;
-				}
-				const bruto = json as DadosBrutosCargo;
-				const tf = chaveTf(alvo);
-				if (tf) guardarTfEscopo(tf, bruto);
-
-				if (alvo.tipo === "brasil") {
-					const novo = normalizarBrasil(bruto, cfg);
-					if (cargoMudou(estado.cargos.presidente, novo)) mudou = true;
-					estado.cargos.presidente = novo;
-				} else if (alvo.tipo === "uf") {
-					const novo = normalizarPresidenteUf(alvo.uf, bruto);
-					if (ufMudou(estado.ufs[alvo.uf], novo)) mudou = true;
-					estado.ufs[alvo.uf] = novo;
-				} else {
-					const novo = normalizarColegio(
-						alvo.uf,
-						alvo.cd,
-						alvo.nome,
-						bruto,
+				try {
+					const url = urlDoAlvo(cfg, alvo);
+					const { maxAge, json, etag } = await buscarArquivoTse(
+						url,
+						etags[alvo.chave],
 					);
-					if (colegioMudou(estado.colegios[alvo.cd], novo)) mudou = true;
-					estado.colegios[alvo.cd] = novo;
+					maxAgeCiclo = Math.max(maxAgeCiclo, maxAge);
+					if (etag) etags[alvo.chave] = etag;
+					if (!json) {
+						if (
+							alvo.tipo !== "municipio" &&
+							!this.escopoGuardado(estado, alvo.chave)
+						) {
+							cicloCompleto = false;
+						}
+						continue;
+					}
+					const bruto = json as DadosBrutosCargo;
+					const tf = chaveTf(alvo);
+					if (tf) guardarTfEscopo(tf, bruto);
+
+					if (alvo.tipo === "brasil") {
+						const novo = normalizarBrasil(bruto, cfg);
+						if (cargoMudou(estado.cargos.presidente, novo)) mudou = true;
+						estado.cargos.presidente = novo;
+					} else if (alvo.tipo === "uf") {
+						const novo = normalizarPresidenteUf(alvo.uf, bruto);
+						if (ufMudou(estado.ufs[alvo.uf], novo)) mudou = true;
+						estado.ufs[alvo.uf] = novo;
+					} else {
+						const novo = normalizarColegio(
+							alvo.uf,
+							alvo.cd,
+							alvo.nome,
+							bruto,
+						);
+						if (colegioMudou(estado.colegios[alvo.cd], novo)) {
+							mudou = true;
+						}
+						estado.colegios[alvo.cd] = novo;
+					}
+				} catch (erro) {
+					if (alvo.tipo === "municipio") continue;
+					erroGating = erro as ErroTse;
+					break;
 				}
 			}
+
+			if (erroGating) throw erroGating;
 
 			estado.tfPorEscopo = tfPorEscopo;
 
@@ -302,12 +313,12 @@ export class PollerApuracao extends DurableObject<Env> {
 				Math.min(degrau + 1, ESCADA_ESTAVEL.length - 1),
 			);
 		}
-		esperaSegundos = limitarEspera(
+		const esperaMs = limitarEsperaMs(
 			esperaSegundos,
 			agora,
 			estado.cargos.presidente?.apurado ?? 0,
 		);
-		estado.proximaConsulta = agora + esperaSegundos * 1000;
+		estado.proximaConsulta = agora + esperaMs;
 		await this.ctx.storage.put(CHAVE_ESTADO, estado);
 		await this.ctx.storage.setAlarm(estado.proximaConsulta);
 	}

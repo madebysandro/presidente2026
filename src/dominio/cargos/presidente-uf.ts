@@ -46,5 +46,8 @@ export function ufMudou(
 	if (!antes) return true;
 	if (antes.apurado !== novo.apurado) return true;
 	if (antes.comparecimento !== novo.comparecimento) return true;
-	return antes.candidatos[0]?.votos !== novo.candidatos[0]?.votos;
+	if (antes.candidatos.length !== novo.candidatos.length) return true;
+	return antes.candidatos.some(
+		(c, i) => c.votos !== novo.candidatos[i]?.votos,
+	);
 }

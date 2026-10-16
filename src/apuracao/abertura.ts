@@ -13,21 +13,18 @@ export function faseDe(
 }
 
 /**
- * Teto da escada: antes das 17h a espera não passa do horário;
- * depois, com apurado 0, no máximo 60 s.
+ * Espera em milissegundos. Antes das 17h o alarme cai no horário ou antes.
+ * Depois, com apurado 0, no máximo 60 s.
  */
-export function limitarEspera(
+export function limitarEsperaMs(
 	esperaSegundos: number,
 	agora: number,
 	apurado: number,
 ): number {
+	const pedido = Math.max(0, esperaSegundos) * 1000;
 	if (agora < ABERTURA_2T_MS) {
-		const faltaSeg = Math.max(
-			1,
-			Math.ceil((ABERTURA_2T_MS - agora) / 1000),
-		);
-		return Math.min(esperaSegundos, faltaSeg);
+		return Math.min(pedido, ABERTURA_2T_MS - agora);
 	}
-	if (apurado <= 0) return Math.min(esperaSegundos, 60);
-	return esperaSegundos;
+	if (apurado <= 0) return Math.min(pedido, 60_000);
+	return pedido;
 }
