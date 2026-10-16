@@ -281,6 +281,8 @@ export type TseFalso = {
 	urlDepest: string;
 	/** Ciclo vigente para UFs / sequência da noite. */
 	cicloAtual: () => string;
+	/** Substitui o Presidente `br` por corpos sintéticos; `avancar` anda na lista. */
+	usarNoiteSintetica: (corpos: object[]) => void;
 };
 
 function formatarPctTse(valor: number | string): { pst: string; pstn: string } {
@@ -331,6 +333,7 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 			status: number;
 			retryAfter?: number;
 		} | null,
+		corposSinteticos: null as object[] | null,
 	};
 	const modoProp = opcoes.proporcionais ?? "real";
 	const sequenciaNoite = opcoes.sequenciaNoite ?? false;
@@ -414,6 +417,17 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 	};
 
 	const presidenteAtual = () => {
+		if (estado.corposSinteticos) {
+			const i = Math.min(
+				estado.indice,
+				estado.corposSinteticos.length - 1,
+			);
+			return {
+				etag: `"sint-${i}"`,
+				cacheControl: "max-age=10",
+				corpo: estado.corposSinteticos[i]!,
+			};
+		}
 		if (sequenciaNoite) {
 			const m = resolver("presidente");
 			if (!m) throw new Error("presidente ausente na sequência da noite");
@@ -534,7 +548,30 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 				"depest",
 			),
 		),
-		// Presidente por UF / exterior: …/dados/{uf}/{uf}-c0001-e006257-u.json
+		http.get(
+			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1(\d+)-c0001-e006258-u\.json/,
+			({ request, params }) => {
+				const uf = String(params[0] ?? "");
+				const cd = String(params[1] ?? "");
+				const ifNoneMatch = request.headers.get("if-none-match");
+				const meta = resolver(`pres-${uf}`);
+				if (!meta) {
+					estado.pedidos.push({ url: request.url, ifNoneMatch });
+					return new HttpResponse("município sem UF", { status: 404 });
+				}
+				return responderArquivo(
+					request.url,
+					ifNoneMatch,
+					{
+						etag: `"mu-${cd}-${meta.etag.replaceAll('"', "")}"`,
+						cacheControl: meta.cacheControl,
+						corpo: meta.corpo,
+					},
+					`pres-${uf}`,
+				);
+			},
+		),
+		// Presidente por UF / exterior: …/dados/{uf}/{uf}-c0001-e006258-u.json
 		http.get(
 			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1-c0001-e006258-u\.json/,
 			({ request, params }) => {
@@ -617,5 +654,9 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		urlDepfed: URLS_TSE.depfed,
 		urlDepest: URLS_TSE.depest,
 		cicloAtual: () => cicloPresidente(),
+		usarNoiteSintetica(corpos: object[]) {
+			estado.corposSinteticos = corpos;
+			estado.indice = 0;
+		},
 	};
 }

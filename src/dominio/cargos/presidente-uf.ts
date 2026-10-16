@@ -34,6 +34,7 @@ export function normalizarPresidenteUf(
 		secoesApuradas: Number(dados.s?.st) || 0,
 		eleitorado: Number(dados.e?.te) || 0,
 		validos: Number(dados.v?.vv) || 0,
+		comparecimento: numeroTse(dados.e?.pcn),
 		candidatos,
 	};
 }
@@ -44,5 +45,6 @@ export function ufMudou(
 ): boolean {
 	if (!antes) return true;
 	if (antes.apurado !== novo.apurado) return true;
+	if (antes.comparecimento !== novo.comparecimento) return true;
 	return antes.candidatos[0]?.votos !== novo.candidatos[0]?.votos;
 }

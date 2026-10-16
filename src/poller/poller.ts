@@ -1,18 +1,30 @@
 import { DurableObject } from "cloudflare:workers";
+import { faseDe, limitarEspera } from "../apuracao/abertura";
 import {
-	configTseDeEnv,
-	metasCargos,
-	urlArquivoCargo,
-	type ConfigTse,
-} from "../config/tse";
+	anexarReferenciaColegio,
+	comparacaoTurnos,
+	fechamentoDe,
+	momentosDaNoite,
+	regioesDe,
+	ufsQueViraram,
+	viradasDoHistorico,
+} from "../apuracao/analise-2t";
+import { alvosCiclo, chaveTf, urlDoAlvo } from "../apuracao/escopos";
+import { configTseDeEnv, type ConfigTse } from "../config/tse";
+import { SIGLAS_UF } from "../config/ufs";
+import { colegioMudou, normalizarColegio } from "../dominio/cargos/colegio";
 import type { DadosBrutosCargo } from "../dominio/cargos/dados-brutos";
 import { normalizarMajoritario } from "../dominio/cargos/majoritario";
+import {
+	normalizarPresidenteUf,
+	ufMudou,
+} from "../dominio/cargos/presidente-uf";
 import { analisarMajoritarias } from "../dominio/majoritarias/analise";
 import type {
 	Cargo,
+	ColegioPresidente,
 	EstadoApuracao,
 	Leitura,
-	MetaCargo,
 } from "../dominio/tipos";
 import { buscarArquivoTse, ErroTse } from "./cliente-tse";
 import { escoposProntosParaEncerrar } from "./encerrada";
@@ -27,8 +39,7 @@ const CHAVE_ESCADA = "escadaEstavel";
 /** Sem mudança: 60 → 120 → 300 → 600 → 1800 → 3600 (teto 60 min). */
 const ESCADA_ESTAVEL = [60, 120, 300, 600, 1800, 3600] as const;
 
-/** #7: ciclo mínimo só Presidente br; 27 UFs + exterior voltam na Fase 2. */
-const SIGLAS_UF_CICLO: readonly string[] = [];
+const CHAVE_RELOGIO = "relogio";
 
 type Etags = Record<string, string>;
 
@@ -40,6 +51,7 @@ function estadoVazio(): EstadoApuracao {
 		erro: null,
 		cargos: {},
 		ufs: {},
+		colegios: {},
 		analise: { majoritarias: {}, proporcionais: {}, destaques: [] },
 	};
 }
@@ -52,15 +64,22 @@ function cargoMudou(antes: Cargo | undefined, novo: Cargo): boolean {
 	);
 }
 
-function normalizarCargo(
-	meta: MetaCargo,
+function normalizarBrasil(
 	json: DadosBrutosCargo,
 	cfg: ConfigTse,
-): Cargo | null {
-	if (meta.id === "presidente") {
-		return normalizarMajoritario(meta, json, cfg);
-	}
-	return null;
+): Cargo {
+	return normalizarMajoritario(
+		{
+			id: "presidente",
+			titulo: "Presidente",
+			local: "Brasil",
+			ele: cfg.eleicaoFederal,
+			uf: "br",
+			cd: "0001",
+		},
+		json,
+		cfg,
+	);
 }
 
 /**
@@ -81,7 +100,32 @@ export class PollerApuracao extends DurableObject<Env> {
 
 	async obterEstado(): Promise<EstadoApuracao> {
 		await this.garantirAlarme();
-		return this.lerEstado();
+		const estado = await this.lerEstado();
+		estado.fase = faseDe(await this.agora(), estado.encerrada);
+		estado.colegios = this.comReferencia(estado.colegios);
+		return estado;
+	}
+
+	/** Relógio fixo para a escada das 17h nos testes. Produção não chama. */
+	async fixarAgora(ms: number | null): Promise<void> {
+		if (ms == null) await this.ctx.storage.delete(CHAVE_RELOGIO);
+		else await this.ctx.storage.put(CHAVE_RELOGIO, ms);
+	}
+
+	private async agora(): Promise<number> {
+		const fixo = await this.ctx.storage.get<number>(CHAVE_RELOGIO);
+		return fixo ?? Date.now();
+	}
+
+	private comReferencia(
+		colegios: Record<string, ColegioPresidente> | undefined,
+	): Record<string, ColegioPresidente> | undefined {
+		if (!colegios) return colegios;
+		const out: Record<string, ColegioPresidente> = {};
+		for (const [chave, colegio] of Object.entries(colegios)) {
+			out[chave] = anexarReferenciaColegio(colegio);
+		}
+		return out;
 	}
 
 	/** Leituras posteriores a `desde` (para tendência quando a fase ao vivo entrar). */
@@ -112,7 +156,13 @@ export class PollerApuracao extends DurableObject<Env> {
 			await this.consultar();
 			return;
 		}
-		await this.ctx.storage.setAlarm(Date.now() + 30_000);
+		const agora = await this.agora();
+		const espera = limitarEspera(
+			30,
+			agora,
+			estado.cargos.presidente?.apurado ?? 0,
+		);
+		await this.ctx.storage.setAlarm(agora + espera * 1000);
 	}
 
 	private async consultar(): Promise<void> {
@@ -140,31 +190,49 @@ export class PollerApuracao extends DurableObject<Env> {
 					: String(bruto.tf);
 		};
 
+		estado.ufs ??= {};
+		estado.colegios ??= {};
+
 		try {
-			const metas = metasCargos(cfg);
-			for (const meta of metas) {
-				const url = urlArquivoCargo(cfg, meta);
+			for (const alvo of alvosCiclo()) {
+				const url = urlDoAlvo(cfg, alvo);
 				const { maxAge, json, etag } = await buscarArquivoTse(
 					url,
-					etags[meta.id],
+					etags[alvo.chave],
 				);
 				maxAgeCiclo = Math.max(maxAgeCiclo, maxAge);
-				if (etag) etags[meta.id] = etag;
+				if (etag) etags[alvo.chave] = etag;
 				if (!json) {
-					if (!estado.cargos[meta.id]) cicloCompleto = false;
+					if (
+						alvo.tipo !== "municipio" &&
+						!this.escopoGuardado(estado, alvo.chave)
+					) {
+						cicloCompleto = false;
+					}
 					continue;
 				}
 				const bruto = json as DadosBrutosCargo;
-				guardarTfEscopo(meta.id, bruto);
+				const tf = chaveTf(alvo);
+				if (tf) guardarTfEscopo(tf, bruto);
 
-				const novo = normalizarCargo(meta, bruto, cfg);
-				if (!novo) {
-					cicloCompleto = false;
-					continue;
+				if (alvo.tipo === "brasil") {
+					const novo = normalizarBrasil(bruto, cfg);
+					if (cargoMudou(estado.cargos.presidente, novo)) mudou = true;
+					estado.cargos.presidente = novo;
+				} else if (alvo.tipo === "uf") {
+					const novo = normalizarPresidenteUf(alvo.uf, bruto);
+					if (ufMudou(estado.ufs[alvo.uf], novo)) mudou = true;
+					estado.ufs[alvo.uf] = novo;
+				} else {
+					const novo = normalizarColegio(
+						alvo.uf,
+						alvo.cd,
+						alvo.nome,
+						bruto,
+					);
+					if (colegioMudou(estado.colegios[alvo.cd], novo)) mudou = true;
+					estado.colegios[alvo.cd] = novo;
 				}
-
-				if (cargoMudou(estado.cargos[meta.id], novo)) mudou = true;
-				estado.cargos[meta.id] = novo;
 			}
 
 			estado.tfPorEscopo = tfPorEscopo;
@@ -176,25 +244,16 @@ export class PollerApuracao extends DurableObject<Env> {
 
 			const historico =
 				(await this.ctx.storage.get<Leitura[]>(CHAVE_HISTORICO)) ?? [];
-			estado.analise = {
-				majoritarias: analisarMajoritarias(estado.cargos, historico),
-				proporcionais: {},
-				destaques: [],
-			};
-			estado.erro = null;
-			novoBackoff = null;
-
-			const idsCargos = metas.map((m) => m.id);
-			// #7: lista de UFs ainda vazia — não gravar encerrada no mesmo
-			// ele-6258, senão a Fase 2 (UFs) acha o DO já morto.
 			estado.encerrada =
-				SIGLAS_UF_CICLO.length > 0 &&
 				cicloCompleto &&
 				escoposProntosParaEncerrar(
 					estado,
-					idsCargos,
-					SIGLAS_UF_CICLO,
+					["presidente"],
+					SIGLAS_UF,
 				);
+			estado.analise = this.montarAnalise(estado, historico);
+			estado.erro = null;
+			novoBackoff = null;
 		} catch (erro) {
 			const e = erro as ErroTse;
 			estado.erro = e.message ?? String(erro);
@@ -209,7 +268,9 @@ export class PollerApuracao extends DurableObject<Env> {
 			}
 		}
 
-		estado.consultadoEm = Date.now();
+		const agora = await this.agora();
+		estado.consultadoEm = agora;
+		estado.fase = faseDe(agora, estado.encerrada);
 		await this.ctx.storage.put(CHAVE_ETAGS, etags);
 		if (novoBackoff == null) {
 			await this.ctx.storage.delete(CHAVE_BACKOFF);
@@ -241,9 +302,64 @@ export class PollerApuracao extends DurableObject<Env> {
 				Math.min(degrau + 1, ESCADA_ESTAVEL.length - 1),
 			);
 		}
-		estado.proximaConsulta = Date.now() + esperaSegundos * 1000;
+		esperaSegundos = limitarEspera(
+			esperaSegundos,
+			agora,
+			estado.cargos.presidente?.apurado ?? 0,
+		);
+		estado.proximaConsulta = agora + esperaSegundos * 1000;
 		await this.ctx.storage.put(CHAVE_ESTADO, estado);
 		await this.ctx.storage.setAlarm(estado.proximaConsulta);
+	}
+
+	private escopoGuardado(estado: EstadoApuracao, chave: string): boolean {
+		if (chave === "presidente") return Boolean(estado.cargos.presidente);
+		if (chave.startsWith("uf:")) return Boolean(estado.ufs?.[chave.slice(3)]);
+		if (chave.startsWith("mu:")) {
+			const cd = chave.split(":")[2];
+			return Boolean(cd && estado.colegios?.[cd]);
+		}
+		return false;
+	}
+
+	private montarAnalise(
+		estado: EstadoApuracao,
+		historico: Leitura[],
+	): EstadoApuracao["analise"] {
+		const majoritarias = analisarMajoritarias(estado.cargos, historico);
+		const pres = majoritarias.presidente;
+		if (pres) pres.primeiroTurno = null;
+		const viradas = viradasDoHistorico(historico);
+		if (estado.encerrada && pres) {
+			pres.validosAApurar = null;
+			pres.margemParaVirarPp = null;
+			pres.foraDeAlcance = false;
+			pres.tendencias = [];
+		}
+		const cargo = estado.cargos.presidente;
+		const lider = cargo?.candidatos[0];
+		const segundo = cargo?.candidatos[1];
+		return {
+			majoritarias,
+			proporcionais: {},
+			destaques: [],
+			viradas,
+			momentos: momentosDaNoite(
+				historico,
+				viradas,
+				Boolean(estado.encerrada),
+				cargo?.hora,
+				lider?.n,
+				lider && segundo ? lider.pct - segundo.pct : undefined,
+			),
+			regioes: regioesDe(estado.ufs ?? {}),
+			ufsQueViraram: ufsQueViraram(estado.ufs ?? {}),
+			comparacao: comparacaoTurnos(cargo),
+			fechamento:
+				estado.encerrada && cargo
+					? fechamentoDe(cargo, viradas.length)
+					: null,
+		};
 	}
 
 	private async registrarLeitura(estado: EstadoApuracao): Promise<void> {

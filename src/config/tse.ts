@@ -15,7 +15,7 @@ export function configTseDeEnv(env: {
 	};
 }
 
-/** #7: só Presidente nacional do 2º turno (6258). UFs/colégios voltam na Fase 2. */
+/** Presidente nacional do 2º turno (6258). UFs e colégios entram em `alvosCiclo`. */
 export function metasCargos(cfg: ConfigTse): MetaCargo[] {
 	return [
 		{
