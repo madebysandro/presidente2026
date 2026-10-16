@@ -16,7 +16,7 @@ import {
 	type VistaNoite,
 } from "../src/pagina/ao-vivo";
 import { documentoPesquisas } from "../src/pagina/documento";
-import type { PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
+import type { FichaPublica, PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
 
 const AGORA = new Date("2026-10-25T21:00:00.000Z");
 
@@ -268,6 +268,7 @@ describe("placar e cabo da apuração (#18)", () => {
 		expect(h1).toContain("52,94");
 		expect(placar).toContain("4.000.000");
 		expect(placar).toContain("4.500.000");
+		expect(placar).toContain("votos válidos");
 		expect(placar).toContain("48,00% das seções");
 
 		const cabo = htmlCaboApuracao(vista());
@@ -307,6 +308,17 @@ describe("gráfico, momentos e estimativas (#18)", () => {
 		expect(html).toContain('d="M24.80,8.00L50.00,71.00L75.20,29.00"');
 		expect(html).toContain('class="t-virada" style="left:50.00%"');
 		expect(html).toContain('class="t-virada" style="left:75.20%"');
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("a primeira leitura já sombreia o que falta e marca virada", () => {
+		const html = htmlGraficoNoite(
+			vista({ historico: [leitura(12, 55, 45, "17:20:00")] }),
+		);
+		expect(html).toContain('class="t-apurar" x="18.08" width="73.92"');
+		expect(html).toContain('class="t-noite" cx="18.08" cy="8.00"');
+		expect(html).toContain('class="t-virada" style="left:50.00%"');
+		expect(html).not.toContain("2ª leitura");
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 
@@ -419,6 +431,36 @@ describe("página composta (#18)", () => {
 		expect(html).toContain('data-detalhe="BR-02949/2026"');
 		expect(html).not.toContain('data-d="2026-10-08"');
 		expect(html.match(/class="a-dia /g)).toHaveLength(7);
+
+		const semNumero: FichaPublica = {
+			registro: "BR-00001/2026",
+			instituto: "Quaest",
+			contratantes: ["recursos próprios"],
+			campoInicio: "2026-10-01",
+			campoFim: "2026-10-05",
+			liberacaoEfetiva: "2026-10-06",
+			entrevistas: 1000,
+		};
+		const futura: FichaPublica = {
+			registro: "BR-00002/2026",
+			instituto: "AtlasIntel",
+			contratantes: ["recursos próprios"],
+			campoInicio: "2026-10-07",
+			campoFim: "2026-10-09",
+			liberacaoEfetiva: "2026-10-10",
+			entrevistas: 1500,
+		};
+		const comFichas = documentoPesquisas(
+			payload({ publicadas: [antiga], liberadasSemNumero: [semNumero], vemAi: [futura] }),
+			AGORA,
+			{ apuracao: estado(), historico: HISTORICO },
+		);
+		const bloco = comFichas.match(/<div class="a-anteriores">[\s\S]*?<\/div>/)?.[0] ?? "";
+		expect(bloco).toContain("Quaest");
+		expect(bloco).toContain("sem números ainda");
+		expect(bloco).toContain("AtlasIntel");
+		expect(comFichas).not.toContain('data-d="2026-10-06"');
+		expect(comFichas).not.toContain('data-d="2026-10-10"');
 	});
 
 	it("encerrada tira o bloco de estimativas e mantém as pesquisas acessíveis", () => {

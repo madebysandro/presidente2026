@@ -79,7 +79,7 @@
 		const atualVersao = main.getAttribute("data-versao") || "";
 		const aoVivo = fase === "ao_vivo" || fase === "encerrada";
 		const mudouFase = Boolean(fase) && fase !== atualFase;
-		const mudouVersao = aoVivo && versao !== atualVersao;
+		const mudouVersao = versao !== atualVersao;
 		if (!mudouFase && !mudouVersao) {
 			aplicarRelogio(document.querySelector("[data-faixa]"), dados);
 			tique();
@@ -91,8 +91,18 @@
 		const scroll = document.documentElement.scrollTop;
 		const faixa = document.querySelector("[data-faixa]");
 		const miolo = document.querySelector("[data-miolo]");
+		const registroAberto = document.querySelector(".a-pesq.sel")?.getAttribute("data-registro") || "";
 		if (faixa && typeof corpo.faixa === "string") faixa.outerHTML = corpo.faixa;
-		if (miolo && typeof corpo.miolo === "string") miolo.innerHTML = corpo.miolo;
+		const trocaMiolo = mudouFase || (aoVivo && mudouVersao);
+		if (trocaMiolo && miolo && typeof corpo.miolo === "string") {
+			miolo.innerHTML = corpo.miolo;
+			if (registroAberto && window.CSS && CSS.escape) {
+				const botao = miolo.querySelector(
+					`.a-pesq[data-registro="${CSS.escape(registroAberto)}"]`,
+				);
+				if (botao) botao.click();
+			}
+		}
 		if (typeof corpo.fase === "string") main.setAttribute("data-fase", corpo.fase);
 		if (corpo.versao != null) main.setAttribute("data-versao", String(corpo.versao));
 		document.documentElement.scrollTop = scroll;

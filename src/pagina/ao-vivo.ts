@@ -146,7 +146,7 @@ export function htmlPlacar(vista: VistaNoite): string {
 	const pct = (n: number | undefined) => (n != null && Number.isFinite(n) ? pf.format(n) : "—");
 	const votos = (n: number | undefined) => (n != null && Number.isFinite(n) ? nf.format(n) : "—");
 	const secoes = Number.isFinite(cargo.apurado) ? pf.format(cargo.apurado) : "—";
-	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pct(flavio?.pct)}</b></span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pct(lula?.pct)}</b></span></h1><p>${votos(flavio?.votos)} votos a ${votos(lula?.votos)} · ${secoes}% das seções apuradas</p></div>`;
+	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pct(flavio?.pct)}%</b></span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pct(lula?.pct)}%</b></span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
 export function htmlCaboApuracao(vista: VistaNoite): string {
@@ -202,7 +202,7 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 	const intro = `<section class="a-noite" aria-labelledby="a-noite-titulo"><h2 id="a-noite-titulo">A vantagem na apuração</h2><p>Eixo de 0 a 100% das seções. A área sombreada ainda vai ser apurada. Flávio fica à esquerda do cabo, mesmo quando a linha cruza o empate.</p>`;
 	const pontos = pontosNoite(vista.historico);
 	const eixos = `<div class="a-eixo-x" aria-hidden="true"><span style="left:${n2(px(0))}%">0%</span><span style="left:${n2(px(100))}%">100%</span></div>`;
-	if (pontos.length < 2) {
+	if (pontos.length === 0) {
 		return `${intro}<p class="a-graf-vazio">A linha aparece a partir da 2ª leitura do TSE.</p>${eixos}</section>`;
 	}
 	const pico = Math.max(2, ...pontos.map((ponto) => Math.abs(ponto.v)));
@@ -210,7 +210,12 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 	const d = pontos
 		.map((ponto, i) => `${i === 0 ? "M" : "L"}${n2(px(ponto.ap))},${n2(py(ponto.v, lim))}`)
 		.join("");
-	const ultimo = pontos.at(-1)!;
+	const unico = pontos.length === 1 ? pontos[0] : undefined;
+	const marca =
+		unico != null
+			? `<circle class="t-noite" cx="${n2(px(unico.ap))}" cy="${n2(py(unico.v, lim))}" r="1.6"/>`
+			: "";
+	const ultimo = pontos[pontos.length - 1]!;
 	const sombrear = vista.fase !== "encerrada" && ultimo.ap < 100;
 	const sombra = sombrear
 		? `<rect class="t-apurar" x="${n2(px(ultimo.ap))}" width="${n2(px(100) - px(ultimo.ap))}" y="0" height="100"/>`
@@ -222,7 +227,7 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 				`<span class="t-virada" style="left:${n2(px(virada.ap))}%" title="virada"></span>`,
 		)
 		.join("");
-	return `${intro}<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/></svg>${viradas}</div>${eixos}</div></section>`;
+	return `${intro}<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div></section>`;
 }
 
 export function textoMomento(momento: MomentoNoite): string {

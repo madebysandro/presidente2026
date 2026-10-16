@@ -100,6 +100,8 @@ describe("GET / segue a fase do servidor (#18)", () => {
 		expect(js.status).toBe(200);
 		const fonte = await js.text();
 		expect(fonte).toContain("fragmento=1");
+		expect(fonte).toContain("trocaMiolo");
+		expect(fonte).toContain(".a-pesq.sel");
 		expect(fonte).not.toContain("location.reload");
 		expect(fonte).not.toContain("location.href");
 	});

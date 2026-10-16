@@ -174,12 +174,15 @@ export function htmlCalendario(
 		})
 		.join("");
 
-	const anteriores = encolher
-		? publicadas.filter((pesquisa) => pesquisa.liberacaoEfetiva < INICIO_ULTIMA_SEMANA)
-		: [];
-	const htmlAnteriores = anteriores.length
-		? `<div class="a-anteriores"><p>Pesquisas de antes da última semana</p>${anteriores.map((pesquisa) => htmlPublicada(pesquisa, pesquisa.registro === selecionada)).join("")}</div>`
-		: "";
+	const antes = <T extends { liberacaoEfetiva: string }>(lista: readonly T[]) =>
+		encolher ? lista.filter((item) => item.liberacaoEfetiva < INICIO_ULTIMA_SEMANA) : [];
+	const anteriores = antes(publicadas);
+	const anterioresSem = antes(semNumero);
+	const anterioresVem = antes(vemAi);
+	const htmlAnteriores =
+		anteriores.length || anterioresSem.length || anterioresVem.length
+			? `<div class="a-anteriores"><p>Pesquisas de antes da última semana</p>${anteriores.map((pesquisa) => htmlPublicada(pesquisa, pesquisa.registro === selecionada)).join("")}${anterioresSem.map(htmlSemNumero).join("")}${anterioresVem.map(htmlFutura).join("")}</div>`
+			: "";
 	const vivo = ultima ? htmlDetalhe(ultima) : "";
 	const moldes = publicadas
 		.map(
