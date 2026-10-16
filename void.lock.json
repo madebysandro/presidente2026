@@ -27,33 +27,7 @@
       "traces": {
         "enabled": true
       }
-    },
-    "durable_objects": {
-      "bindings": [
-        {
-          "name": "PESQUISAS",
-          "class_name": "PesquisasDurableObject"
-        },
-        {
-          "name": "POLLER",
-          "class_name": "PollerDurableObject"
-        }
-      ]
-    },
-    "migrations": [
-      {
-        "tag": "void-durable-pesquisas-v1",
-        "new_sqlite_classes": [
-          "PesquisasDurableObject"
-        ]
-      },
-      {
-        "tag": "void-durable-poller-v1",
-        "new_sqlite_classes": [
-          "PollerDurableObject"
-        ]
-      }
-    ]
+    }
   },
   "resolved": {
     "name": "presidente2026",
