@@ -24,6 +24,7 @@
 		"test": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest run",
 		"test:watch": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest",
 		"smoke": "node scripts/smoke-vinheta.mjs",
+		"ensaio": "npm run build && node scripts/ensaio-noite.mjs",
 		"deploy": "void deploy --platform cloudflare",
 		"deploy:wrangler": "wrangler deploy -c dist/ssr/wrangler.json",
 		"cf-typegen": "wrangler types -c .void-wrangler.jsonc"

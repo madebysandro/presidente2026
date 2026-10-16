@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { URL_ZIP_CONTRATANTE, URL_ZIP_PESQUISA } from "./fontes";
+import { urlsRegistroTse } from "./fontes";
 import { parseCsvTse } from "./csv";
 import {
 	geradoEmBrasiliaDoCsv,
@@ -129,21 +129,22 @@ export class Pesquisas extends DurableObject<Env> {
 
 	/** Download + parse fora do lock. `null` = ambos 304. */
 	private async prepararLote(meta: MetaImport | null): Promise<LoteImport | null> {
+		const urls = urlsRegistroTse(this.env);
 		const pesquisa = await buscarZip(
-			URL_ZIP_PESQUISA,
+			urls.pesquisa,
 			meta?.etagPesquisa ?? null,
 			meta?.lastModifiedPesquisa ?? null,
 		);
 		const contratante = await buscarZip(
-			URL_ZIP_CONTRATANTE,
+			urls.contratante,
 			meta?.etagContratante ?? null,
 			meta?.lastModifiedContratante ?? null,
 		);
 		if (pesquisa.kind === "nao_modificado" && contratante.kind === "nao_modificado") {
 			return null;
 		}
-		const zipPesquisa = await corpoGarantido(URL_ZIP_PESQUISA, pesquisa);
-		const zipContratante = await corpoGarantido(URL_ZIP_CONTRATANTE, contratante);
+		const zipPesquisa = await corpoGarantido(urls.pesquisa, pesquisa);
+		const zipContratante = await corpoGarantido(urls.contratante, contratante);
 		const linhasPesquisa = parseCsvTse(await extrairCsvBrasil(zipPesquisa.bytes), {
 			manter: linhaPesquisaNoCorte,
 		});
