@@ -1,4 +1,6 @@
+import { faseDe } from "../apuracao/abertura";
 import { dataBrasilia } from "./liberacao";
+import { DATA_MEDIA_FINAL, mediaEm, serieMediaDe } from "./media";
 import type {
 	FichaPublica,
 	MetaImport,
@@ -13,8 +15,11 @@ export function montarPublico(
 	meta: MetaImport | null,
 	agora: Date,
 	resultados: readonly ResultadoGuardado[] = [],
+	encerrada = false,
 ): PayloadPesquisas {
 	const hoje = dataBrasilia(agora);
+	const fase = faseDe(agora.getTime(), encerrada);
+	const dataRef = fase === "pesquisas" ? hoje : DATA_MEDIA_FINAL;
 	const porRegistro = new Map(resultados.map((r) => [r.registro, r]));
 	const nacionais = registros
 		.filter((r) => r.classificacao === "nacional" && !r.removidoDoTse)
@@ -39,8 +44,9 @@ export function montarPublico(
 			geradoEm: meta?.geradoEm ?? null,
 			etag: meta?.etagPesquisa ?? null,
 		},
-		media: null,
-		serieMedia: [],
+		fase,
+		media: mediaEm(publicadas, dataRef),
+		serieMedia: serieMediaDe(publicadas, dataRef),
 		publicadas,
 		liberadasSemNumero: semNumero,
 		vemAi: nacionais

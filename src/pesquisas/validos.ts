@@ -2,6 +2,10 @@ export function arred2(n: number): number {
 	return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+export function arred1(n: number): number {
+	return Math.round((n + Number.EPSILON) * 10) / 10;
+}
+
 export function validosCalculados(flavio: number, lula: number): {
 	vf: number;
 	vl: number;
