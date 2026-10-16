@@ -256,7 +256,7 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(comVotos).not.toMatch(/undefined|NaN/);
 	});
 
-	it("marca a transferência como estimativa e não como dado oficial do TSE", () => {
+	it("compara a composição do eleitorado nos dois turnos, sem estimar transferência (#16)", () => {
 		const html = htmlGeografia(
 			vista(
 				estado({
@@ -291,12 +291,10 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(bloco).toContain("Do 1º ao 2º turno");
 		expect(bloco).toContain("Composição do eleitorado");
 		expect(bloco).toContain("35,35%");
-		expect(bloco).toContain("Para onde foram os votos?");
-		expect(bloco).toContain("ESTIMATIVA");
-		expect(bloco).toContain("1.200.000");
-		expect(bloco).toContain("300.000");
-		expect(bloco).toContain("O TSE não publica transferência de votos.");
-		expect(bloco).toContain("não é dado oficial do TSE");
+		expect(bloco).toContain('data-composicao="2"');
+		expect(bloco).not.toContain("Para onde foram os votos?");
+		expect(bloco).not.toContain("ESTIMATIVA");
+		expect(bloco).not.toContain("1.200.000");
 		expect(bloco).not.toMatch(/transferência oficial/i);
 		expect(bloco).not.toMatch(/segundo o TSE/i);
 		expect(html).not.toMatch(/undefined|NaN/);
@@ -406,9 +404,9 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(brasil).toContain("+4,72 p.p. na abstenção");
 	});
 
-	it("empilha exterior, comparecimento, comparação, estados e colégios", () => {
+	it("empilha exterior, comparecimento, estados, colégios e comparação", () => {
 		const html = htmlGeografia(vista(estado()));
-		const ordem = ["exterior", "comparecimento", "transferencia", "estados", "colegios"];
+		const ordem = ["exterior", "comparecimento", "estados", "colegios", "transferencia"];
 		let anterior = -1;
 		for (const id of ordem) {
 			const indice = html.indexOf(`data-geo="${id}"`);
@@ -430,10 +428,10 @@ describe("página ao vivo (#19)", () => {
 		expect(html.indexOf("a-placar")).toBeGreaterThan(-1);
 		expect(html.indexOf('data-geo="exterior"')).toBeGreaterThan(html.indexOf("a-placar"));
 		expect(html.indexOf('data-geo="comparecimento"')).toBeGreaterThan(html.indexOf('data-geo="exterior"'));
-		expect(html.indexOf('data-geo="transferencia"')).toBeGreaterThan(html.indexOf('data-geo="comparecimento"'));
-		expect(html.indexOf('data-geo="estados"')).toBeGreaterThan(html.indexOf('data-geo="transferencia"'));
+		expect(html.indexOf('data-geo="estados"')).toBeGreaterThan(html.indexOf('data-geo="comparecimento"'));
 		expect(html.indexOf('data-geo="colegios"')).toBeGreaterThan(html.indexOf('data-geo="estados"'));
-		expect(html.indexOf("última semana")).toBeGreaterThan(html.indexOf('data-geo="colegios"'));
+		expect(html.indexOf('data-geo="transferencia"')).toBeGreaterThan(html.indexOf('data-geo="colegios"'));
+		expect(html.indexOf("última semana")).toBeGreaterThan(html.indexOf('data-geo="transferencia"'));
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 

@@ -814,6 +814,26 @@ body {
 	pointer-events: none;
 }
 
+.a-noite-grade {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+	gap: 0 48px;
+	align-items: start;
+}
+
+.a-noite-esq,
+.a-noite-dir {
+	display: grid;
+	align-content: start;
+	min-width: 0;
+}
+
+.a-noite-dir > :first-child { border-top: 2px solid var(--tinta); }
+
+@media (max-width: 1100px) {
+	.a-noite-grade { grid-template-columns: minmax(0, 1fr); }
+}
+
 .a-noite,
 .a-momentos,
 .a-est,

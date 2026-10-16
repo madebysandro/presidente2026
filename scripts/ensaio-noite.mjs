@@ -201,6 +201,13 @@ async function smoke(browser, origem, nome, afirmar) {
 			await page.waitForSelector("[data-faixa]", { timeout: 15000 });
 			const texto = await checarLeitura(page, viewport.largura, viewport.reduzido);
 			await afirmar(page, texto);
+			if (process.env.ENSAIO_CAPTURAS) {
+				await page.waitForTimeout(2500);
+				await page.screenshot({
+					path: join(process.env.ENSAIO_CAPTURAS, `${nome.replaceAll(" ", "-")}-${viewport.largura}${viewport.reduzido ? "-reduzir" : ""}.png`),
+					fullPage: true,
+				});
+			}
 			if (erros.length) throw new Error(erros.join(" | "));
 			console.log(`ok  ${rotulo}`);
 			falhas.push({ item: rotulo, ok: true, detalhe: "leitura limpa" });
