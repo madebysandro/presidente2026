@@ -1,4 +1,5 @@
 import { htmlCalendario } from "./calendario";
+import { htmlComoCalculamos, htmlRodape, htmlVantagem } from "./grafico";
 import { htmlTopo } from "./topo";
 import type { PayloadPesquisas } from "../pesquisas/tipos";
 
@@ -16,9 +17,13 @@ export function documentoPesquisas(payload: PayloadPesquisas, agora: Date): stri
 <main class="a">
 ${htmlTopo(payload, agora)}
 ${htmlCalendario(payload, agora)}
+${htmlVantagem(payload)}
+${htmlComoCalculamos()}
+${htmlRodape()}
 </main>
 <script src="/js/relogio.js" defer></script>
 <script src="/js/calendario.js" defer></script>
+<script src="/js/grafico.js" defer></script>
 </body>
 </html>`;
 }
