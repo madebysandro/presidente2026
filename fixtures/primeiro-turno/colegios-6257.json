@@ -1,0 +1,227 @@
+{
+ "_nota": "1º turno OFICIAL (TSE, eleição 6257, Presidente). Gerado por script a partir dos arquivos <uf><mun>-c0001-e006257-u.json e zz-c0001-e006257-u.json; os 10 maiores municípios por eleitorado (te) entre capitais e maiores cidades.",
+ "brasil": {
+  "dg": "05/10/2026 12:51:47",
+  "eleitorado": 158745502,
+  "comparecimento": 125275835,
+  "abstencao": 33469244,
+  "pctComparecimento": 78.916358094,
+  "pctAbstencao": 21.083641906,
+  "validos": 119300788,
+  "brancos": 2300798,
+  "nulos": 3674249,
+  "votos": {
+   "22": 56104503,
+   "13": 53879538
+  },
+  "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/br/br-c0001-e006257-u.json"
+ },
+ "exterior": {
+  "dg": "05/10/2026 12:51:41",
+  "eleitorado": 916534,
+  "comparecimento": 341766,
+  "abstencao": 574345,
+  "pctComparecimento": 37.306177963,
+  "pctAbstencao": 62.693822037,
+  "validos": 330882,
+  "brancos": 5816,
+  "nulos": 5068,
+  "votos": {
+   "22": 143900,
+   "13": 157387
+  },
+  "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/zz/zz-c0001-e006257-u.json"
+ },
+ "municipios": [
+  {
+   "uf": "sp",
+   "cd": "71072",
+   "nome": "São Paulo",
+   "dg": "05/10/2026 12:52:35",
+   "eleitorado": 9145124,
+   "comparecimento": 7006411,
+   "abstencao": 2138713,
+   "pctComparecimento": 76.613624922,
+   "pctAbstencao": 23.386375078,
+   "validos": 6552820,
+   "brancos": 174614,
+   "nulos": 278977,
+   "votos": {
+    "22": 2760747,
+    "13": 3052349
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/sp/sp71072-c0001-e006257-u.json"
+  },
+  {
+   "uf": "rj",
+   "cd": "60011",
+   "nome": "Rio de Janeiro",
+   "dg": "05/10/2026 12:52:18",
+   "eleitorado": 4952612,
+   "comparecimento": 3658898,
+   "abstencao": 1293714,
+   "pctComparecimento": 73.878147531,
+   "pctAbstencao": 26.121852469,
+   "validos": 3471874,
+   "brancos": 73440,
+   "nulos": 113584,
+   "votos": {
+    "22": 1662354,
+    "13": 1524517
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/rj/rj60011-c0001-e006257-u.json"
+  },
+  {
+   "uf": "df",
+   "cd": "97012",
+   "nome": "Brasília",
+   "dg": "05/10/2026 12:52:12",
+   "eleitorado": 2258320,
+   "comparecimento": 1831396,
+   "abstencao": 426924,
+   "pctComparecimento": 81.095504623,
+   "pctAbstencao": 18.904495377,
+   "validos": 1772808,
+   "brancos": 25362,
+   "nulos": 33226,
+   "votos": {
+    "22": 909616,
+    "13": 675627
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/df/df97012-c0001-e006257-u.json"
+  },
+  {
+   "uf": "mg",
+   "cd": "41238",
+   "nome": "Belo Horizonte",
+   "dg": "05/10/2026 12:53:02",
+   "eleitorado": 1966966,
+   "comparecimento": 1502632,
+   "abstencao": 464334,
+   "pctComparecimento": 76.393389616,
+   "pctAbstencao": 23.606610384,
+   "validos": 1430488,
+   "brancos": 30483,
+   "nulos": 41661,
+   "votos": {
+    "22": 690960,
+    "13": 592037
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/mg/mg41238-c0001-e006257-u.json"
+  },
+  {
+   "uf": "ba",
+   "cd": "38490",
+   "nome": "Salvador",
+   "dg": "05/10/2026 12:52:29",
+   "eleitorado": 1955479,
+   "comparecimento": 1561593,
+   "abstencao": 393886,
+   "pctComparecimento": 79.857313732,
+   "pctAbstencao": 20.142686268,
+   "validos": 1447014,
+   "brancos": 37013,
+   "nulos": 77566,
+   "votos": {
+    "22": 391188,
+    "13": 944358
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/ba/ba38490-c0001-e006257-u.json"
+  },
+  {
+   "uf": "ce",
+   "cd": "13897",
+   "nome": "Fortaleza",
+   "dg": "05/10/2026 12:52:21",
+   "eleitorado": 1795713,
+   "comparecimento": 1561854,
+   "abstencao": 233859,
+   "pctComparecimento": 86.976816451,
+   "pctAbstencao": 13.023183549,
+   "validos": 1490374,
+   "brancos": 26884,
+   "nulos": 44596,
+   "votos": {
+    "22": 586251,
+    "13": 797002
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/ce/ce13897-c0001-e006257-u.json"
+  },
+  {
+   "uf": "am",
+   "cd": "02550",
+   "nome": "Manaus",
+   "dg": "05/10/2026 12:52:16",
+   "eleitorado": 1477265,
+   "comparecimento": 1223229,
+   "abstencao": 254036,
+   "pctComparecimento": 82.803626973,
+   "pctAbstencao": 17.196373027,
+   "validos": 1182539,
+   "brancos": 18468,
+   "nulos": 22222,
+   "votos": {
+    "22": 641864,
+    "13": 439027
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/am/am02550-c0001-e006257-u.json"
+  },
+  {
+   "uf": "pr",
+   "cd": "75353",
+   "nome": "Curitiba",
+   "dg": "05/10/2026 12:52:27",
+   "eleitorado": 1415148,
+   "comparecimento": 1136092,
+   "abstencao": 279056,
+   "pctComparecimento": 80.280790419,
+   "pctAbstencao": 19.719209581,
+   "validos": 1093434,
+   "brancos": 19244,
+   "nulos": 23414,
+   "votos": {
+    "22": 628721,
+    "13": 332099
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/pr/pr75353-c0001-e006257-u.json"
+  },
+  {
+   "uf": "pe",
+   "cd": "25313",
+   "nome": "Recife",
+   "dg": "05/10/2026 12:52:20",
+   "eleitorado": 1230407,
+   "comparecimento": 1034278,
+   "abstencao": 196129,
+   "pctComparecimento": 84.059827358,
+   "pctAbstencao": 15.940172642,
+   "validos": 983138,
+   "brancos": 19482,
+   "nulos": 31658,
+   "votos": {
+    "22": 377268,
+    "13": 543548
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/pe/pe25313-c0001-e006257-u.json"
+  },
+  {
+   "uf": "rs",
+   "cd": "88013",
+   "nome": "Porto Alegre",
+   "dg": "05/10/2026 12:52:31",
+   "eleitorado": 1064200,
+   "comparecimento": 808867,
+   "abstencao": 255333,
+   "pctComparecimento": 76.007047547,
+   "pctAbstencao": 23.992952453,
+   "validos": 776777,
+   "brancos": 16272,
+   "nulos": 15818,
+   "votos": {
+    "22": 325139,
+    "13": 377252
+   },
+   "fonte": "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/rs/rs88013-c0001-e006257-u.json"
+  }
+ ]
+}

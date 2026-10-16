@@ -145,8 +145,7 @@ describe("GET /api/apuracao — analise.majoritarias Presidente (#7)", () => {
 		expect(p!.validosAApurar).toBeCloseTo(83_541_013.27083544, 2);
 		expect(p!.margemParaVirarPp).toBeCloseTo(4.221712021335087, 6);
 		expect(p!.foraDeAlcance).toBe(false);
-		expect(p!.primeiroTurno?.status).toBe("ok");
-		expect(p!.primeiroTurno?.fatiaPct).toBeCloseTo(49.67297200584066, 6);
+		expect(p!.primeiroTurno).toBeNull();
 		expect(p!.tendencias).toEqual([]);
 		expect(p!.evolucaoVantagemPp).toHaveLength(1);
 		expect(dados.analise?.majoritarias?.governador).toBeUndefined();

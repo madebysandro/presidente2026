@@ -1,6 +1,6 @@
 /**
- * Issue #19 adaptada a #7: com UFs ainda fora do ciclo, o DO ele-6258
- * NÃO grava encerrada (senão a Fase 2 herda o alarme morto).
+ * Encerrada no 2º turno: Presidente + 27 UFs + exterior a 100% com `tf`.
+ * Município não segura o fim. (#17, a partir de #19)
  */
 import { fetchWorker } from "./helpers/fetch-worker";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -31,7 +31,7 @@ async function lerApuracao(): Promise<ApuracaoApi> {
 	return resposta.json() as Promise<ApuracaoApi>;
 }
 
-describe("Poller — encerramento adiado até UFs (#7)", () => {
+describe("Poller — encerrada com UFs e exterior (#17)", () => {
 	let tse: ReturnType<typeof instalarTseFalso>;
 
 	beforeEach(() => {
@@ -42,17 +42,17 @@ describe("Poller — encerramento adiado até UFs (#7)", () => {
 		await limparPoller();
 	});
 
-	it("com Presidente a 100%, NÃO grava encerrada e continua agendando (ciclo mínimo sem UFs)", async () => {
+	it("com Presidente, UFs e exterior a 100% e tf s, para de agendar", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		await forcarConsulta();
 		const dados = await lerApuracao();
 
-		expect(dados.encerrada).toBeFalsy();
-		expect(dados.proximaConsulta).toEqual(expect.any(Number));
+		expect(dados.encerrada).toBe(true);
+		expect(dados.proximaConsulta).toBeNull();
 		expect(dados.erro).toBeNull();
 		expect(dados.cargos.presidente?.apurado).toBe(100);
 		expect(dados.cargos.governador).toBeUndefined();
-		expect(await lerAlarme()).toEqual(expect.any(Number));
+		expect(await lerAlarme()).toBeNull();
 	});
 
 	it("com Presidente a 99,99%, continua agendando o alarme", async () => {
@@ -97,11 +97,12 @@ describe("Poller — encerramento adiado até UFs (#7)", () => {
 		expect(dados.encerrada).toBeFalsy();
 	});
 
-	it("histórico continua disponível enquanto o poller segue vivo a 100%", async () => {
+	it("histórico continua disponível depois de encerrar, sem novo alarme", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		await forcarConsulta();
 		const estado = await lerApuracao();
-		expect(estado.encerrada).toBeFalsy();
+		expect(estado.encerrada).toBe(true);
+		expect(await lerAlarme()).toBeNull();
 
 		const hist = await fetchWorker(
 			new Request("http://presidente2026.test/api/historico"),
@@ -111,7 +112,8 @@ describe("Poller — encerramento adiado até UFs (#7)", () => {
 		expect(leituras.length).toBeGreaterThanOrEqual(1);
 
 		const deNovo = await lerApuracao();
-		expect(deNovo.encerrada).toBeFalsy();
+		expect(deNovo.encerrada).toBe(true);
+		expect(deNovo.proximaConsulta).toBeNull();
 		expect(deNovo.cargos.presidente?.hora).toBe(
 			estado.cargos.presidente?.hora,
 		);

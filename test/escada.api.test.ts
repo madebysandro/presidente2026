@@ -130,19 +130,13 @@ describe("Poller — escada sem mudança (#24)", () => {
 		expectativaIntervalo(ok.proximaConsulta!, tOk, 120);
 	});
 
-	it("a 100% com ciclo mínimo sem UFs, segue a escada (não trava encerrada)", async () => {
+	it("a 100% com tf s encerra e não sobe a escada", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		await forcarConsulta();
 		const fim = await lerApuracao();
-		expect(fim.encerrada).toBeFalsy();
-		expect(fim.proximaConsulta).toEqual(expect.any(Number));
-		expect(await lerAlarme()).toEqual(expect.any(Number));
-
-		const t = Date.now();
-		await forcarConsulta();
-		const segundo = await lerApuracao();
-		expect(segundo.encerrada).toBeFalsy();
-		expectativaIntervalo(segundo.proximaConsulta!, t, 60);
+		expect(fim.encerrada).toBe(true);
+		expect(fim.proximaConsulta).toBeNull();
+		expect(await lerAlarme()).toBeNull();
 	});
 
 	it("com 100% e tf = n, a escada sobe em ciclos sem mudança", async () => {
