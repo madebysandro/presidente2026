@@ -104,6 +104,11 @@ config.assets = {
 	run_worker_first: true,
 	not_found_handling: builtNotFound,
 };
+// Segredo de teste. Produção usa `wrangler secret put CHAVE_AGENTE` (não vai no void.config).
+config.vars = {
+	...(config.vars ?? {}),
+	CHAVE_AGENTE: "teste-chave-agente",
+};
 
 writeFileSync(out, `${JSON.stringify(config, null, 2)}\n`);
 console.log("ensure-void-wrangler: wrote wrangler.vitest.jsonc");

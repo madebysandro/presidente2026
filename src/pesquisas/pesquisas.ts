@@ -7,8 +7,11 @@ import {
 	montarAplicar,
 	registrosDoTse,
 } from "./importar";
+import { chaveConfere } from "./chave";
+import { confirmarHtml, lerFonte } from "./ler-fonte";
 import { montarPublico } from "./montar-publico";
 import type {
+	AuditoriaAgente,
 	Changeset,
 	Classificacao,
 	ContagensImport,
@@ -17,7 +20,19 @@ import type {
 	OrigemZip,
 	PayloadPesquisas,
 	RegistroPesquisas,
+	ResultadoGuardado,
+	TotaisPublicos,
 } from "./tipos";
+import { validosCalculados } from "./validos";
+import {
+	lerEnvio,
+	motivoDaFonte,
+	motivosDoRegistro,
+	urlFonteValida,
+	type EnvioResultado,
+	type MotivoRecusa,
+	type RegistroParaResultado,
+} from "./validar-resultado";
 import type { RejeicaoLinha } from "./importar";
 import { extrairCsvBrasil } from "./zip-brasil";
 
@@ -179,7 +194,172 @@ export class Pesquisas extends DurableObject<Env> {
 		this.garantirEsquema();
 		const agora = opts.agora instanceof Date ? opts.agora : new Date(opts.agora);
 		if (Number.isNaN(agora.getTime())) throw new Error("agora inválido");
-		return montarPublico(this.lerRegistros(), this.lerMeta(), agora);
+		return montarPublico(this.lerRegistros(), this.lerMeta(), agora, this.lerResultados());
+	}
+
+	async listarAuditoriaAgente(): Promise<AuditoriaAgente[]> {
+		this.garantirEsquema();
+		return this.lerAuditoriaAgente();
+	}
+
+	/**
+	 * POST /api/agente/resultados.
+	 * A taxa e a auditoria ficam no mesmo lock. A leitura da fonte fica fora.
+	 */
+	async receberResultado(input: {
+		bearer: string | null;
+		ip: string;
+		corpo: string;
+		corpoExcedeu: boolean;
+		agora: Date;
+	}): Promise<RespostaResultado> {
+		const agora = input.agora instanceof Date ? input.agora : new Date(input.agora);
+		if (Number.isNaN(agora.getTime())) throw new Error("agora inválido");
+		const segredo = this.env.CHAVE_AGENTE ?? "";
+		const chaveValida =
+			input.bearer != null && segredo.length > 0 && (await chaveConfere(input.bearer, segredo));
+		const passagem = await this.ctx.blockConcurrencyWhile(async () => {
+			this.garantirEsquema();
+			const limite = chaveValida ? 30 : 5;
+			const balde = chaveValida ? "chave" : `ip:${input.ip || "desconhecido"}`;
+			if (!this.consumirTaxa(balde, limite, Date.now())) {
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida,
+					registro: registroDoCorpo(input.corpo),
+					corpo: input.corpo,
+					status: 429,
+					motivos: [],
+				});
+				return { kind: "fim" as const, resposta: resposta429() };
+			}
+			if (!chaveValida) {
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: false,
+					registro: registroDoCorpo(input.corpo),
+					corpo: input.corpo,
+					status: 401,
+					motivos: ["nao_autorizado"],
+				});
+				return { kind: "fim" as const, resposta: resposta401() };
+			}
+			return { kind: "segue" as const };
+		});
+		if (passagem.kind === "fim") return passagem.resposta;
+		if (input.corpoExcedeu) {
+			return this.ctx.blockConcurrencyWhile(async () => {
+				this.garantirEsquema();
+				const motivo: MotivoRecusa = {
+					codigo: "numeros_invalidos",
+					detalhe: "corpo grande demais",
+				};
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: true,
+					registro: registroDoCorpo(input.corpo),
+					corpo: input.corpo,
+					status: 422,
+					motivos: ["numeros_invalidos"],
+				});
+				return { status: 422 as const, corpo: { motivos: [motivo] } };
+			});
+		}
+
+		let bruto: unknown;
+		try {
+			bruto = JSON.parse(input.corpo);
+		} catch {
+			bruto = null;
+		}
+		const lido = lerEnvio(bruto);
+		const previa = this.ctx.blockConcurrencyWhile(async () => {
+			this.garantirEsquema();
+			return this.contextoRegistro(lido.registro);
+		});
+		const ctx = await previa;
+		let htmlFonte: string | null = null;
+		let falhaFonte: MotivoRecusa | null = null;
+		if (lido.envio && ctx && urlFonteValida(lido.envio.fonte)) {
+			const leitura = await lerFonte(lido.envio.fonte);
+			if (!leitura.ok) {
+				falhaFonte = { codigo: "fonte_inacessivel", detalhe: leitura.detalhe };
+			} else {
+				htmlFonte = leitura.html;
+			}
+		}
+		return this.ctx.blockConcurrencyWhile(async () => {
+			this.garantirEsquema();
+			const deNovo = this.contextoRegistro(lido.registro);
+			const finais = [...lido.motivos];
+			if (lido.envio) finais.push(...motivosDoRegistro(lido.envio, deNovo, agora));
+			else if (lido.registro && !deNovo) {
+				finais.push({
+					codigo: "registro_desconhecido",
+					detalhe: "registro não está no último import",
+				});
+			}
+			if (lido.envio && deNovo && urlFonteValida(lido.envio.fonte)) {
+				const confirma =
+					htmlFonte != null &&
+					confirmarHtml(
+						htmlFonte,
+						deNovo.instituto,
+						lido.envio.totais,
+						lido.envio.validosPublicados,
+					);
+				const motivo = motivoDaFonte(htmlFonte, falhaFonte, confirma);
+				if (motivo) finais.push(motivo);
+			}
+			const unicos = dedupar(finais);
+			if (!lido.envio || !deNovo || deNovo.removidoDoTse || deNovo.classificacao !== "nacional" || unicos.length > 0) {
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: true,
+					registro: lido.registro,
+					corpo: input.corpo,
+					status: 422,
+					motivos: unicos.map((m) => m.codigo),
+				});
+				return { status: 422 as const, corpo: { motivos: unicos } };
+			}
+			const calculados = validosCalculados(lido.envio.totais.flavio, lido.envio.totais.lula);
+			if (!calculados) {
+				const extra: MotivoRecusa = {
+					codigo: "numeros_invalidos",
+					detalhe: "não há votos válidos para calcular",
+				};
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: true,
+					registro: lido.registro,
+					corpo: input.corpo,
+					status: 422,
+					motivos: ["numeros_invalidos"],
+				});
+				return { status: 422 as const, corpo: { motivos: [extra] } };
+			}
+			const substituido = deNovo.jaPublicado && lido.envio.substituir;
+			this.gravarResultado(lido.envio, deNovo, calculados, agora.toISOString(), substituido);
+			const status = substituido ? 200 : 201;
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida: true,
+				registro: lido.envio.registro,
+				corpo: input.corpo,
+				status,
+				motivos: [],
+			});
+			return substituido
+				? { status: 200 as const, corpo: { status: "substituido" as const } }
+				: { status: 201 as const, corpo: { status: "publicado" as const } };
+		});
 	}
 
 	async obterContagens(): Promise<ContagensImport> {
@@ -233,6 +413,245 @@ export class Pesquisas extends DurableObject<Env> {
 				detalhe TEXT NOT NULL
 			)
 		`);
+		this.ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS resultados (
+				registro TEXT PRIMARY KEY,
+				totais_json TEXT NOT NULL,
+				validos_publicados_json TEXT,
+				vf REAL NOT NULL,
+				vl REAL NOT NULL,
+				v REAL NOT NULL,
+				fonte TEXT NOT NULL,
+				margem REAL NOT NULL,
+				confianca REAL NOT NULL,
+				cadastrado_em TEXT NOT NULL,
+				substituido_em TEXT
+			)
+		`);
+		this.ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS resultados_historico (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				registro TEXT NOT NULL,
+				corpo_json TEXT NOT NULL,
+				em TEXT NOT NULL
+			)
+		`);
+		this.ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS suspensoes (
+				registro TEXT PRIMARY KEY,
+				desde TEXT NOT NULL,
+				motivo TEXT NOT NULL
+			)
+		`);
+		this.ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS auditoria_agente (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				em TEXT NOT NULL,
+				rota TEXT NOT NULL,
+				metodo TEXT NOT NULL,
+				ip TEXT NOT NULL,
+				chave_valida INTEGER NOT NULL,
+				registro TEXT,
+				corpo TEXT NOT NULL,
+				status INTEGER NOT NULL,
+				motivos TEXT NOT NULL
+			)
+		`);
+		this.ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS taxa_agente (
+				id TEXT PRIMARY KEY,
+				inicio INTEGER NOT NULL,
+				n INTEGER NOT NULL
+			)
+		`);
+	}
+
+	private consumirTaxa(id: string, limite: number, agoraMs: number): boolean {
+		const rows = this.ctx.storage.sql
+			.exec<{ inicio: number; n: number }>(
+				"SELECT inicio, n FROM taxa_agente WHERE id = ?",
+				id,
+			)
+			.toArray();
+		const row = rows[0];
+		if (!row || agoraMs - Number(row.inicio) >= 60_000) {
+			this.ctx.storage.sql.exec(
+				`INSERT INTO taxa_agente (id, inicio, n) VALUES (?, ?, 1)
+				ON CONFLICT(id) DO UPDATE SET inicio = excluded.inicio, n = 1`,
+				id,
+				agoraMs,
+			);
+			return true;
+		}
+		const n = Number(row.n) + 1;
+		this.ctx.storage.sql.exec("UPDATE taxa_agente SET n = ? WHERE id = ?", n, id);
+		return n <= limite;
+	}
+
+	private contextoRegistro(registro: string | null): RegistroParaResultado | null {
+		if (!registro) return null;
+		const achado = this.lerRegistros().find((item) => item.registro === registro);
+		if (!achado) return null;
+		const suspensa = this.ctx.storage.sql
+			.exec<{ n: number }>("SELECT COUNT(*) AS n FROM suspensoes WHERE registro = ?", registro)
+			.one();
+		const publicado = this.ctx.storage.sql
+			.exec<{ n: number }>("SELECT COUNT(*) AS n FROM resultados WHERE registro = ?", registro)
+			.one();
+		return {
+			classificacao: achado.classificacao,
+			removidoDoTse: achado.removidoDoTse,
+			liberacaoEfetiva: achado.liberacaoEfetiva,
+			campoFim: achado.campoFim,
+			margem: achado.margem,
+			confianca: achado.confianca,
+			instituto: achado.instituto,
+			suspensa: Number(suspensa.n) > 0,
+			jaPublicado: Number(publicado.n) > 0,
+		};
+	}
+
+	private gravarResultado(
+		envio: EnvioResultado,
+		registro: RegistroParaResultado,
+		calculados: { vf: number; vl: number; v: number },
+		em: string,
+		substituir: boolean,
+	): void {
+		const margem = registro.margem ?? envio.margem;
+		const confianca = registro.confianca ?? envio.confianca;
+		if (margem == null || confianca == null) throw new Error("margem efetiva ausente");
+		const anterior = substituir ? this.lerResultados().find((r) => r.registro === envio.registro) : undefined;
+		this.ctx.storage.transactionSync(() => {
+			if (anterior) {
+				this.ctx.storage.sql.exec(
+					"INSERT INTO resultados_historico (registro, corpo_json, em) VALUES (?, ?, ?)",
+					envio.registro,
+					JSON.stringify(anterior),
+					em,
+				);
+			}
+			this.ctx.storage.sql.exec(
+				`INSERT INTO resultados (
+					registro, totais_json, validos_publicados_json, vf, vl, v,
+					fonte, margem, confianca, cadastrado_em, substituido_em
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT(registro) DO UPDATE SET
+					totais_json = excluded.totais_json,
+					validos_publicados_json = excluded.validos_publicados_json,
+					vf = excluded.vf,
+					vl = excluded.vl,
+					v = excluded.v,
+					fonte = excluded.fonte,
+					margem = excluded.margem,
+					confianca = excluded.confianca,
+					cadastrado_em = resultados.cadastrado_em,
+					substituido_em = excluded.substituido_em`,
+				envio.registro,
+				JSON.stringify(envio.totais),
+				envio.validosPublicados ? JSON.stringify(envio.validosPublicados) : null,
+				calculados.vf,
+				calculados.vl,
+				calculados.v,
+				envio.fonte,
+				margem,
+				confianca,
+				anterior?.cadastradoEm ?? em,
+				substituir ? em : null,
+			);
+		});
+	}
+
+	private gravarAuditoriaAgente(entrada: {
+		em: string;
+		ip: string;
+		chaveValida: boolean;
+		registro: string | null;
+		corpo: string;
+		status: number;
+		motivos: string[];
+	}): void {
+		this.ctx.storage.sql.exec(
+			`INSERT INTO auditoria_agente (
+				em, rota, metodo, ip, chave_valida, registro, corpo, status, motivos
+			) VALUES (?, '/api/agente/resultados', 'POST', ?, ?, ?, ?, ?, ?)`,
+			entrada.em,
+			entrada.ip,
+			entrada.chaveValida ? 1 : 0,
+			entrada.registro?.slice(0, 120) ?? null,
+			entrada.corpo.slice(0, 8000),
+			entrada.status,
+			JSON.stringify(entrada.motivos),
+		);
+	}
+
+	private lerAuditoriaAgente(): AuditoriaAgente[] {
+		const rows = this.ctx.storage.sql
+			.exec<{
+				id: number;
+				em: string;
+				rota: string;
+				metodo: string;
+				ip: string;
+				chave_valida: number;
+				registro: string | null;
+				corpo: string;
+				status: number;
+				motivos: string;
+			}>(
+				`SELECT id, em, rota, metodo, ip, chave_valida, registro, corpo, status, motivos
+				FROM auditoria_agente ORDER BY id`,
+			)
+			.toArray();
+		return rows.map((row) => ({
+			id: Number(row.id),
+			em: row.em,
+			rota: row.rota,
+			metodo: row.metodo,
+			ip: row.ip,
+			chaveValida: Number(row.chave_valida) === 1,
+			registro: row.registro,
+			corpo: row.corpo,
+			status: Number(row.status),
+			motivos: JSON.parse(row.motivos) as string[],
+		}));
+	}
+
+	private lerResultados(): ResultadoGuardado[] {
+		const rows = this.ctx.storage.sql
+			.exec<{
+				registro: string;
+				totais_json: string;
+				validos_publicados_json: string | null;
+				vf: number;
+				vl: number;
+				v: number;
+				fonte: string;
+				margem: number;
+				confianca: number;
+				cadastrado_em: string;
+				substituido_em: string | null;
+			}>(
+				`SELECT registro, totais_json, validos_publicados_json, vf, vl, v,
+					fonte, margem, confianca, cadastrado_em, substituido_em
+				FROM resultados`,
+			)
+			.toArray();
+		return rows.map((row) => ({
+			registro: row.registro,
+			totais: JSON.parse(row.totais_json) as TotaisPublicos,
+			validosPublicados: row.validos_publicados_json
+				? (JSON.parse(row.validos_publicados_json) as { flavio: number; lula: number })
+				: null,
+			vf: Number(row.vf),
+			vl: Number(row.vl),
+			v: Number(row.v),
+			fonte: row.fonte,
+			margem: Number(row.margem),
+			confianca: Number(row.confianca),
+			cadastradoEm: row.cadastrado_em,
+			substituidoEm: row.substituido_em,
+		}));
 	}
 
 	private aplicar(changeset: Extract<Changeset, { kind: "aplicar" }>): void {
@@ -458,4 +877,44 @@ function lerClassificacao(valor: string): Classificacao {
 function numeroOuNulo(valor: number | null): number | null {
 	if (valor == null) return null;
 	return Number(valor);
+}
+
+export type RespostaResultado =
+	| { status: 201; corpo: { status: "publicado" } }
+	| { status: 200; corpo: { status: "substituido" } }
+	| { status: 401; corpo: { erro: "nao_autorizado" } }
+	| { status: 429; corpo: { erro: "limite" } }
+	| { status: 422; corpo: { motivos: MotivoRecusa[] } };
+
+function resposta401(): RespostaResultado {
+	return { status: 401, corpo: { erro: "nao_autorizado" } };
+}
+
+function resposta429(): RespostaResultado {
+	return { status: 429, corpo: { erro: "limite" } };
+}
+
+function registroDoCorpo(corpo: string): string | null {
+	try {
+		const bruto = JSON.parse(corpo) as unknown;
+		if (typeof bruto === "object" && bruto !== null && "registro" in bruto) {
+			const registro = (bruto as { registro?: unknown }).registro;
+			return typeof registro === "string" ? registro : null;
+		}
+	} catch {
+		return null;
+	}
+	return null;
+}
+
+function dedupar(motivos: MotivoRecusa[]): MotivoRecusa[] {
+	const vistos = new Set<string>();
+	const saida: MotivoRecusa[] = [];
+	for (const motivo of motivos) {
+		const chave = `${motivo.codigo}\0${motivo.detalhe}`;
+		if (vistos.has(chave)) continue;
+		vistos.add(chave);
+		saida.push(motivo);
+	}
+	return saida;
 }
