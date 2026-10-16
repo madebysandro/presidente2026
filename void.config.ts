@@ -1,7 +1,7 @@
 import { defineConfig } from "void/config";
 
 /**
- * Migrado do wrangler.jsonc (#27).
+ * Config do Worker na Void (#27).
  * Docs: https://void.cloud/guide/
  *       https://void.cloud/integrations/cloudflare
  *       https://void.cloud/guide/durable-state

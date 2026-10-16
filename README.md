@@ -46,7 +46,7 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 | Chave válida | 30 a cada 60 s | binding `LIMITE_AGENTE_CHAVE` (`namespace_id` `625801`) e contador no DO |
 | IP sem chave válida | 5 a cada 60 s | binding `LIMITE_AGENTE_IP` (`namespace_id` `625802`) e contador no DO |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção leva os dois em `dist/ssr/wrangler.json`. Toda rota em `/api/agente/*` passa por `bindingDeixaPassar`: chave válida usa `LIMITE_AGENTE_CHAVE`, o resto usa `LIMITE_AGENTE_IP`.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção declara os dois em `void.config.ts` (`cloudflare.ratelimits`). Toda rota em `/api/agente/*` passa por `bindingDeixaPassar`: chave válida usa `LIMITE_AGENTE_CHAVE`, o resto usa `LIMITE_AGENTE_IP`.
 
 | Rota | Autenticação | Resposta |
 | --- | --- | --- |
@@ -69,10 +69,10 @@ Sem chave (ou chave errada) nas rotas que exigem `Bearer`: `401 {"erro":"nao_aut
 node --input-type=module -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
 ```
 
-Gravar no Worker (o Wrangler pede o valor no stdin; não há flag de valor):
+Gravar no Worker (o Void pede o valor no stdin; não cole o valor na linha de comando):
 
 ```bash
-npx wrangler secret put CHAVE_AGENTE
+npx void secret put CHAVE_AGENTE
 ```
 
 Rode na conta do Worker `presidente2026`. O nome do segredo não entra em `void.config.ts`.
@@ -164,11 +164,11 @@ npm run dev
 
 | Script | O que faz |
 | --- | --- |
-| `npm test` | Gera `.void-wrangler.jsonc` + Vitest (`vitest-pool-workers`), TSE falso via MSW |
-| `npm run build` | `tsc --noEmit` + `vite build` (Void) |
-| `npm run dev` | `vite` com `voidPlugin` |
-| `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback do Void) |
-| `npm run deploy:wrangler` | Fallback: `wrangler deploy -c dist/ssr/wrangler.json` (após `npm run build`) |
+| `npm test` | `void prepare` + build + Vitest no runtime local (Miniflare), TSE falso via MSW |
+| `npm run build` | `void prepare` + `tsc --noEmit` + `vite build` |
+| `npm run dev` | `vite` com `voidPlugin` (dev local da Void, Miniflare) |
+| `npm run prepare:void` | `void prepare` — tipos em `.void/` sem subir o dev server |
+| `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback da ativação) |
 
 ## Vars
 
@@ -181,7 +181,7 @@ npm run dev
 
 Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy).
 
-`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. O fallback seguro (sem readiness do Void) é `npm run deploy:wrangler` após `npm run build`, ou seja `npx wrangler deploy -c dist/ssr/wrangler.json`.
+`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. O rollback da Void restaura o código; não desfaz migração de banco.
 
 `routing.notFound` fica em `"none"` para o `createAssetFallback` do Void não trocar GET `/api/*` 404 por `index.html` (modo SPA padrão quando só há rotas de API).
 
@@ -197,29 +197,27 @@ Para o gate de verify, o código do Void precisa conseguir ler deployments/versi
 
 ### Trigger de produção
 
-| Setting | Agora (wrangler, site no ar) | Alvo a provar no próximo Retry |
-| --- | --- | --- |
-| Git branch | `main` | `main` |
-| Root directory | `/` | `/` |
-| Build command | `npm run build` | `npm run build` |
-| Deploy command | `npx wrangler deploy -c dist/ssr/wrangler.json` | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
-| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) | igual |
-| Preview builds | desligado | desligado |
-| API token | token do Builds | igual (Create new token se stale) |
+| Setting | Valor |
+| --- | --- |
+| Git branch | `main` |
+| Root directory | `/` |
+| Build command | `npm run build` |
+| Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
+| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
+| Preview builds | desligado |
+| API token | token do Builds (Create new token se stale) |
 
 Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
-
-Não dá para ter log verde de `void deploy` com o Deploy command ainda em wrangler: o flip do comando **é** o experimento. Em falha, volte ao wrangler e Retry (site volta pelo deploy wrangler).
 
 #### Cliques no dashboard (Sandro)
 
 1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
 2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (Workers Scripts Edit no padrão) e salve.
-3. Em Deploy command, troque `npx wrangler deploy -c dist/ssr/wrangler.json` por `npx void deploy --platform cloudflare` e salve → **Retry build** (trigger `0eac68b6-…`).
-4. No log desse build: confirme verify (`deployments`/`versions`) + readiness. Se OK, mantenha o comando alvo.
-5. Se falhar: coloque de volta `npx wrangler deploy -c dist/ssr/wrangler.json`, **Retry build**, e só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
+3. Em Deploy command, deixe `npx void deploy --platform cloudflare` e salve → **Retry build** se a config mudou.
+4. No log desse build: confirme verify (`deployments`/`versions`) + readiness.
+5. Se a ativação falhar, o Void desfaz a ativação. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
-Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`; o `dist/ssr/wrangler.json` do build repete os dois). O mesmo arquivo leva `limits.cpu_ms` 300000 e os bindings `LIMITE_AGENTE_CHAVE` / `LIMITE_AGENTE_IP`.
+Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000 e os bindings `LIMITE_AGENTE_CHAVE` / `LIMITE_AGENTE_IP`.
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 
