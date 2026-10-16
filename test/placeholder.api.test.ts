@@ -22,12 +22,12 @@ describe("Página pública placeholder (#7)", () => {
 
 	it("GET /api/tela2 devolve 404 JSON (não HTML)", async () => {
 		const res = await fetchWorker(
-			new Request("http://presidente2026.test/api/tela2"),
+			new Request("http://presidente2026.test/api/tela2", {
+				headers: { accept: "text/html" },
+			}),
 		);
 		expect(res.status).toBe(404);
 		expect(res.headers.get("content-type") ?? "").toMatch(/application\/json/);
-		const corpo = await res.text();
-		expect(corpo).toBe('{"error":"não achei"}');
-		expect(corpo).not.toMatch(/<!doctype html>/i);
+		await expect(res.json()).resolves.toEqual({ error: "não achei" });
 	});
 });

@@ -69,25 +69,25 @@ Para o gate de verify (leituras de script/deployment/version), basta **Account �
 
 ### Trigger de produção
 
-Enquanto o `void deploy` não for provado num build, o Deploy command do trigger pode permanecer no fallback wrangler. Depois da prova (log com readiness OK), Sandro troca só o Deploy command.
+| Setting | Agora (até provar void deploy) | Alvo (depois do log com readiness OK) |
+| --- | --- | --- |
+| Git branch | `main` | `main` |
+| Root directory | `/` | `/` |
+| Build command | `npm run build` | `npm run build` |
+| Deploy command | `npx wrangler deploy -c dist/ssr/wrangler.json` | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
+| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) | igual |
+| Preview builds | desligado | desligado |
+| API token | token do Builds | igual (Create new token se stale) |
 
-| Setting | Valor alvo |
-| --- | --- |
-| Git branch | `main` |
-| Root directory | `/` |
-| Build command | `npm run build` |
-| Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
-| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
-| Preview builds | desligado |
-| API token | o do Builds (Create new token se stale) |
+Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
 
 #### Cliques no dashboard (Sandro)
 
 1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
-2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (permissions padrão acima) e salve.
+2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (Workers Scripts Edit no padrão) e salve.
 3. **Não** adicione `CLOUDFLARE_API_TOKEN` em Build variables/secrets só por causa do Void: o token do passo 2 já autentica o deploy command.
-4. Depois de um build verde com `npx void deploy --platform cloudflare` e readiness no log: em Deploy command, troque o fallback wrangler por `npx void deploy --platform cloudflare` e salve. O site continua no ar; só o próximo push/`Retry build` usa o novo comando.
-5. Se o void deploy falhar de novo: reverta o Deploy command para `npx wrangler deploy -c dist/ssr/wrangler.json` e rode **Retry build**.
+4. **Só depois** de um build verde com `npx void deploy --platform cloudflare` e readiness no log: em Deploy command, troque o valor da coluna “Agora” pelo da coluna “Alvo” e salve. O site continua no ar; só o próximo push/`Retry build` usa o novo comando.
+5. Se o void deploy falhar: coloque de volta `npx wrangler deploy -c dist/ssr/wrangler.json` e rode **Retry build**.
 
 Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
 
