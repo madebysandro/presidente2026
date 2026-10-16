@@ -35,12 +35,9 @@ function responder(
 	const ifNoneMatch = request.headers.get("if-none-match");
 	const ifModifiedSince = request.headers.get("if-modified-since");
 	pedidosCdn.push({ url: request.url, ifNoneMatch, ifModifiedSince });
-	// O CDN do TSE só devolve 304 com If-Modified-Since (ETag sozinho → 200).
-	if (
-		condicional304 &&
-		ifModifiedSince === lastModified &&
-		(ifNoneMatch === null || ifNoneMatch === etag)
-	) {
+	// CDN ao vivo: ETag sozinho → 200; If-Modified-Since igual → 304
+	// mesmo com If-None-Match diferente.
+	if (condicional304 && ifModifiedSince === lastModified) {
 		return new HttpResponse(null, {
 			status: 304,
 			headers: { etag, "last-modified": lastModified },

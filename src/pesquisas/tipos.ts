@@ -38,7 +38,7 @@ export type MotivoImport = "cron" | "primeiro_acesso" | "teste";
 
 export type AuditoriaEntrada = {
 	em: string;
-	tipo: "import" | "removido" | "ambigua";
+	tipo: "import" | "removido" | "ambigua" | "rejeitado";
 	registro: string | null;
 	detalhe: string;
 };

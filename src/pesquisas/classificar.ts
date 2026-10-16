@@ -7,8 +7,8 @@ const SIGLAS =
 	"AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO";
 
 const SIGLA_EM_CONTEXTO = new RegExp(
-	`(?:(?:estado\\s+d[oa]|d[oa]|todo\\s+o)\\s+(${SIGLAS})\\b|\\((${SIGLAS})\\)|cidade/(${SIGLAS})\\b|cidade\\s+-\\s+(${SIGLAS})\\b)`,
-	"g",
+	`(?:(?:estado\\s+d[oa]|(?<![\\p{L}\\p{N}_])d[oa]|todo\\s+o)\\s+(${SIGLAS})\\b|\\((${SIGLAS})\\)|cidade/(${SIGLAS})\\b|cidade\\s+-\\s+(${SIGLAS})\\b)`,
+	"gu",
 );
 
 const NAC = new RegExp(
@@ -95,7 +95,7 @@ function ufsCitadas(original: string, texto: string): Set<string> {
 		if (padrao.test(texto)) achadas.add(sigla);
 	}
 	if (PARA_COM_ACENTO.test(original)) achadas.add("PA");
-	for (const m of original.matchAll(new RegExp(SIGLA_EM_CONTEXTO.source, "g"))) {
+	for (const m of original.matchAll(new RegExp(SIGLA_EM_CONTEXTO.source, "gu"))) {
 		const sigla = m.slice(1).find((g): g is string => Boolean(g));
 		if (sigla) achadas.add(sigla);
 	}

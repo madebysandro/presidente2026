@@ -36,10 +36,15 @@ export function linhaPesquisaNoCorte(linha: Record<string, string>): boolean {
 	return Boolean(campoFim && campoFim >= FIM_CAMPO_MINIMO);
 }
 
+export type RejeicaoLinha = {
+	protocolo: string;
+	detalhe: string;
+};
+
 export function registrosDoTse(
 	pesquisa: Record<string, string>[],
 	contratantes: Record<string, string>[],
-): RegistroPesquisas[] {
+): { lidos: RegistroPesquisas[]; rejeicoes: RejeicaoLinha[] } {
 	const porProtocolo = new Map<string, Record<string, string>[]>();
 	for (const linha of contratantes) {
 		const protocolo = linha.NR_PROTOCOLO_REGISTRO ?? "";
@@ -48,22 +53,27 @@ export function registrosDoTse(
 		porProtocolo.set(protocolo, lista);
 	}
 
-	const saida: RegistroPesquisas[] = [];
+	const lidos: RegistroPesquisas[] = [];
+	const rejeicoes: RejeicaoLinha[] = [];
 	for (const linha of pesquisa) {
 		if (!linhaPesquisaNoCorte(linha)) continue;
-		saida.push(
-			registroDeLinha(
-				linha,
-				porProtocolo.get(linha.NR_PROTOCOLO_REGISTRO ?? "") ?? [],
-			),
-		);
+		const protocolo = linha.NR_PROTOCOLO_REGISTRO ?? "";
+		try {
+			lidos.push(registroDeLinha(linha, porProtocolo.get(protocolo) ?? []));
+		} catch (erro) {
+			rejeicoes.push({
+				protocolo,
+				detalhe: erro instanceof Error ? erro.message : String(erro),
+			});
+		}
 	}
-	return saida;
+	return { lidos, rejeicoes };
 }
 
 export function montarAplicar(input: {
 	anteriores: RegistroPesquisas[];
 	lidos: RegistroPesquisas[];
+	rejeicoes?: RejeicaoLinha[];
 	em: string;
 	motivo: MotivoImport;
 	origem: OrigemZip;
@@ -77,6 +87,7 @@ export function montarAplicar(input: {
 		.map((r) => r.registro)
 		.sort();
 	const contagens = contar(input.lidos);
+	const rejeicoes = input.rejeicoes ?? [];
 	const auditoria: AuditoriaEntrada[] = [
 		{
 			em: input.em,
@@ -86,9 +97,18 @@ export function montarAplicar(input: {
 				motivo: input.motivo,
 				...contagens,
 				removidos: remover,
+				rejeitados: rejeicoes.map((r) => r.protocolo),
 			}),
 		},
 	];
+	for (const rejeicao of rejeicoes) {
+		auditoria.push({
+			em: input.em,
+			tipo: "rejeitado",
+			registro: rejeicao.protocolo || null,
+			detalhe: rejeicao.detalhe,
+		});
+	}
 	for (const registro of remover) {
 		auditoria.push({
 			em: input.em,

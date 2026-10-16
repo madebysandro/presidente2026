@@ -2,6 +2,9 @@ const ASSINATURA_EOCD = 0x06054b50;
 const ASSINATURA_CENTRAL = 0x02014b50;
 const ASSINATURA_LOCAL = 0x04034b50;
 
+/** Teto do CSV nacional descomprimido (live ~16,5 MiB). Acima disso é bomba ou lixo. */
+const TAMANHO_MAX_CSV_BRASIL = 32 * 1024 * 1024;
+
 /**
  * A ordem das entradas muda entre versões do ZIP. O CSV nacional é o
  * `*_BRASIL.csv` do diretório central, não o primeiro arquivo.
@@ -86,6 +89,11 @@ function bytesDaEntrada(zip: Uint8Array, entrada: Entrada): Uint8Array {
 }
 
 async function bytesDescomprimidos(entrada: Entrada, comprimido: Uint8Array): Promise<Uint8Array> {
+	if (entrada.tamanho > TAMANHO_MAX_CSV_BRASIL) {
+		throw new Error(
+			`CSV ${entrada.nome} declara ${entrada.tamanho} bytes (limite ${TAMANHO_MAX_CSV_BRASIL})`,
+		);
+	}
 	if (entrada.metodo === 0) {
 		if (comprimido.byteLength !== entrada.tamanho) {
 			throw new Error(`tamanho stored ${comprimido.byteLength} != ${entrada.tamanho}`);
@@ -102,9 +110,41 @@ async function bytesDescomprimidos(entrada: Entrada, comprimido: Uint8Array): Pr
 		},
 	});
 	const descomprimido = fluxo.pipeThrough(new DecompressionStream("deflate-raw"));
-	const cru = new Uint8Array(await new Response(descomprimido).arrayBuffer());
+	const cru = await lerComTeto(descomprimido, entrada.tamanho, entrada.nome);
 	if (cru.byteLength !== entrada.tamanho) {
 		throw new Error(`tamanho descomprimido ${cru.byteLength} != ${entrada.tamanho}`);
+	}
+	return cru;
+}
+
+async function lerComTeto(
+	stream: ReadableStream<Uint8Array>,
+	esperado: number,
+	nome: string,
+): Promise<Uint8Array> {
+	const reader = stream.getReader();
+	const partes: Uint8Array[] = [];
+	let total = 0;
+	try {
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			total += value.byteLength;
+			if (total > TAMANHO_MAX_CSV_BRASIL || total > esperado) {
+				throw new Error(
+					`CSV ${nome} ultrapassou o teto na descompressão (${total} > ${Math.min(TAMANHO_MAX_CSV_BRASIL, esperado)})`,
+				);
+			}
+			partes.push(value);
+		}
+	} finally {
+		reader.releaseLock();
+	}
+	const cru = new Uint8Array(total);
+	let offset = 0;
+	for (const parte of partes) {
+		cru.set(parte, offset);
+		offset += parte.byteLength;
 	}
 	return cru;
 }

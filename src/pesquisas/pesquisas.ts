@@ -14,9 +14,11 @@ import type {
 	ContagensImport,
 	MetaImport,
 	MotivoImport,
+	OrigemZip,
 	PayloadPesquisas,
 	RegistroPesquisas,
 } from "./tipos";
+import type { RejeicaoLinha } from "./importar";
 import { extrairCsvBrasil } from "./zip-brasil";
 
 const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste"]);
@@ -58,6 +60,12 @@ type CorpoZip = {
 
 type BuscaZip = { kind: "nao_modificado" } | CorpoZip;
 
+type LoteImport = {
+	lidos: RegistroPesquisas[];
+	rejeicoes: RejeicaoLinha[];
+	origem: OrigemZip;
+};
+
 /**
  * Singleton SQLite do registro de pesquisas.
  * O cron e o GET convergem no mesmo upsert: rodar de novo não duplica linha.
@@ -73,24 +81,35 @@ export class Pesquisas extends DurableObject<Env> {
 	}
 
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
-		return this.ctx.blockConcurrencyWhile(() => this.importarDoTseInterno(opts));
+		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
+		this.garantirEsquema();
+		const lote = await this.prepararLote(this.lerMeta());
+		if (lote === null) {
+			return this.ctx.blockConcurrencyWhile(async () => {
+				const meta = this.lerMeta();
+				if (!meta) throw new Error("304 sem import anterior");
+				return { kind: "nao_modificado" as const, meta };
+			});
+		}
+		return this.ctx.blockConcurrencyWhile(async () =>
+			this.aplicarLote(opts.motivo, lote),
+		);
 	}
 
 	async garantirImportInicial(): Promise<void> {
+		this.garantirEsquema();
+		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
+		const lote = await this.prepararLote(null);
+		if (lote === null) throw new Error("304 sem import anterior");
 		await this.ctx.blockConcurrencyWhile(async () => {
-			this.garantirEsquema();
 			if (this.contarRegistros() === 0 && this.lerMeta() === null) {
-				await this.importarDoTseInterno({ motivo: "primeiro_acesso" });
+				this.aplicarLote("primeiro_acesso", lote);
 			}
 		});
 	}
 
-	private async importarDoTseInterno(opts: {
-		motivo: MotivoImport;
-	}): Promise<Changeset> {
-		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
-		this.garantirEsquema();
-		const meta = this.lerMeta();
+	/** Download + parse fora do lock. `null` = ambos 304. */
+	private async prepararLote(meta: MetaImport | null): Promise<LoteImport | null> {
 		const pesquisa = await buscarZip(
 			URL_ZIP_PESQUISA,
 			meta?.etagPesquisa ?? null,
@@ -102,8 +121,7 @@ export class Pesquisas extends DurableObject<Env> {
 			meta?.lastModifiedContratante ?? null,
 		);
 		if (pesquisa.kind === "nao_modificado" && contratante.kind === "nao_modificado") {
-			if (!meta) throw new Error("304 sem import anterior");
-			return { kind: "nao_modificado", meta };
+			return null;
 		}
 		const zipPesquisa = await corpoGarantido(URL_ZIP_PESQUISA, pesquisa);
 		const zipContratante = await corpoGarantido(URL_ZIP_CONTRATANTE, contratante);
@@ -120,11 +138,10 @@ export class Pesquisas extends DurableObject<Env> {
 					protocolos.has(linha.NR_PROTOCOLO_REGISTRO ?? ""),
 			},
 		);
-		const changeset = montarAplicar({
-			anteriores: this.lerRegistros(),
-			lidos: registrosDoTse(linhasPesquisa, linhasContratante),
-			em: new Date().toISOString(),
-			motivo: opts.motivo,
+		const { lidos, rejeicoes } = registrosDoTse(linhasPesquisa, linhasContratante);
+		return {
+			lidos,
+			rejeicoes,
 			origem: {
 				geradoEm: geradoEmBrasiliaDoCsv(linhasPesquisa),
 				etagPesquisa: zipPesquisa.etag,
@@ -132,6 +149,18 @@ export class Pesquisas extends DurableObject<Env> {
 				lastModifiedPesquisa: zipPesquisa.lastModified,
 				lastModifiedContratante: zipContratante.lastModified,
 			},
+		};
+	}
+
+	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset {
+		this.garantirEsquema();
+		const changeset = montarAplicar({
+			anteriores: this.lerRegistros(),
+			lidos: lote.lidos,
+			rejeicoes: lote.rejeicoes,
+			em: new Date().toISOString(),
+			motivo,
+			origem: lote.origem,
 		});
 		this.aplicar(changeset);
 		return changeset;
@@ -347,7 +376,15 @@ async function buscarZip(
 	if (etag) headers["if-none-match"] = etag;
 	if (lastModified) headers["if-modified-since"] = lastModified;
 	const resposta = await fetch(url, { headers, cache: "no-store" });
-	if (resposta.status === 304) return { kind: "nao_modificado" };
+	if (resposta.status === 304) {
+		// CDN do TSE: IMS igual → 304 mesmo com ETag diferente. Só confiar
+		// no 304 se o ETag da resposta bater com o que enviamos.
+		const etagResposta = resposta.headers.get("etag");
+		if (etag && etagResposta && etagResposta === etag) {
+			return { kind: "nao_modificado" };
+		}
+		return buscarZip(url, null, null);
+	}
 	if (!resposta.ok) throw new Error(`TSE respondeu ${resposta.status} para ${url}`);
 	return {
 		kind: "corpo",
