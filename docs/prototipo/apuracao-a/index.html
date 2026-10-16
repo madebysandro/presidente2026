@@ -1,0 +1,21 @@
+<!doctype html>
+<!--
+  PROTOTYPE (descartável, #16) — pergunta: "como fica a noite da apuração na linguagem A?"
+  Estados por ?estado=aguardando|aovivo|virada|encerrada e herói por ?heroi=1|2 (Manchete | Cabo cheio).
+  Dados SINTÉTICOS de apuração (segundo-turno/js/mock-2t.js) sobre o 1º turno real; pesquisas reais (15/10).
+  Servir a pasta docs/prototipo: python3 -m http.server 8768 -d docs/prototipo → http://localhost:8768/apuracao-a/
+-->
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Protótipo · Apuração na linguagem A · Presidente 2026</title>
+		<link rel="stylesheet" href="../novo-design/css/fontes.css" />
+		<link rel="stylesheet" href="../novo-design/css/a.css" />
+		<link rel="stylesheet" href="ap.css" />
+	</head>
+	<body data-v="A">
+		<div id="app"></div>
+		<script type="module" src="app.js"></script>
+	</body>
+</html>

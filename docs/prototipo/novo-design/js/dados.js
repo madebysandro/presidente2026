@@ -32,8 +32,8 @@ export function mediaEm(pub, d) {
 	return { data: d, vf, vl: 100 - vf, v: 2 * vf - 100, n: ps.length, ps };
 }
 
-export async function carregar() {
-	const { hoje, registros, resultados } = await (await fetch("dados/pesquisas.json")).json();
+export async function carregar(url = "dados/pesquisas.json") {
+	const { hoje, registros, resultados } = await (await fetch(url)).json();
 	const pub = registros
 		.filter((r) => resultados[r.registro])
 		.map((r) => {
