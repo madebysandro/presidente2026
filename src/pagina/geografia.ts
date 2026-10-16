@@ -8,7 +8,7 @@ import type {
 	ComparacaoTurnos,
 	FatiaEleitorado,
 } from "../dominio/tipos";
-import type { VistaNoite } from "./ao-vivo";
+import { arquivoZerado, type VistaNoite } from "./ao-vivo";
 import { FLAVIO, LULA } from "./topo";
 
 export type { VistaNoite } from "./ao-vivo";
@@ -60,6 +60,12 @@ function nomeLado(n: string | null | undefined): string {
 function classeLado(n: string | null | undefined): string {
 	if (n === FLAVIO.numero) return "a-f";
 	if (n === LULA.numero) return "a-l";
+	return "";
+}
+
+function classeTile(n: string | null | undefined): string {
+	if (n === FLAVIO.numero) return " a-uf-f";
+	if (n === LULA.numero) return " a-uf-l";
 	return "";
 }
 
@@ -120,7 +126,7 @@ function htmlEstados(vista: VistaNoite): string {
 			const liderTxt = lider ? nomeLado(lider.n) : "sem apuração";
 			const marca = virou ? " viraram" : "";
 			const aria = `${nome}: ${lider ? `${liderTxt} lidera no 2º turno` : "sem seções apuradas"}${marca}`;
-			return `<div class="a-uf${lider ? ` a-uf-${lider.n === FLAVIO.numero ? "f" : "l"}` : ""}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1}" aria-label="${escHtml(aria)}"><b>${rotulo}</b><small class="${classeLado(lider?.n)}">${escHtml(liderTxt)}</small>${virou ? "<i>viraram</i>" : ""}</div>`;
+			return `<div class="a-uf${classeTile(lider?.n)}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1}" aria-label="${escHtml(aria)}"><b>${rotulo}</b><small class="${classeLado(lider?.n)}">${escHtml(liderTxt)}</small>${virou ? "<i>viraram</i>" : ""}</div>`;
 		})
 		.join("");
 	const placar = `Flávio ${flavio} · Lula ${lula} UFs lideradas · ${viraram.size} viraram`;
@@ -161,9 +167,7 @@ function htmlExterior(vista: VistaNoite): string {
 	const ref = COLEGIOS_1T.exterior;
 	const pct1 = (n: string) => pctDoSnapshot(ref.votos[n] ?? 0, ref.validos);
 	const pct2 = (n: string) => zz?.candidatos.find((c) => c.n === n)?.pct;
-	const lados = zerado
-		? `<ul class="a-lados"><li data-lado="22"><span class="a-f">Flávio</span> — · 1º turno ${pctTexto(pct1(FLAVIO.numero))}</li><li data-lado="13"><span class="a-l">Lula</span> — · 1º turno ${pctTexto(pct1(LULA.numero))}</li></ul>`
-		: `<ul class="a-lados">${linhaLado(FLAVIO.numero, pct2(FLAVIO.numero), pct1(FLAVIO.numero), true)}${linhaLado(LULA.numero, pct2(LULA.numero), pct1(LULA.numero), true)}</ul>`;
+	const lados = `<ul class="a-lados">${linhaLado(FLAVIO.numero, zerado ? undefined : pct2(FLAVIO.numero), pct1(FLAVIO.numero), !zerado)}${linhaLado(LULA.numero, zerado ? undefined : pct2(LULA.numero), pct1(LULA.numero), !zerado)}</ul>`;
 	const liderTxt = lider
 		? `${nomeLado(lider.n)} lidera no 2º turno.`
 		: "O exterior ainda não tem votos no 2º turno.";
@@ -188,9 +192,9 @@ function linhaComparecimento(
 	c2: number | undefined,
 	a2: number | undefined,
 ): string {
-	const segundo = c2 == null
+	const segundo = c2 == null || a2 == null
 		? "2º turno ainda sem comparecimento"
-		: `2º turno comparecimento ${pctTexto(c2)} · abstenção ${pctTexto(a2)} · diferença ${deltaPp(c2 - c1)} no comparecimento`;
+		: `2º turno comparecimento ${pctTexto(c2)} · abstenção ${pctTexto(a2)} · diferença ${deltaPp(c2 - c1)} no comparecimento e ${deltaPp(a2 - a1)} na abstenção`;
 	return `<li data-escopo="${escopo}"><b>${rotulo}</b> <span>1º turno comparecimento ${pctTexto(c1)} · abstenção ${pctTexto(a1)}</span> <span>${segundo}</span></li>`;
 }
 
@@ -198,8 +202,9 @@ function htmlComparecimento(vista: VistaNoite): string {
 	const brasil = COLEGIOS_1T.brasil;
 	const exterior = COLEGIOS_1T.exterior;
 	const cargo = vista.apuracao.cargos.presidente;
-	const c2 = cargo && Number.isFinite(cargo.totais.comparecimento) ? cargo.totais.comparecimento : undefined;
-	const a2 = cargo && Number.isFinite(cargo.totais.abstencao) ? cargo.totais.abstencao : undefined;
+	const medido = Boolean(cargo) && !arquivoZerado(vista.apuracao);
+	const c2 = medido && cargo && Number.isFinite(cargo.totais.comparecimento) ? cargo.totais.comparecimento : undefined;
+	const a2 = medido && cargo && Number.isFinite(cargo.totais.abstencao) ? cargo.totais.abstencao : undefined;
 	const zz = vista.apuracao.ufs?.zz;
 	const liderZz = liderDe(zz?.candidatos);
 	const cExt = liderZz && zz && Number.isFinite(zz.comparecimento) ? zz.comparecimento : undefined;

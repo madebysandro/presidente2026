@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { SIGLAS_UF } from "../src/config/ufs";
 import type {
+	Cargo,
 	ColegioPresidente,
 	EstadoApuracao,
 	RegiaoApuracao,
@@ -299,6 +300,110 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(bloco).not.toMatch(/transferência oficial/i);
 		expect(bloco).not.toMatch(/segundo o TSE/i);
 		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("não lê o arquivo zerado do Brasil como queda de comparecimento", () => {
+		const zerado: Cargo = {
+			id: "presidente",
+			titulo: "Presidente",
+			local: "Brasil",
+			vagas: 1,
+			apurado: 0,
+			hora: "00:00:00",
+			qe: null,
+			totais: {
+				eleitorado: 150_238_779,
+				eleitoradoApurado: 0,
+				comparecimento: 0,
+				abstencao: 0,
+				validos: 0,
+				legenda: 0,
+				brancos: 0,
+				nulos: 0,
+			},
+			candidatos: [
+				{
+					n: "22",
+					nome: "FLAVIO",
+					partido: "PL",
+					agr: "PL",
+					votos: 0,
+					pct: 0,
+					pos: 1,
+					eleito: false,
+					situacao: "",
+					valido: true,
+					foto: "",
+				},
+				{
+					n: "13",
+					nome: "LULA",
+					partido: "PT",
+					agr: "PT",
+					votos: 0,
+					pct: 0,
+					pos: 2,
+					eleito: false,
+					situacao: "",
+					valido: true,
+					foto: "",
+				},
+			],
+		};
+		const html = htmlGeografia(vista(estado({ cargos: { presidente: zerado } })));
+		const brasil = html.match(/data-escopo="brasil"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(brasil).toContain("1º turno comparecimento 78,92%");
+		expect(brasil).toContain("2º turno ainda sem comparecimento");
+		expect(brasil).not.toContain("0,00%");
+		expect(brasil).not.toContain("−78,92");
+	});
+
+	it("mostra a diferença de comparecimento e de abstenção", () => {
+		const html = htmlGeografia(
+			vista(
+				estado({
+					cargos: {
+						presidente: {
+							id: "presidente",
+							titulo: "Presidente",
+							local: "Brasil",
+							vagas: 1,
+							apurado: 40,
+							hora: "18:40:00",
+							qe: null,
+							totais: {
+								eleitorado: 150_000_000,
+								eleitoradoApurado: 70_000_000,
+								comparecimento: 74.2,
+								abstencao: 25.8,
+								validos: 60_000_000,
+								legenda: 0,
+								brancos: 2,
+								nulos: 3,
+							},
+							candidatos: [
+								{
+									n: "13",
+									nome: "LULA",
+									partido: "PT",
+									agr: "PT",
+									votos: 32_000_000,
+									pct: 53.5,
+									pos: 1,
+									eleito: false,
+									situacao: "",
+									valido: true,
+									foto: "",
+								},
+							],
+						},
+					},
+				}),
+			),
+		);
+		const brasil = html.match(/data-escopo="brasil"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(brasil).toContain("diferença −4,72 p.p. no comparecimento");
+		expect(brasil).toContain("+4,72 p.p. na abstenção");
 	});
 
 	it("empilha exterior, comparecimento, comparação, estados e colégios", () => {
