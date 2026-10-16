@@ -147,17 +147,23 @@ export function htmlCalendario(payload: PayloadPesquisas, agora: Date): string {
 	const celulas = diasRetaFinal()
 		.map((iso) => {
 			const tipo = tipoDia(iso, hoje);
-			// O 25 é o quadrado da votação: o copy das 17h ocupa o dia inteiro.
-			const pubs = tipo === "eleicao" ? [] : noDia(publicadas, iso);
-			const sem = tipo === "eleicao" ? [] : noDia(semNumero, iso);
-			const vem = tipo === "eleicao" ? [] : noDia(vemAi, iso);
-			const vazio = tipo !== "eleicao" && tipo !== "hoje" && !pubs.length && !sem.length && !vem.length;
+			const pubs = noDia(publicadas, iso);
+			const semNumeroNoDia = noDia(semNumero, iso);
+			const vem = noDia(vemAi, iso);
+			const vazio =
+				tipo !== "eleicao" &&
+				tipo !== "hoje" &&
+				!pubs.length &&
+				!semNumeroNoDia.length &&
+				!vem.length;
+			const itens =
+				pubs.map((pesquisa) => htmlPublicada(pesquisa, pesquisa.registro === selecionada)).join("") +
+				semNumeroNoDia.map(htmlSemNumero).join("") +
+				vem.map(htmlFutura).join("");
 			const corpo =
-				tipo === "eleicao"
+				(tipo === "eleicao"
 					? `<p class="a-votacao a-item"><b>Votação</b><br>apuração a partir das 17h</p>`
-					: pubs.map((pesquisa) => htmlPublicada(pesquisa, pesquisa.registro === selecionada)).join("") +
-						sem.map(htmlSemNumero).join("") +
-						vem.map(htmlFutura).join("");
+					: "") + itens;
 			const agoraHtml =
 				tipo === "hoje"
 					? `<em class="a-hoje"><i class="a-ponto" aria-hidden="true"></i>agora</em><i class="a-prog" style="width:${larguraProgresso(agora)}" aria-hidden="true"></i>`

@@ -395,6 +395,21 @@ body {
 .a-det-num .a-f .a-mini-rosto { margin-left: 0; box-shadow: 0 0 0 2px var(--f); }
 .a-det-num .a-l .a-mini-rosto { margin-right: 0; box-shadow: 0 0 0 2px var(--l); }
 
+.a-dia.eleicao .a-pesq,
+.a-dia.eleicao .a-pesq small,
+.a-dia.eleicao .a-sem,
+.a-dia.eleicao .a-vem { color: inherit; }
+.a-dia.eleicao .a-pesq:hover,
+.a-dia.eleicao .a-pesq.sel { background: rgb(255 255 255 / 12%); }
+.a-dia.eleicao .a-pesq.sel { box-shadow: inset 2px 0 0 var(--branco); }
+.a-dia.eleicao .a-vem {
+	background:
+		linear-gradient(90deg, currentColor 50%, transparent 0) 0 0 / 8px 1px repeat-x,
+		linear-gradient(90deg, currentColor 50%, transparent 0) 0 100% / 8px 1px repeat-x,
+		linear-gradient(0deg, currentColor 50%, transparent 0) 0 0 / 1px 8px repeat-y,
+		linear-gradient(0deg, currentColor 50%, transparent 0) 100% 0 / 1px 8px repeat-y;
+}
+
 @media (max-width: 760px) {
 	.a { padding: 20px 16px 64px; }
 	.a-topo { grid-template-columns: minmax(0, 1fr); }

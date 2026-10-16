@@ -152,6 +152,13 @@ function pagina(): string {
 					liberacaoEfetiva: "2026-10-16",
 					entrevistas: 2002,
 				}),
+				ficha({
+					registro: "BR-02510/2026",
+					instituto: "Futura25",
+					campoInicio: "2026-10-23",
+					campoFim: "2026-10-25",
+					liberacaoEfetiva: "2026-10-25",
+				}),
 			],
 		}),
 		AGORA,
@@ -187,6 +194,11 @@ describe("calendário da reta final (#11)", () => {
 		expect(votacao).toContain("eleicao");
 		expect(votacao).toContain("<b>Votação</b>");
 		expect(votacao).toContain("apuração a partir das 17h");
+		expect(votacao).toContain('class="a-vem a-item"');
+		expect(votacao).toContain("Futura25");
+		expect(votacao).toContain(
+			'title="Futura25: campo de 23/10 a 25/10, registro BR-02510/2026"',
+		);
 		expect(votacao).not.toContain("vazio");
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
