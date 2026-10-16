@@ -1071,8 +1071,9 @@ body {
 }
 
 @media (max-width: 760px) {
-	.a-faixa { grid-template-columns: auto minmax(0, 1fr); padding: 0 16px; font-size: 13px; }
-	.a-faixa-dir { display: none; }
+	.a-faixa { grid-template-columns: auto minmax(0, 1fr); height: auto; min-height: 44px; padding: 8px 16px; font-size: 13px; }
+	.a-faixa:not([data-fase="encerrada"]) .a-faixa-dir { display: none; }
+	.a-faixa[data-fase="encerrada"] .a-faixa-dir { grid-column: 1 / -1; white-space: normal; }
 	.a-est ul,
 	.a-analise { grid-template-columns: minmax(0, 1fr); }
 }
