@@ -55,8 +55,16 @@
 		const hora = faixa.getAttribute("data-hora-tse") || "sem horário";
 		const linha = faixa.querySelector("[data-faixa-idade]");
 		const consulta = faixa.querySelector("[data-faixa-proxima]");
-		if (linha) linha.textContent = `Dados do TSE ${hora} · ${idade(numeroAttr(faixa, "data-consultado"), agora)}`;
-		if (consulta) consulta.textContent = proxima(fase, numeroAttr(faixa, "data-proxima-em"), agora);
+		if (linha) {
+			linha.textContent = fase === "pesquisas"
+				? "Primeiros resultados às 17:00"
+				: `Dados do TSE ${hora} · ${idade(numeroAttr(faixa, "data-consultado"), agora)}`;
+		}
+		if (consulta) {
+			consulta.textContent = fase === "encerrada"
+				? "Resultado final · 2º turno"
+				: proxima(fase, numeroAttr(faixa, "data-proxima-em"), agora);
+		}
 	}
 
 	function aplicarRelogio(faixa, dados) {
