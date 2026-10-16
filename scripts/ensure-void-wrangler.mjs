@@ -71,6 +71,38 @@ if (builtNotFound !== "none") {
 	process.exit(1);
 }
 
+const CPU_MS = 300_000;
+if (builtWrangler.limits?.cpu_ms !== CPU_MS) {
+	console.error(
+		`ensure-void-wrangler: dist/ssr/wrangler.json limits.cpu_ms=${JSON.stringify(builtWrangler.limits?.cpu_ms)} (quer ${CPU_MS}; o CSV do TSE não cabe nos 10 ms do plano Free)`,
+	);
+	process.exit(1);
+}
+if (!/worker:\s*\{[\s\S]*?limits:\s*\{\s*cpu_ms:\s*300_000/.test(authored)) {
+	console.error(
+		"ensure-void-wrangler: void.config.ts worker.limits.cpu_ms ausente (o void deploy lê esse campo, não só o wrangler gerado)",
+	);
+	process.exit(1);
+}
+const limitesEsperados = [
+	{
+		name: "LIMITE_AGENTE_CHAVE",
+		namespace_id: "625801",
+		simple: { limit: 30, period: 60 },
+	},
+	{
+		name: "LIMITE_AGENTE_IP",
+		namespace_id: "625802",
+		simple: { limit: 5, period: 60 },
+	},
+];
+if (JSON.stringify(builtWrangler.ratelimits) !== JSON.stringify(limitesEsperados)) {
+	console.error(
+		`ensure-void-wrangler: dist/ssr/wrangler.json ratelimits=${JSON.stringify(builtWrangler.ratelimits)} (quer chave 30/60s e IP 5/60s)`,
+	);
+	process.exit(1);
+}
+
 const route = Array.isArray(builtWrangler.routes) ? builtWrangler.routes[0] : undefined;
 const routeKeys = route && typeof route === "object" ? Object.keys(route).sort() : [];
 const routeOk =
@@ -93,9 +125,11 @@ if (
 	process.exit(1);
 }
 
-const { $schema: _drop, main: _ignore, ...config } = resolved;
+const { $schema: _drop, main: _ignore, ratelimits: _semBindingNoTeste, ...config } = resolved;
 config.main = "dist/ssr/index.js";
 config.account_id = ACCOUNT;
+// O binding de taxa não zera entre testes e dividiria o balde com o contador do DO.
+// Produção continua com ratelimits em dist/ssr/wrangler.json.
 // Política de asset 404 vem do wrangler materializado pelo build (não hardcode
 // independente): se o build voltar a SPA, o pool de teste espelha e /api/tela2 falha.
 config.assets = {

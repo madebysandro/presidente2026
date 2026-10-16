@@ -8,6 +8,7 @@ import {
 	registrosDoTse,
 } from "./importar";
 import { chaveConfere } from "./chave";
+import { bindingDeixaPassar } from "./limite-plataforma";
 import { confirmarHtml, lerFonte } from "./ler-fonte";
 import { montarPublico } from "./montar-publico";
 import type {
@@ -230,7 +231,8 @@ export class Pesquisas extends DurableObject<Env> {
 			this.garantirEsquema();
 			const limite = chaveValida ? 30 : 5;
 			const balde = chaveValida ? "chave" : `ip:${input.ip || "desconhecido"}`;
-			if (!this.consumirTaxa(balde, limite, Date.now())) {
+			const binding = chaveValida ? this.env.LIMITE_AGENTE_CHAVE : this.env.LIMITE_AGENTE_IP;
+			const recusar429 = () => {
 				this.gravarAuditoriaAgente({
 					em: agora.toISOString(),
 					ip: input.ip || "desconhecido",
@@ -241,7 +243,9 @@ export class Pesquisas extends DurableObject<Env> {
 					motivos: [],
 				});
 				return { kind: "fim" as const, resposta: resposta429() };
-			}
+			};
+			if (!(await bindingDeixaPassar(binding, balde))) return recusar429();
+			if (!this.consumirTaxa(balde, limite, Date.now())) return recusar429();
 			if (!chaveValida) {
 				this.gravarAuditoriaAgente({
 					em: agora.toISOString(),

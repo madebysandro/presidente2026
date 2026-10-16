@@ -29,6 +29,10 @@ export default defineConfig({
 			TSE_BASE: "https://resultados.tse.jus.br/oficial",
 			ELEICAO_FEDERAL: "6258",
 		},
+		// CSV do TSE (~16,5 MB) não cabe nos 10 ms do Free. Paid: até 5 min por request.
+		limits: {
+			cpu_ms: 300_000,
+		},
 	},
 	cloudflare: {
 		name: "presidente2026",
@@ -51,6 +55,21 @@ export default defineConfig({
 			TSE_BASE: "https://resultados.tse.jus.br/oficial",
 			ELEICAO_FEDERAL: "6258",
 		},
+		limits: {
+			cpu_ms: 300_000,
+		},
+		ratelimits: [
+			{
+				name: "LIMITE_AGENTE_CHAVE",
+				namespace_id: "625801",
+				simple: { limit: 30, period: 60 },
+			},
+			{
+				name: "LIMITE_AGENTE_IP",
+				namespace_id: "625802",
+				simple: { limit: 5, period: 60 },
+			},
+		],
 		cache: { enabled: true },
 		observability: {
 			enabled: true,
