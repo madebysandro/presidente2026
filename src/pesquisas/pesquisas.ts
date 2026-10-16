@@ -61,6 +61,8 @@ type CorpoZip = {
 type BuscaZip = { kind: "nao_modificado" } | CorpoZip;
 
 type LoteImport = {
+	/** Meta lida antes do fetch; se mudar no lock, o lote é descartado. */
+	metaBase: MetaImport | null;
 	lidos: RegistroPesquisas[];
 	rejeicoes: RejeicaoLinha[];
 	origem: OrigemZip;
@@ -83,7 +85,8 @@ export class Pesquisas extends DurableObject<Env> {
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		this.garantirEsquema();
-		const lote = await this.prepararLote(this.lerMeta());
+		const metaBase = this.lerMeta();
+		const lote = await this.prepararLote(metaBase);
 		if (lote === null) {
 			return this.ctx.blockConcurrencyWhile(async () => {
 				const meta = this.lerMeta();
@@ -140,6 +143,7 @@ export class Pesquisas extends DurableObject<Env> {
 		);
 		const { lidos, rejeicoes } = registrosDoTse(linhasPesquisa, linhasContratante);
 		return {
+			metaBase: meta,
 			lidos,
 			rejeicoes,
 			origem: {
@@ -154,6 +158,11 @@ export class Pesquisas extends DurableObject<Env> {
 
 	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset {
 		this.garantirEsquema();
+		const metaAtual = this.lerMeta();
+		if (!metaAindaEhBase(lote.metaBase, metaAtual)) {
+			if (!metaAtual) throw new Error("meta sumiu durante o import");
+			return { kind: "nao_modificado", meta: metaAtual };
+		}
 		const changeset = montarAplicar({
 			anteriores: this.lerRegistros(),
 			lidos: lote.lidos,
@@ -372,18 +381,33 @@ async function buscarZip(
 	etag: string | null,
 	lastModified: string | null,
 ): Promise<BuscaZip> {
+	const condicional = await fetchZipOnce(url, etag, lastModified);
+	if (condicional.kind !== "talvez_stale") return condicional;
+	// CDN: IMS igual → 304 com ETag corrente ≠ enviado. Um GET sem validators.
+	const incondicional = await fetchZipOnce(url, null, null);
+	if (incondicional.kind === "talvez_stale") {
+		throw new Error(`TSE devolveu 304 sem validators em ${url}`);
+	}
+	return incondicional;
+}
+
+type BuscaZipBruta = BuscaZip | { kind: "talvez_stale" };
+
+async function fetchZipOnce(
+	url: string,
+	etag: string | null,
+	lastModified: string | null,
+): Promise<BuscaZipBruta> {
 	const headers: Record<string, string> = {};
 	if (etag) headers["if-none-match"] = etag;
 	if (lastModified) headers["if-modified-since"] = lastModified;
 	const resposta = await fetch(url, { headers, cache: "no-store" });
 	if (resposta.status === 304) {
-		// CDN do TSE: IMS igual → 304 mesmo com ETag diferente. Só confiar
-		// no 304 se o ETag da resposta bater com o que enviamos.
 		const etagResposta = resposta.headers.get("etag");
 		if (etag && etagResposta && etagResposta === etag) {
 			return { kind: "nao_modificado" };
 		}
-		return buscarZip(url, null, null);
+		return { kind: "talvez_stale" };
 	}
 	if (!resposta.ok) throw new Error(`TSE respondeu ${resposta.status} para ${url}`);
 	return {
@@ -392,6 +416,20 @@ async function buscarZip(
 		etag: resposta.headers.get("etag"),
 		lastModified: resposta.headers.get("last-modified"),
 	};
+}
+
+function metaAindaEhBase(
+	base: MetaImport | null,
+	atual: MetaImport | null,
+): boolean {
+	if (base === null) return atual === null;
+	if (atual === null) return false;
+	return (
+		base.etagPesquisa === atual.etagPesquisa &&
+		base.etagContratante === atual.etagContratante &&
+		base.lastModifiedPesquisa === atual.lastModifiedPesquisa &&
+		base.lastModifiedContratante === atual.lastModifiedContratante
+	);
 }
 
 /** Se só um dos ZIPs mudou, o outro 304 não traz bytes. Busca esse de novo. */

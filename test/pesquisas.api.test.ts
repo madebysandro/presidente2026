@@ -418,6 +418,51 @@ describe("import do TSE e GET /api/pesquisas (#8)", () => {
 		).toThrow("corte vazio");
 	});
 
+	it("linha rejeitada não vira removido_do_tse", () => {
+		const anterior = {
+			registro: "BR-08134/2026",
+			cnpj: "1",
+			instituto: "PoderData",
+			contratantes: ["recursos próprios"],
+			campoInicio: "2026-10-05",
+			campoFim: "2026-10-07",
+			liberacao: "2026-10-08",
+			liberacaoEfetiva: "2026-10-08",
+			entrevistas: 3000,
+			margem: 1.8,
+			confianca: 95,
+			classificacao: "nacional",
+			removidoDoTse: false,
+		} satisfies RegistroPesquisas;
+		const outro = {
+			...anterior,
+			registro: "BR-02949/2026",
+			instituto: "Datafolha",
+			entrevistas: 2520,
+			margem: 2,
+			confianca: 95,
+		} satisfies RegistroPesquisas;
+		const changeset = montarAplicar({
+			anteriores: [anterior, outro],
+			lidos: [outro],
+			rejeicoes: [
+				{ protocolo: "BR081342026", detalhe: "BR081342026: entrevistas inválidas" },
+			],
+			em: "2026-10-16T12:00:00.000Z",
+			motivo: "teste",
+			origem: {
+				geradoEm: null,
+				etagPesquisa: "e1",
+				etagContratante: "e2",
+				lastModifiedPesquisa: null,
+				lastModifiedContratante: null,
+			},
+		});
+		expect(changeset.remover).toEqual([]);
+		expect(changeset.auditoria.some((a) => a.tipo === "rejeitado")).toBe(true);
+		expect(changeset.auditoria.some((a) => a.tipo === "removido")).toBe(false);
+	});
+
 	it("o primeiro GET com banco vazio dispara o import", async () => {
 		instalarCdnPesquisas({
 			pesquisa: dia0Pesquisa,

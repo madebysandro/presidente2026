@@ -82,12 +82,26 @@ export function montarAplicar(input: {
 		throw new Error("corte vazio");
 	}
 	const idsLidos = new Set(input.lidos.map((r) => r.registro));
+	const rejeicoes = input.rejeicoes ?? [];
+	// Linha no CSV que falhou o parse não "sumiu": fica no ledger + auditoria rejeitado.
+	const idsRejeitados = new Set<string>();
+	for (const rejeicao of rejeicoes) {
+		try {
+			idsRejeitados.add(registroId(rejeicao.protocolo));
+		} catch {
+			/* protocolo ilegível — não amarra a um registro do ledger */
+		}
+	}
 	const remover = input.anteriores
-		.filter((r) => !idsLidos.has(r.registro) && !r.removidoDoTse)
+		.filter(
+			(r) =>
+				!idsLidos.has(r.registro) &&
+				!idsRejeitados.has(r.registro) &&
+				!r.removidoDoTse,
+		)
 		.map((r) => r.registro)
 		.sort();
 	const contagens = contar(input.lidos);
-	const rejeicoes = input.rejeicoes ?? [];
 	const auditoria: AuditoriaEntrada[] = [
 		{
 			em: input.em,
@@ -97,15 +111,21 @@ export function montarAplicar(input: {
 				motivo: input.motivo,
 				...contagens,
 				removidos: remover,
-				rejeitados: rejeicoes.map((r) => r.protocolo),
+				rejeitados: [...idsRejeitados].sort(),
 			}),
 		},
 	];
 	for (const rejeicao of rejeicoes) {
+		let registro: string | null = null;
+		try {
+			registro = registroId(rejeicao.protocolo);
+		} catch {
+			registro = rejeicao.protocolo || null;
+		}
 		auditoria.push({
 			em: input.em,
 			tipo: "rejeitado",
-			registro: rejeicao.protocolo || null,
+			registro,
 			detalhe: rejeicao.detalhe,
 		});
 	}

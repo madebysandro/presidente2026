@@ -6,8 +6,9 @@ const PARA_COM_ACENTO = /(?<![\p{L}\p{N}_])pará(?![\p{L}\p{N}_])/iu;
 const SIGLAS =
 	"AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO";
 
+const FIM_SIGLA = "(?![\\p{L}\\p{N}_])";
 const SIGLA_EM_CONTEXTO = new RegExp(
-	`(?:(?:estado\\s+d[oa]|(?<![\\p{L}\\p{N}_])d[oa]|todo\\s+o)\\s+(${SIGLAS})\\b|\\((${SIGLAS})\\)|cidade/(${SIGLAS})\\b|cidade\\s+-\\s+(${SIGLAS})\\b)`,
+	`(?:(?:estado\\s+d[oa]|(?<![\\p{L}\\p{N}_])d[oa]|todo\\s+o)\\s+(${SIGLAS})${FIM_SIGLA}|\\((${SIGLAS})\\)|cidade/(${SIGLAS})${FIM_SIGLA}|cidade\\s+-\\s+(${SIGLAS})${FIM_SIGLA})`,
 	"gu",
 );
 
