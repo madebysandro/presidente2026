@@ -7,4 +7,5 @@ import { defineEnv, string } from "void/env";
  */
 export default defineEnv({
 	CHAVE_AGENTE: string().optional(),
+	CHAVE_IMPORT: string().optional(),
 });

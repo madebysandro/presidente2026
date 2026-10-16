@@ -77,6 +77,8 @@ export function montarAplicar(input: {
 	em: string;
 	motivo: MotivoImport;
 	origem: OrigemZip;
+	/** `nacional` não apaga estadual nem ambígua que ficaram de fora do JSON. */
+	escopo?: "corte" | "nacional";
 }): Extract<Changeset, { kind: "aplicar" }> {
 	if (input.lidos.length === 0) {
 		throw new Error("corte vazio");
@@ -92,16 +94,22 @@ export function montarAplicar(input: {
 			/* protocolo ilegível — não amarra a um registro do ledger */
 		}
 	}
+	const escopo = input.escopo ?? "corte";
+	if (escopo === "nacional" && input.lidos.some((r) => r.classificacao !== "nacional")) {
+		throw new Error("plano B só aceita nacional");
+	}
 	const remover = input.anteriores
 		.filter(
 			(r) =>
 				!idsLidos.has(r.registro) &&
 				!idsRejeitados.has(r.registro) &&
-				!r.removidoDoTse,
+				!r.removidoDoTse &&
+				(escopo === "corte" || r.classificacao === "nacional"),
 		)
 		.map((r) => r.registro)
 		.sort();
-	const contagens = contar(input.lidos);
+	const contagens =
+		escopo === "nacional" ? contar(vivosDepois(input.anteriores, remover, input.lidos)) : contar(input.lidos);
 	const auditoria: AuditoriaEntrada[] = [
 		{
 			em: input.em,
@@ -158,6 +166,19 @@ export function montarAplicar(input: {
 		remover,
 		auditoria,
 	};
+}
+
+function vivosDepois(
+	anteriores: RegistroPesquisas[],
+	remover: string[],
+	lidos: RegistroPesquisas[],
+): RegistroPesquisas[] {
+	const fora = new Set(remover);
+	const ids = new Set(lidos.map((r) => r.registro));
+	const ficam = anteriores.filter(
+		(r) => !r.removidoDoTse && !fora.has(r.registro) && !ids.has(r.registro),
+	);
+	return [...ficam, ...lidos];
 }
 
 function contar(lidos: RegistroPesquisas[]): ContagensImport {

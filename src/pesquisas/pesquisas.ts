@@ -11,6 +11,7 @@ import {
 } from "./importar";
 import { registrar } from "../log";
 import { chaveConfere } from "./chave";
+import { lerRecorte } from "./plano-b";
 import { eventoImport } from "./log-import";
 import { bindingDeixaPassar } from "./limite-plataforma";
 import { confirmarHtml, lerFonte } from "./ler-fonte";
@@ -47,7 +48,7 @@ import {
 import type { RejeicaoLinha } from "./importar";
 import { extrairCsvBrasil } from "./zip-brasil";
 
-const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste"]);
+const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste", "plano_b"]);
 
 type LinhaRegistro = {
 	registro: string;
@@ -108,6 +109,13 @@ function segredoAgente(bindings: Env): string {
 	});
 }
 
+function segredoImport(bindings: Env): string {
+	return withRuntimeEnv(bindings, () => {
+		const valor = env.CHAVE_IMPORT;
+		return typeof valor === "string" ? valor : "";
+	});
+}
+
 /**
  * Singleton SQLite do registro de pesquisas.
  * O cron e o GET convergem no mesmo upsert: rodar de novo não duplica linha.
@@ -139,6 +147,62 @@ export class Pesquisas extends DurableObject<Env> {
 				this.aplicarLote(opts.motivo, lote),
 			);
 		});
+	}
+
+	/**
+	 * Plano B: o JSON já veio classificado. Não baixa o ZIP.
+	 * A chave do agente não passa; a chave de import não serve nas rotas do agente.
+	 */
+	async receberPlanoB(input: {
+		bearer: string | null;
+		corpo: string;
+		agora: Date;
+	}): Promise<
+		| { status: 200; corpo: { status: "aplicado"; upserts: number; removidos: number } }
+		| { status: 401; corpo: { erro: "nao_autorizado" } }
+		| { status: 422; corpo: { erro: "recorte_invalido" } }
+	> {
+		const bearer = input.bearer;
+		const importSecreto = segredoImport(this.env);
+		const agenteSecreto = segredoAgente(this.env);
+		const importOk =
+			bearer != null && importSecreto.length > 0 && (await chaveConfere(bearer, importSecreto));
+		const agenteOk =
+			bearer != null && agenteSecreto.length > 0 && (await chaveConfere(bearer, agenteSecreto));
+		if (!importOk || agenteOk) return { status: 401, corpo: { erro: "nao_autorizado" } };
+		const lido = lerRecorte(input.corpo);
+		if ("erro" in lido) return { status: 422, corpo: { erro: "recorte_invalido" } };
+		const agora = input.agora instanceof Date ? input.agora : new Date(input.agora);
+		const changeset = await medirImport("plano_b", async () => {
+			this.garantirEsquema();
+			return this.ctx.blockConcurrencyWhile(async () => {
+				const aplicar = montarAplicar({
+					anteriores: this.lerRegistros(),
+					lidos: lido.registros,
+					em: agora.toISOString(),
+					motivo: "plano_b",
+					origem: {
+						geradoEm: lido.geradoEm,
+						etagPesquisa: null,
+						etagContratante: null,
+						lastModifiedPesquisa: null,
+						lastModifiedContratante: null,
+					},
+					escopo: "nacional",
+				});
+				this.aplicar(aplicar);
+				return aplicar;
+			});
+		});
+		if (changeset.kind !== "aplicar") throw new Error("plano B não devolve 304");
+		return {
+			status: 200,
+			corpo: {
+				status: "aplicado",
+				upserts: changeset.upserts.length,
+				removidos: changeset.remover.length,
+			},
+		};
 	}
 
 	async garantirImportInicial(): Promise<void> {
