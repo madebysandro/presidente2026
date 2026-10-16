@@ -54,18 +54,9 @@ export default defineConfig({
 			binding: "ASSETS",
 			run_worker_first: true,
 		},
-		ratelimits: [
-			{
-				name: "LIMITE_AGENTE_CHAVE",
-				namespace_id: "625801",
-				simple: { limit: 30, period: 60 },
-			},
-			{
-				name: "LIMITE_AGENTE_IP",
-				namespace_id: "625802",
-				simple: { limit: 5, period: 60 },
-			},
-		],
+		// #64: sem LIMITE_AGENTE_CHAVE / LIMITE_AGENTE_IP. O Void 1.1.11
+		// não sobe rate limit com pinned secrets. O teto global fica no
+		// Durable Object. Os bindings voltam quando o Void suportar isso.
 		cache: { enabled: true },
 		observability: {
 			enabled: true,

@@ -43,10 +43,10 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 
 | Quem chama | Teto | Onde |
 | --- | --- | --- |
-| Chave válida | 30 a cada 60 s | binding `LIMITE_AGENTE_CHAVE` (`namespace_id` `625801`) e contador no DO |
-| IP sem chave válida | 5 a cada 60 s | binding `LIMITE_AGENTE_IP` (`namespace_id` `625802`) e contador no DO |
+| Chave válida | 30 a cada 60 s | contador no Durable Object |
+| IP sem chave válida | 5 a cada 60 s | contador no Durable Object |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção declara os dois em `void.config.ts` (`cloudflare.ratelimits`). Toda rota em `/api/agente/*` passa por `bindingDeixaPassar`: chave válida usa `LIMITE_AGENTE_CHAVE`, o resto usa `LIMITE_AGENTE_IP`.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do DO é o teto global e fica no mesmo lock da auditoria. `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` voltam ao `void.config.ts` quando o Void suportar rate limit com pinned secrets (#64). No Void 1.1.11 esse upload falha, então o config fica sem esses bindings. `bindingDeixaPassar` trata o binding como opcional: sem ele, o DO decide. Toda rota em `/api/agente/*` passa por esse portão.
 
 | Rota | Autenticação | Resposta |
 | --- | --- | --- |
@@ -256,7 +256,7 @@ Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci`
 4. No log desse build: confirme verify (`deployments`/`versions`) + readiness.
 5. Se a ativação falhar, o Void desfaz a ativação. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
-Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000 e os bindings `LIMITE_AGENTE_CHAVE` / `LIMITE_AGENTE_IP`.
+Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 
