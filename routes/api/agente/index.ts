@@ -12,11 +12,14 @@ export const GET = defineHandler(async (c) => {
 		agora: new Date(),
 	});
 	if (resposta.status === 429) return responderAgente(c, resposta);
-	return new Response(instrucoes, {
-		status: 200,
-		headers: {
-			"content-type": "text/markdown; charset=utf-8",
-			"cache-control": "no-store",
-		},
-	});
+	return responderAgente(
+		c,
+		new Response(instrucoes, {
+			status: 200,
+			headers: {
+				"content-type": "text/markdown; charset=utf-8",
+				"cache-control": "no-store",
+			},
+		}),
+	);
 });
