@@ -46,7 +46,7 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 | Chave válida | 30 a cada 60 s | binding `LIMITE_AGENTE_CHAVE` (`namespace_id` `625801`) e contador no DO |
 | IP sem chave válida | 5 a cada 60 s | binding `LIMITE_AGENTE_IP` (`namespace_id` `625802`) e contador no DO |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção leva os dois em `dist/ssr/wrangler.json`.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção leva os dois em `dist/ssr/wrangler.json`. Hoje a única rota do agente é `POST /api/agente/resultados`, e é ela que consulta o binding. As rotas da #14 (`GET /api/agente`, `/pendentes`, suspensão, auditoria) têm de passar pelo mesmo `bindingDeixaPassar` quando entrarem.
 
 `GET /api/apuracao` usa `cache-control: public, max-age=0, s-maxage=5, must-revalidate`. `GET /api/historico` fica `no-store`.
 
