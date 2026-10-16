@@ -73,6 +73,21 @@ export class Pesquisas extends DurableObject<Env> {
 	}
 
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
+		return this.ctx.blockConcurrencyWhile(() => this.importarDoTseInterno(opts));
+	}
+
+	async garantirImportInicial(): Promise<void> {
+		await this.ctx.blockConcurrencyWhile(async () => {
+			this.garantirEsquema();
+			if (this.contarRegistros() === 0 && this.lerMeta() === null) {
+				await this.importarDoTseInterno({ motivo: "primeiro_acesso" });
+			}
+		});
+	}
+
+	private async importarDoTseInterno(opts: {
+		motivo: MotivoImport;
+	}): Promise<Changeset> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		this.garantirEsquema();
 		const meta = this.lerMeta();
@@ -120,13 +135,6 @@ export class Pesquisas extends DurableObject<Env> {
 		});
 		this.aplicar(changeset);
 		return changeset;
-	}
-
-	async garantirImportInicial(): Promise<void> {
-		this.garantirEsquema();
-		if (this.contarRegistros() === 0 && this.lerMeta() === null) {
-			await this.importarDoTse({ motivo: "primeiro_acesso" });
-		}
 	}
 
 	async listarPublico(opts: { agora: Date }): Promise<PayloadPesquisas> {
