@@ -125,7 +125,11 @@ export function htmlFaixa(vista: VistaNoite): string {
 	const extra = arquivoZerado(vista.apuracao)
 		? `<span data-faixa-extra>arquivo zerado</span>`
 		: "";
-	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)} data-hora-tse="${escHtml(hora)}"><strong>${rotuloFase(vista.fase)}</strong>${extra}<span data-faixa-idade>Dados do TSE ${escHtml(hora)} · ${idade}</span><span data-faixa-proxima>${proxima}</span></div>`;
+	const carimbo =
+		vista.fase === "encerrada"
+			? `<span data-carimbo>Resultado final · 2º turno</span>`
+			: "";
+	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)} data-hora-tse="${escHtml(hora)}"><strong>${rotuloFase(vista.fase)}</strong>${carimbo}${extra}<span data-faixa-idade>Dados do TSE ${escHtml(hora)} · ${idade}</span><span data-faixa-proxima>${proxima}</span></div>`;
 }
 
 function rosto(lado: typeof FLAVIO | typeof LULA): string {
@@ -134,6 +138,18 @@ function rosto(lado: typeof FLAVIO | typeof LULA): string {
 
 function lado(numero: string, vista: VistaNoite) {
 	return presidente(vista)?.candidatos.find((candidato) => candidato.n === numero);
+}
+
+function seloEleito(numero: string, vista: VistaNoite): string {
+	if (vista.fase !== "encerrada") return "";
+	const flavio = lado(FLAVIO.numero, vista);
+	const lula = lado(LULA.numero, vista);
+	if (!flavio || !lula) return "";
+	if (!Number.isFinite(flavio.votos) || !Number.isFinite(lula.votos)) return "";
+	const vencedor =
+		flavio.votos > lula.votos ? FLAVIO.numero : lula.votos > flavio.votos ? LULA.numero : null;
+	if (vencedor !== numero) return "";
+	return `<span class="a-eleito" data-eleito="${numero}">✓ Eleito</span>`;
 }
 
 export function htmlPlacar(vista: VistaNoite): string {
@@ -146,7 +162,7 @@ export function htmlPlacar(vista: VistaNoite): string {
 	const pct = (n: number | undefined) => (n != null && Number.isFinite(n) ? pf.format(n) : "—");
 	const votos = (n: number | undefined) => (n != null && Number.isFinite(n) ? nf.format(n) : "—");
 	const secoes = Number.isFinite(cargo.apurado) ? pf.format(cargo.apurado) : "—";
-	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pct(flavio?.pct)}%</b></span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pct(lula?.pct)}%</b></span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
+	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pct(flavio?.pct)}%</b>${seloEleito(FLAVIO.numero, vista)}</span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pct(lula?.pct)}%</b>${seloEleito(LULA.numero, vista)}</span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
 export function htmlCaboApuracao(vista: VistaNoite): string {
