@@ -1,0 +1,457 @@
+/**
+ * Aceite #18: faixa, placar, cabo, gráfico, momentos e estimativas.
+ * Seam: funções puras de render (o HTML que a página e o fragmento devolvem).
+ */
+import { describe, expect, it } from "vitest";
+import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
+import type { Cargo, EstadoApuracao, Leitura, MomentoNoite } from "../src/dominio/tipos";
+import {
+	htmlCaboApuracao,
+	htmlEstimativas,
+	htmlFaixa,
+	htmlGraficoNoite,
+	htmlMomentos,
+	htmlPlacar,
+	relogioDaPagina,
+	type VistaNoite,
+} from "../src/pagina/ao-vivo";
+import { documentoPesquisas } from "../src/pagina/documento";
+import type { PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
+
+const AGORA = new Date("2026-10-25T21:00:00.000Z");
+
+function payload(extra: Partial<PayloadPesquisas> = {}): PayloadPesquisas {
+	return {
+		hoje: "2026-10-25",
+		fase: "ao_vivo",
+		atualizadoEm: "2026-10-25T21:00:00.000Z",
+		registroTse: { geradoEm: null, etag: null },
+		media: {
+			data: "2026-10-25",
+			vf: 51.77,
+			vl: 48.23,
+			v: 3.54,
+			n: 4,
+			margem: 1.7,
+			registros: ["BR-01209/2026"],
+		},
+		serieMedia: [],
+		publicadas: [],
+		liberadasSemNumero: [],
+		vemAi: [],
+		...extra,
+	};
+}
+
+function candidato(n: string, votos: number, pct: number): Cargo["candidatos"][number] {
+	return {
+		n,
+		nome: n === "22" ? "FLAVIO BOLSONARO" : "LULA",
+		partido: n === "22" ? "PL" : "PT",
+		agr: n,
+		votos,
+		pct,
+		pos: n === "22" ? 1 : 2,
+		eleito: false,
+		situacao: "",
+		valido: true,
+		foto: "",
+	};
+}
+
+function cargo(parcial: Partial<Cargo> = {}): Cargo {
+	return {
+		id: "presidente",
+		titulo: "Presidente",
+		local: "Brasil",
+		vagas: 1,
+		apurado: 48,
+		hora: "18:40:00",
+		qe: null,
+		totais: {
+			eleitorado: 10_000_000,
+			eleitoradoApurado: 4_800_000,
+			comparecimento: 70,
+			abstencao: 30,
+			validos: 8_500_000,
+			legenda: 0,
+			brancos: 1,
+			nulos: 1,
+		},
+		candidatos: [candidato("22", 4_000_000, 47.06), candidato("13", 4_500_000, 52.94)],
+		...parcial,
+	};
+}
+
+function estado(extra: Partial<EstadoApuracao> = {}): EstadoApuracao {
+	return {
+		versao: 2,
+		consultadoEm: AGORA.getTime() - 120_000,
+		proximaConsulta: AGORA.getTime() + 90_000,
+		erro: null,
+		fase: "ao_vivo",
+		encerrada: false,
+		cargos: { presidente: cargo() },
+		analise: {
+			viradas: [
+				{ de: "22", para: "13", hora: "18:40:00", ap: 50, t: 50 },
+				{ de: "13", para: "22", hora: "19:50:00", ap: 80, t: 80 },
+			],
+			momentos: [
+				{ tipo: "abre", hora: "17:20:00", ap: 12, n: "22", margemPp: 9.1 },
+				{ tipo: "virada", hora: "18:40:00", ap: 50, de: "22", para: "13" },
+				{ tipo: "virada", hora: "19:50:00", ap: 80, de: "13", para: "22" },
+			] satisfies MomentoNoite[],
+			majoritarias: {
+				presidente: {
+					defensor: { n: "13", nome: "LULA", votos: 4_500_000, pct: 52.94 },
+					perseguidor: { n: "22", nome: "FLAVIO BOLSONARO", votos: 4_000_000, pct: 47.06 },
+					vantagemVotos: 500_000,
+					vantagemPp: 5.88,
+					evolucaoVantagemPp: [],
+					validosAApurar: 12_500_000,
+					margemParaVirarPp: 8.5,
+					foraDeAlcance: false,
+					primeiroTurno: null,
+					tendencias: [{ n: "22", nome: "FLAVIO BOLSONARO", ppPor10pct: 1.2 }],
+				},
+			},
+		},
+		...extra,
+	};
+}
+
+function leitura(ap: number, pct22: number, pct13: number, hora: string): Leitura {
+	return {
+		t: ap,
+		c: {
+			presidente: {
+				ap,
+				hora,
+				vv: 100,
+				comp: 70,
+				bra: 1,
+				nul: 1,
+				c: {
+					"22": [pct22, pct22, 1],
+					"13": [pct13, pct13, 2],
+				},
+			},
+		},
+	};
+}
+
+const HISTORICO: Leitura[] = [
+	leitura(20, 60, 40, "17:20:00"),
+	leitura(50, 45, 55, "18:40:00"),
+	leitura(80, 55, 45, "19:50:00"),
+];
+
+function vista(extra: Partial<VistaNoite> = {}): VistaNoite {
+	return {
+		fase: "ao_vivo",
+		agora: AGORA,
+		pesquisas: payload(),
+		apuracao: estado(),
+		historico: HISTORICO,
+		...extra,
+	};
+}
+
+describe("faixa de status (#18)", () => {
+	it("antes das 17h diz Aguardando 17h e, com o arquivo zerado, diz isso", () => {
+		const vazia = htmlFaixa(
+			vista({
+				fase: "pesquisas",
+				apuracao: estado({
+					fase: "pesquisas",
+					consultadoEm: null,
+					proximaConsulta: null,
+					cargos: {},
+				}),
+			}),
+		);
+		expect(vazia).toContain("Aguardando 17h");
+		expect(vazia).toContain("Próxima consulta às 17h");
+		expect(vazia).toContain("ainda sem leitura");
+		expect(vazia).not.toContain("arquivo zerado");
+
+		const zerado = htmlFaixa(
+			vista({
+				fase: "pesquisas",
+				apuracao: estado({
+					fase: "pesquisas",
+					cargos: {
+						presidente: cargo({
+							apurado: 0,
+							hora: "00:00:00",
+							candidatos: [candidato("22", 0, 0), candidato("13", 0, 0)],
+						}),
+					},
+				}),
+			}),
+		);
+		expect(zerado).toContain("Aguardando 17h");
+		expect(zerado).toContain("arquivo zerado");
+		expect(zerado).not.toMatch(/undefined|NaN/);
+	});
+
+	it("ao vivo mostra a hora do TSE, a idade e a próxima consulta", () => {
+		const html = htmlFaixa(vista());
+		expect(html).toContain("Ao vivo");
+		expect(html).toContain("Dados do TSE 18:40:00 · há 2 min");
+		expect(html).toContain("Próxima consulta em 1 min 30 s");
+		expect(html).toContain("data-proxima-em=");
+		expect(html).not.toMatch(/\sdata-proxima[\s="]/);
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("leitura com menos de um minuto diz agora há pouco", () => {
+		const html = htmlFaixa(
+			vista({
+				apuracao: estado({ consultadoEm: AGORA.getTime() - 30_000 }),
+			}),
+		);
+		expect(html).toContain("agora há pouco");
+	});
+
+	it("encerrada não promete outra consulta", () => {
+		const html = htmlFaixa(
+			vista({
+				fase: "encerrada",
+				apuracao: estado({
+					fase: "encerrada",
+					encerrada: true,
+					proximaConsulta: null,
+				}),
+			}),
+		);
+		expect(html).toContain("Encerrada");
+		expect(html).toContain("Sem nova consulta");
+		expect(html).not.toContain("Aguardando 17h");
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("uma consulta a dias mostra a data em Brasília, não milhares de minutos", () => {
+		const agora = new Date("2026-10-16T15:00:00-03:00").getTime();
+		const html = htmlFaixa(
+			vista({
+				fase: "pesquisas",
+				agora: new Date(agora),
+				apuracao: estado({
+					fase: "pesquisas",
+					proximaConsulta: ABERTURA_2T_MS,
+					cargos: {},
+				}),
+			}),
+		);
+		expect(html).toContain("Próxima consulta 25/10, 17:00");
+		expect(html).not.toMatch(/\d{4,} min/);
+
+		const emHoras = htmlFaixa(
+			vista({
+				apuracao: estado({ proximaConsulta: AGORA.getTime() + 2 * 3_600_000 + 5 * 60_000 }),
+			}),
+		);
+		expect(emHoras).toContain("Próxima consulta em 2 h 05 min");
+	});
+});
+
+describe("placar e cabo da apuração (#18)", () => {
+	it("com Lula na frente, Flávio continua à esquerda e o cabo não tem faixa de margem", () => {
+		const placar = htmlPlacar(vista());
+		const h1 = placar.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
+		expect(h1.indexOf("Flávio")).toBeGreaterThanOrEqual(0);
+		expect(h1.indexOf("Flávio")).toBeLessThan(h1.indexOf("Lula"));
+		expect(h1.indexOf('data-numero="22"')).toBeLessThan(h1.indexOf('data-numero="13"'));
+		expect(h1).toContain("47,06");
+		expect(h1).toContain("52,94");
+		expect(placar).toContain("4.000.000");
+		expect(placar).toContain("4.500.000");
+		expect(placar).toContain("48,00% das seções");
+
+		const cabo = htmlCaboApuracao(vista());
+		expect(cabo).not.toContain("a-cabo-margem");
+		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
+		expect(cabo).toContain('class="a-cabo-media" style="left:51.77%"');
+		expect(cabo).toContain("média das pesquisas");
+		expect(cabo).toContain("25 de outubro");
+		expect(cabo).toContain("51,8%");
+		expect(cabo).not.toMatch(/undefined|NaN/);
+	});
+
+	it("arquivo zerado não inventa um placar", () => {
+		const v = vista({
+			apuracao: estado({
+				cargos: {
+					presidente: cargo({
+						apurado: 0,
+						candidatos: [candidato("22", 0, 0), candidato("13", 0, 0)],
+					}),
+				},
+			}),
+		});
+		expect(htmlPlacar(v)).toContain("arquivo zerado");
+		expect(htmlPlacar(v)).not.toContain("47,06");
+		expect(htmlCaboApuracao(v)).not.toContain("a-cabo-f");
+		expect(htmlCaboApuracao(v)).toContain("média das pesquisas");
+	});
+});
+
+describe("gráfico, momentos e estimativas (#18)", () => {
+	it("o gráfico vai de 0 a 100% das seções, sombreia o que falta e marca as viradas", () => {
+		const html = htmlGraficoNoite(vista());
+		expect(html).toContain(">0%<");
+		expect(html).toContain(">100%<");
+		expect(html).toContain('class="t-apurar" x="75.20" width="16.80"');
+		expect(html).toContain('d="M24.80,8.00L50.00,71.00L75.20,29.00"');
+		expect(html).toContain('class="t-virada" style="left:50.00%"');
+		expect(html).toContain('class="t-virada" style="left:75.20%"');
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("os momentos da noite nomeiam a virada sem trocar os lados no texto", () => {
+		const html = htmlMomentos(vista());
+		expect(html).toContain("Momentos da noite");
+		expect(html).toContain("virou de Flávio para Lula, 50,00% das seções");
+		expect(html).toContain("virou de Lula para Flávio, 80,00% das seções");
+		expect(html).toContain("a noite abre com Flávio");
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("as estimativas aparecem ao vivo e somem quando encerra", () => {
+		const html = htmlEstimativas(vista());
+		expect(html).toContain("Válidos que faltam");
+		expect(html).toContain("12.500.000");
+		expect(html).toContain("Para virar");
+		expect(html).toContain("8,5 p.p.");
+		expect(html).toContain("Flávio +1,2 p.p. a cada 10% de seções");
+		expect(html).not.toMatch(/vencer no 1/i);
+
+		const fora = htmlEstimativas(
+			vista({
+				apuracao: estado({
+					analise: {
+						majoritarias: {
+							presidente: {
+								defensor: { n: "22", nome: "FLAVIO", votos: 1, pct: 60 },
+								perseguidor: { n: "13", nome: "LULA", votos: 1, pct: 40 },
+								vantagemVotos: 1,
+								vantagemPp: 20,
+								evolucaoVantagemPp: [],
+								validosAApurar: 100,
+								margemParaVirarPp: 140,
+								foraDeAlcance: true,
+								primeiroTurno: null,
+								tendencias: [],
+							},
+						},
+					},
+				}),
+			}),
+		);
+		expect(fora).toContain("fora de alcance");
+		expect(fora).toContain("aguardando mais leituras");
+
+		expect(
+			htmlEstimativas(
+				vista({
+					fase: "encerrada",
+					apuracao: estado({ fase: "encerrada", encerrada: true }),
+				}),
+			),
+		).toBe("");
+	});
+});
+
+describe("página composta (#18)", () => {
+	it("ao vivo troca o veredito pelo placar, encolhe o calendário para a última semana e não recarrega a página", () => {
+		const html = documentoPesquisas(payload(), AGORA, {
+			apuracao: estado(),
+			historico: HISTORICO,
+		});
+		expect(html).toContain("Ao vivo");
+		expect(html).toContain("47,06");
+		expect(html).not.toContain("até a votação");
+		expect(html).not.toContain("a-cabo-margem");
+		expect(html).toContain("Momentos da noite");
+		expect(html).toContain('aria-label="Calendário das pesquisas, última semana"');
+		expect(html.match(/class="a-dia /g)).toHaveLength(7);
+		expect(html).toContain('data-d="2026-10-19"');
+		expect(html).not.toContain('data-d="2026-10-18"');
+		expect(html).toContain('data-d="2026-10-25"');
+		expect(html.indexOf("Momentos da noite")).toBeLessThan(html.indexOf("última semana"));
+		expect(html).toContain('data-estimativas');
+		expect(html).toContain("/js/ao-vivo.js");
+		expect(html).not.toMatch(/http-equiv="refresh"/i);
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("ao vivo a última semana deixa as pesquisas anteriores acessíveis", () => {
+		const antiga: PesquisaPublicada = {
+			registro: "BR-02949/2026",
+			cnpj: "00000000000000",
+			instituto: "Datafolha",
+			contratantes: ["Folha"],
+			campoInicio: "2026-10-06",
+			campoFim: "2026-10-08",
+			liberacao: "2026-10-08",
+			liberacaoEfetiva: "2026-10-08",
+			entrevistas: 2520,
+			margem: 2,
+			confianca: 95,
+			totais: { flavio: 49, lula: 45, brancoNulo: 5, naoSabe: 1, brancoNuloNaoSabe: null },
+			validosPublicados: { flavio: 52, lula: 48 },
+			vf: 52.13,
+			vl: 47.87,
+			v: 4.26,
+			fonte: "https://www.metropoles.com/brasil/datafolha-08",
+			cadastradoEm: "2026-10-08T18:00:00.000Z",
+			substituidoEm: null,
+		};
+		const html = documentoPesquisas(payload({ publicadas: [antiga] }), AGORA, {
+			apuracao: estado(),
+			historico: HISTORICO,
+		});
+		expect(html).toContain('class="a-anteriores"');
+		expect(html).toContain("Pesquisas de antes da última semana");
+		expect(html).toContain('data-registro="BR-02949/2026"');
+		expect(html).toContain('data-detalhe="BR-02949/2026"');
+		expect(html).not.toContain('data-d="2026-10-08"');
+		expect(html.match(/class="a-dia /g)).toHaveLength(7);
+	});
+
+	it("encerrada tira o bloco de estimativas e mantém as pesquisas acessíveis", () => {
+		const html = documentoPesquisas(payload({ fase: "encerrada" }), AGORA, {
+			apuracao: estado({ fase: "encerrada", encerrada: true, proximaConsulta: null }),
+			historico: HISTORICO,
+		});
+		expect(html).toContain("Encerrada");
+		expect(html).not.toContain("data-estimativas");
+		expect(html).toContain("Rever as três semanas");
+		expect(html).toContain('data-d="2026-10-25"');
+	});
+
+	it("antes das 17h a página de pesquisas continua e a faixa avisa a espera", () => {
+		const html = documentoPesquisas(
+			payload({ fase: "pesquisas", hoje: "2026-10-16", media: null }),
+			new Date("2026-10-16T15:00:00-03:00"),
+		);
+		expect(html).toContain("Aguardando 17h");
+		expect(html).toContain("até a votação");
+		expect(html).not.toContain("Momentos da noite");
+		expect(html.match(/class="a-dia /g)).toHaveLength(21);
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+});
+
+describe("relógio da página (#18)", () => {
+	it("antes da abertura a fase ao vivo lê a média já no dia 25", () => {
+		const cedo = new Date("2026-10-16T15:00:00-03:00");
+		expect(relogioDaPagina("pesquisas", cedo)).toBe(cedo);
+		expect(relogioDaPagina("ao_vivo", cedo).getTime()).toBe(ABERTURA_2T_MS);
+		expect(relogioDaPagina("encerrada", cedo).getTime()).toBe(ABERTURA_2T_MS);
+		const tarde = new Date("2026-10-26T12:00:00-03:00");
+		expect(relogioDaPagina("ao_vivo", tarde)).toBe(tarde);
+	});
+});
