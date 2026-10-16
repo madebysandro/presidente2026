@@ -164,6 +164,25 @@ export function antesDaLiberacao(
 	return registro.campoFim === "2026-10-25" && agora.getTime() < LIMITE_URNAS.getTime();
 }
 
+/** `html` nulo significa que esta tentativa não leu a página. */
+export function motivoDaFonte(
+	html: string | null,
+	falha: MotivoRecusa | null,
+	confirma: boolean,
+): MotivoRecusa | null {
+	if (falha) return falha;
+	if (html == null) {
+		return { codigo: "fonte_inacessivel", detalhe: "não foi possível ler a fonte" };
+	}
+	if (!confirma) {
+		return {
+			codigo: "fonte_nao_confirma",
+			detalhe: "a página não confirma o instituto e um par de números",
+		};
+	}
+	return null;
+}
+
 export function urlFonteValida(fonte: string): boolean {
 	let url: URL;
 	try {

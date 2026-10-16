@@ -11,7 +11,7 @@ import semNumerosHtml from "../fixtures/fontes/sem-numeros.html?raw";
 import soValidosHtml from "../fixtures/fontes/so-validos.html?raw";
 import { chaveConfere } from "../src/pesquisas/chave";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
-import { antesDaLiberacao } from "../src/pesquisas/validar-resultado";
+import { antesDaLiberacao, motivoDaFonte } from "../src/pesquisas/validar-resultado";
 import type { PayloadPesquisas } from "../src/pesquisas/tipos";
 import {
 	bytesDeDataUrl,
@@ -364,5 +364,56 @@ describe("POST /api/agente/resultados (#9)", () => {
 		const registro = { liberacaoEfetiva: "2026-10-25", campoFim: "2026-10-25" };
 		expect(antesDaLiberacao(registro, new Date("2026-10-25T16:59:00-03:00"))).toBe(true);
 		expect(antesDaLiberacao(registro, new Date("2026-10-25T17:00:00-03:00"))).toBe(false);
+	});
+
+	it("corpo grande sem chave responde 401, audita e na 6ª tentativa devolve 429", async () => {
+		const grande = "x".repeat(32_769);
+		const ip = "203.0.113.77";
+		for (let i = 0; i < 5; i++) {
+			const res = await post(grande, { chave: null, ip });
+			expect(res.status).toBe(401);
+			expect(await res.json()).toEqual({ erro: "nao_autorizado" });
+		}
+		const sexta = await post(grande, { chave: null, ip });
+		expect(sexta.status).toBe(429);
+		expect(sexta.headers.get("retry-after")).toBe("60");
+		const auditoria = await stub().listarAuditoriaAgente();
+		expect(auditoria.filter((a) => a.status === 401)).toHaveLength(5);
+		expect(auditoria.some((a) => a.status === 429)).toBe(true);
+		expect(auditoria.every((a) => a.corpo.length <= 32_768)).toBe(true);
+	});
+
+	it("corpo grande com chave não publica", async () => {
+		await importar();
+		const grande = `${JSON.stringify(corpoBase())}${" ".repeat(32_769)}`;
+		const res = await post(grande, { ip: "203.0.113.78" });
+		expect(res.status).toBe(422);
+		expect(await codigos(res)).toContain("numeros_invalidos");
+		const auditoria = await stub().listarAuditoriaAgente();
+		expect(auditoria.at(-1)).toMatchObject({ status: 422, chaveValida: true });
+		const lista = await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"));
+		const corpo = (await lista.json()) as PayloadPesquisas;
+		expect(corpo.publicadas.some((p) => p.registro === DATAFOLHA)).toBe(false);
+	});
+
+	it("corpo vazio acumula os motivos de registro e de totais", async () => {
+		const res = await post({}, { ip: "203.0.113.79" });
+		expect(res.status).toBe(422);
+		const json = (await res.json()) as { motivos: { codigo: string; detalhe: string }[] };
+		const detalhes = json.motivos
+			.filter((m) => m.codigo === "numeros_invalidos")
+			.map((m) => m.detalhe);
+		expect(detalhes).toEqual(expect.arrayContaining(["registro ausente", "totais ausentes"]));
+	});
+
+	it("sem página lida a fonte fica inacessível", () => {
+		expect(motivoDaFonte(null, null, false)).toEqual({
+			codigo: "fonte_inacessivel",
+			detalhe: "não foi possível ler a fonte",
+		});
+		expect(
+			motivoDaFonte("<p>Datafolha 49% 45%</p>", null, false)?.codigo,
+		).toBe("fonte_nao_confirma");
+		expect(motivoDaFonte("<p>ok</p>", null, true)).toBeNull();
 	});
 });

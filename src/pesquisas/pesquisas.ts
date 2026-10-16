@@ -26,6 +26,7 @@ import type {
 import { validosCalculados } from "./validos";
 import {
 	lerEnvio,
+	motivoDaFonte,
 	motivosDoRegistro,
 	urlFonteValida,
 	type EnvioResultado,
@@ -209,6 +210,7 @@ export class Pesquisas extends DurableObject<Env> {
 		bearer: string | null;
 		ip: string;
 		corpo: string;
+		corpoExcedeu: boolean;
 		agora: Date;
 	}): Promise<RespostaResultado> {
 		const agora = input.agora instanceof Date ? input.agora : new Date(input.agora);
@@ -247,6 +249,25 @@ export class Pesquisas extends DurableObject<Env> {
 			return { kind: "segue" as const };
 		});
 		if (passagem.kind === "fim") return passagem.resposta;
+		if (input.corpoExcedeu) {
+			return this.ctx.blockConcurrencyWhile(async () => {
+				this.garantirEsquema();
+				const motivo: MotivoRecusa = {
+					codigo: "numeros_invalidos",
+					detalhe: "corpo grande demais",
+				};
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: true,
+					registro: registroDoCorpo(input.corpo),
+					corpo: input.corpo,
+					status: 422,
+					motivos: ["numeros_invalidos"],
+				});
+				return { status: 422 as const, corpo: { motivos: [motivo] } };
+			});
+		}
 
 		let bruto: unknown;
 		try {
@@ -282,16 +303,16 @@ export class Pesquisas extends DurableObject<Env> {
 				});
 			}
 			if (lido.envio && deNovo && urlFonteValida(lido.envio.fonte)) {
-				if (falhaFonte) finais.push(falhaFonte);
-				else if (
+				const confirma =
 					htmlFonte != null &&
-					!confirmarHtml(htmlFonte, deNovo.instituto, lido.envio.totais, lido.envio.validosPublicados)
-				) {
-					finais.push({
-						codigo: "fonte_nao_confirma",
-						detalhe: "a página não confirma o instituto e um par de números",
-					});
-				}
+					confirmarHtml(
+						htmlFonte,
+						deNovo.instituto,
+						lido.envio.totais,
+						lido.envio.validosPublicados,
+					);
+				const motivo = motivoDaFonte(htmlFonte, falhaFonte, confirma);
+				if (motivo) finais.push(motivo);
 			}
 			const unicos = dedupar(finais);
 			if (!lido.envio || !deNovo || deNovo.removidoDoTse || deNovo.classificacao !== "nacional" || unicos.length > 0) {
@@ -890,8 +911,9 @@ function dedupar(motivos: MotivoRecusa[]): MotivoRecusa[] {
 	const vistos = new Set<string>();
 	const saida: MotivoRecusa[] = [];
 	for (const motivo of motivos) {
-		if (vistos.has(motivo.codigo)) continue;
-		vistos.add(motivo.codigo);
+		const chave = `${motivo.codigo}\0${motivo.detalhe}`;
+		if (vistos.has(chave)) continue;
+		vistos.add(chave);
 		saida.push(motivo);
 	}
 	return saida;
