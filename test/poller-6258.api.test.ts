@@ -58,7 +58,7 @@ type ApuracaoApi = {
 		};
 		destaques?: unknown[];
 		viradas?: { de: string; para: string; ap: number }[];
-		momentos?: { tipo: string; n?: string; para?: string }[];
+		momentos?: { tipo: string; n?: string; para?: string; ap?: number }[];
 		regioes?: { nome: string; lider: string | null; lider1t: string | null }[];
 		comparacao?: {
 			primeiro: { flavio: number; lula: number; abstencao: number };
@@ -280,10 +280,31 @@ describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 		);
 		const tipos = (fim.analise?.momentos ?? []).map((m) => m.tipo);
 		expect(tipos).toContain("abre");
+		expect(tipos).toContain("maior_vantagem");
 		expect(tipos).toContain("virada");
 		expect(tipos).toContain("metade");
 		expect(fim.analise?.momentos?.find((m) => m.tipo === "abre")?.n).toBe("22");
+		expect(fim.analise?.momentos?.find((m) => m.tipo === "maior_vantagem")).toEqual(
+			expect.objectContaining({ n: "22", ap: 12 }),
+		);
 		expect(fim.analise?.fechamento).toBeNull();
+	});
+
+	it("uma UF que falha não deixa o placar novo com a análise do ciclo anterior", async () => {
+		tse.usarNoiteSintetica(corposNoiteVirada());
+		await forcarConsulta();
+		tse.avancar();
+		tse.simularErroUf("ac", 503);
+		await forcarConsulta();
+		const dados = await lerApuracao();
+		const porN = Object.fromEntries(
+			(dados.cargos.presidente?.candidatos ?? []).map((c) => [c.n, c.votos]),
+		);
+		expect(dados.erro).toMatch(/503/);
+		expect(porN["22"]).toBe(4_000_000);
+		expect(porN["13"]).toBe(4_500_000);
+		expect(dados.analise?.majoritarias?.presidente?.vantagemVotos).toBe(500_000);
+		expect(dados.encerrada).toBeFalsy();
 	});
 
 	it("404 num colégio não segura o encerramento nem a leitura", async () => {

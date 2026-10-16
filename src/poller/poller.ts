@@ -277,6 +277,14 @@ export class PollerApuracao extends DurableObject<Env> {
 				maxAgeCiclo = Math.min(base * 2, 600);
 				novoBackoff = maxAgeCiclo;
 			}
+			if (mudou) {
+				estado.versao += 1;
+				await this.registrarLeitura(estado);
+				const historico =
+					(await this.ctx.storage.get<Leitura[]>(CHAVE_HISTORICO)) ??
+					[];
+				estado.analise = this.montarAnalise(estado, historico);
+			}
 		}
 
 		const agora = await this.agora();

@@ -78,15 +78,13 @@ export function momentosDaNoite(
 	for (const h of pts) {
 		if (margemPp(h) > margemPp(maior)) maior = h;
 	}
-	if (maior !== p0) {
-		ev.push({
-			tipo: "maior_vantagem",
-			hora: maior.c.presidente!.hora,
-			ap: maior.c.presidente!.ap,
-			n: liderLeitura(maior) ?? undefined,
-			margemPp: margemPp(maior),
-		});
-	}
+	ev.push({
+		tipo: "maior_vantagem",
+		hora: maior.c.presidente!.hora,
+		ap: maior.c.presidente!.ap,
+		n: liderLeitura(maior) ?? undefined,
+		margemPp: margemPp(maior),
+	});
 	const meio = pts.find((h) => h.c.presidente!.ap >= 50);
 	if (meio) {
 		ev.push({
