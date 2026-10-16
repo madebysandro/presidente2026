@@ -1,0 +1,308 @@
+import { COLEGIOS_MAIORES } from "../apuracao/escopos";
+import { COLEGIOS_1T, colegio1t, liderDeVotos } from "../apuracao/referencia-1t";
+import { NOMES_UF, SIGLAS_UF } from "../config/ufs";
+import { escHtml, nf, pf } from "../dominio/texto";
+import type {
+	CandidatoUf,
+	ColegioPresidente,
+	ComparacaoTurnos,
+	FatiaEleitorado,
+} from "../dominio/tipos";
+import type { VistaNoite } from "./ao-vivo";
+import { FLAVIO, LULA } from "./topo";
+
+export type { VistaNoite } from "./ao-vivo";
+
+/** Posição aproximada na grade de 7 colunas. Não é mapa geográfico. */
+const GRADE: Record<string, readonly [number, number]> = {
+	rr: [2, 0],
+	ap: [4, 0],
+	am: [1, 1],
+	pa: [3, 1],
+	ma: [4, 1],
+	ce: [5, 1],
+	rn: [6, 1],
+	ac: [0, 2],
+	ro: [1, 2],
+	mt: [2, 2],
+	to: [3, 2],
+	pi: [4, 2],
+	pe: [5, 2],
+	pb: [6, 2],
+	ms: [2, 3],
+	go: [3, 3],
+	df: [4, 3],
+	ba: [5, 3],
+	al: [6, 3],
+	pr: [2, 4],
+	sp: [3, 4],
+	mg: [4, 4],
+	es: [5, 4],
+	se: [6, 4],
+	sc: [2, 5],
+	rj: [4, 5],
+	rs: [2, 6],
+	zz: [6, 6],
+};
+
+const AVISO_EXTERIOR =
+	"O exterior costuma apurar por último: as urnas fecham no fuso de cada país.";
+
+const AVISO_ESTIMATIVA =
+	"O TSE não publica transferência de votos. Este saldo é uma estimativa e não é dado oficial do TSE.";
+
+function nomeLado(n: string | null | undefined): string {
+	if (n === FLAVIO.numero) return FLAVIO.nome;
+	if (n === LULA.numero) return LULA.nome;
+	return "sem nome";
+}
+
+function classeLado(n: string | null | undefined): string {
+	if (n === FLAVIO.numero) return "a-f";
+	if (n === LULA.numero) return "a-l";
+	return "";
+}
+
+function liderDe(candidatos: readonly CandidatoUf[] | undefined): CandidatoUf | null {
+	if (!candidatos?.length) return null;
+	const ordenados = [...candidatos].sort((a, b) => b.votos - a.votos);
+	const topo = ordenados[0];
+	if (!topo || topo.votos <= 0) return null;
+	return topo;
+}
+
+function pctTexto(valor: number | undefined): string {
+	if (valor == null || !Number.isFinite(valor)) return "—";
+	return `${pf.format(valor)}%`;
+}
+
+function deltaPp(valor: number | undefined): string {
+	if (valor == null || !Number.isFinite(valor)) return "—";
+	const texto = pf.format(Math.abs(valor));
+	if (valor > 0) return `+${texto} p.p.`;
+	if (valor < 0) return `−${texto} p.p.`;
+	return `${texto} p.p.`;
+}
+
+function pctDoSnapshot(votos: number, validos: number): number | undefined {
+	if (!(validos > 0) || !Number.isFinite(votos)) return undefined;
+	return (votos / validos) * 100;
+}
+
+function secao(id: string, titulo: string, corpo: string): string {
+	return `<section class="a-geo" data-geo="${id}" aria-labelledby="a-geo-${id}"><h2 id="a-geo-${id}">${titulo}</h2>${corpo}</section>`;
+}
+
+function htmlEstados(vista: VistaNoite): string {
+	const ufs = vista.apuracao.ufs ?? {};
+	const viraram = new Set(
+		(vista.apuracao.analise?.ufsQueViraram ?? [])
+			.filter((item) => item.uf !== "zz")
+			.map((item) => item.uf),
+	);
+	let flavio = 0;
+	let lula = 0;
+	const ordem = [...SIGLAS_UF].sort((a, b) => {
+		const pa = GRADE[a] ?? [0, 99];
+		const pb = GRADE[b] ?? [0, 99];
+		return pa[1] - pb[1] || pa[0] - pb[0];
+	});
+	const tiles = ordem
+		.map((sigla) => {
+			const pos = GRADE[sigla] ?? [0, 0];
+			const unidade = ufs[sigla];
+			const lider = liderDe(unidade?.candidatos);
+			const virou = sigla !== "zz" && Boolean(lider) && viraram.has(sigla);
+			if (sigla !== "zz" && lider?.n === FLAVIO.numero) flavio += 1;
+			if (sigla !== "zz" && lider?.n === LULA.numero) lula += 1;
+			const nome = NOMES_UF[sigla] ?? unidade?.nome ?? sigla.toUpperCase();
+			const rotulo = sigla === "zz" ? "EXT" : sigla.toUpperCase();
+			const liderTxt = lider ? nomeLado(lider.n) : "sem apuração";
+			const marca = virou ? " viraram" : "";
+			const aria = `${nome}: ${lider ? `${liderTxt} lidera no 2º turno` : "sem seções apuradas"}${marca}`;
+			return `<div class="a-uf${lider ? ` a-uf-${lider.n === FLAVIO.numero ? "f" : "l"}` : ""}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1}" aria-label="${escHtml(aria)}"><b>${rotulo}</b><small class="${classeLado(lider?.n)}">${escHtml(liderTxt)}</small>${virou ? "<i>viraram</i>" : ""}</div>`;
+		})
+		.join("");
+	const placar = `Flávio ${flavio} · Lula ${lula} UFs lideradas · ${viraram.size} viraram`;
+	const regioes = vista.apuracao.analise?.regioes ?? [];
+	const linhas = regioes.length
+		? regioes
+				.map((regiao) => {
+					const lider = regiao.lider;
+					const pct22 = lider ? pctTexto(regiao.candidatos.find((c) => c.n === FLAVIO.numero)?.pct) : "—";
+					const pct13 = lider ? pctTexto(regiao.candidatos.find((c) => c.n === LULA.numero)?.pct) : "—";
+					const marca = regiao.virou ? "<i>viraram</i>" : "";
+					const frase = lider ? `${nomeLado(lider)} lidera` : "sem apuração";
+					return `<li data-regiao="${escHtml(regiao.nome)}" data-virou="${regiao.virou ? "1" : "0"}"><b>${escHtml(regiao.nome)}</b> <span class="a-f">Flávio ${pct22}</span> <span class="a-l">Lula ${pct13}</span> <span>${escHtml(frase)}</span> ${marca}</li>`;
+				})
+				.join("")
+		: `<li>As regiões entram com a leitura das UFs.</li>`;
+	return secao(
+		"estados",
+		"Estados e regiões",
+		`<p>A cor segue quem lidera na UF. Quem mudou de líder em relação ao 1º turno leva a marca viraram. O exterior aparece na grade e fica de fora deste placar.</p><p data-placar-ufs>${placar}</p><div class="a-mapa" role="group" aria-label="Grade de UFs em 7 colunas">${tiles}</div><h3>Por região</h3><ul class="a-regioes">${linhas}</ul>`,
+	);
+}
+
+function linhaLado(
+	n: string,
+	pct2: number | undefined,
+	pct1: number | undefined,
+	comDelta: boolean,
+): string {
+	const delta = comDelta && pct2 != null && pct1 != null ? ` · ${deltaPp(pct2 - pct1)}` : "";
+	return `<li data-lado="${n}"><span class="${classeLado(n)}">${nomeLado(n)}</span> ${pctTexto(pct2)} · 1º turno ${pctTexto(pct1)}${delta}</li>`;
+}
+
+function htmlExterior(vista: VistaNoite): string {
+	const zz = vista.apuracao.ufs?.zz;
+	const lider = liderDe(zz?.candidatos);
+	const zerado = lider == null;
+	const ref = COLEGIOS_1T.exterior;
+	const pct1 = (n: string) => pctDoSnapshot(ref.votos[n] ?? 0, ref.validos);
+	const pct2 = (n: string) => zz?.candidatos.find((c) => c.n === n)?.pct;
+	const lados = zerado
+		? `<ul class="a-lados"><li data-lado="22"><span class="a-f">Flávio</span> — · 1º turno ${pctTexto(pct1(FLAVIO.numero))}</li><li data-lado="13"><span class="a-l">Lula</span> — · 1º turno ${pctTexto(pct1(LULA.numero))}</li></ul>`
+		: `<ul class="a-lados">${linhaLado(FLAVIO.numero, pct2(FLAVIO.numero), pct1(FLAVIO.numero), true)}${linhaLado(LULA.numero, pct2(LULA.numero), pct1(LULA.numero), true)}</ul>`;
+	const liderTxt = lider
+		? `${nomeLado(lider.n)} lidera no 2º turno.`
+		: "O exterior ainda não tem votos no 2º turno.";
+	const aviso = zerado ? `<p data-aviso-exterior>${AVISO_EXTERIOR}</p>` : "";
+	const comp2 = !zerado && zz && Number.isFinite(zz.comparecimento) ? zz.comparecimento : undefined;
+	const comp1 = ref.pctComparecimento;
+	const comp = comp2 == null
+		? `Comparecimento no 1º turno ${pctTexto(comp1)}. O 2º turno ainda não tem comparecimento.`
+		: `Comparecimento no 2º turno ${pctTexto(comp2)} · no 1º turno ${pctTexto(comp1)} · ${deltaPp(comp2 - comp1)}`;
+	return secao(
+		"exterior",
+		"Exterior",
+		`<p data-lider-exterior>${escHtml(liderTxt)}</p>${lados}<p data-comp-exterior>${comp} · ${nf.format(ref.eleitorado)} eleitores no 1º turno.</p>${aviso}`,
+	);
+}
+
+function linhaComparecimento(
+	escopo: string,
+	rotulo: string,
+	c1: number,
+	a1: number,
+	c2: number | undefined,
+	a2: number | undefined,
+): string {
+	const segundo = c2 == null
+		? "2º turno ainda sem comparecimento"
+		: `2º turno comparecimento ${pctTexto(c2)} · abstenção ${pctTexto(a2)} · diferença ${deltaPp(c2 - c1)} no comparecimento`;
+	return `<li data-escopo="${escopo}"><b>${rotulo}</b> <span>1º turno comparecimento ${pctTexto(c1)} · abstenção ${pctTexto(a1)}</span> <span>${segundo}</span></li>`;
+}
+
+function htmlComparecimento(vista: VistaNoite): string {
+	const brasil = COLEGIOS_1T.brasil;
+	const exterior = COLEGIOS_1T.exterior;
+	const cargo = vista.apuracao.cargos.presidente;
+	const c2 = cargo && Number.isFinite(cargo.totais.comparecimento) ? cargo.totais.comparecimento : undefined;
+	const a2 = cargo && Number.isFinite(cargo.totais.abstencao) ? cargo.totais.abstencao : undefined;
+	const zz = vista.apuracao.ufs?.zz;
+	const liderZz = liderDe(zz?.candidatos);
+	const cExt = liderZz && zz && Number.isFinite(zz.comparecimento) ? zz.comparecimento : undefined;
+	const aExt = cExt == null ? undefined : 100 - cExt;
+	const aBrasil1 = 100 - brasil.pctComparecimento;
+	const aExt1 = 100 - exterior.pctComparecimento;
+	return secao(
+		"comparecimento",
+		"Comparecimento e abstenção",
+		`<p>Brasil e exterior, com a diferença para o 1º turno. Durante a noite, o 2º turno é o das seções já apuradas.</p><ul class="a-comp">${linhaComparecimento("brasil", "Brasil", brasil.pctComparecimento, aBrasil1, c2, a2)}${linhaComparecimento("exterior", "Exterior", exterior.pctComparecimento, aExt1, cExt, aExt)}</ul>`,
+	);
+}
+
+function fatias(fatia: FatiaEleitorado): string {
+	const partes: Array<[string, number, string]> = [
+		["Flávio", fatia.flavio, "var(--f)"],
+		["Lula", fatia.lula, "var(--l)"],
+		["Outros", fatia.outros, "var(--suave)"],
+		["Brancos e nulos", fatia.brancosNulos, "#9aa3b2"],
+		["Abstenção", fatia.abstencao, "var(--regua)"],
+	];
+	const barra = partes
+		.filter(([, valor]) => Number.isFinite(valor) && valor > 0.05)
+		.map(([, valor, cor]) => `<i style="width:${Math.max(0, valor).toFixed(2)}%;background:${cor}"></i>`)
+		.join("");
+	const legenda = partes
+		.map(([nome, valor]) => `<span>${nome} ${pctTexto(valor)}</span>`)
+		.join(" ");
+	return `<div class="a-barra" aria-hidden="true">${barra}</div><p class="a-legenda">${legenda}</p>`;
+}
+
+function votosTexto(votos: number): string {
+	if (!Number.isFinite(votos)) return "—";
+	return nf.format(Math.abs(Math.round(votos)));
+}
+
+function fraseSaldo(nome: string, votos: number): string {
+	if (!Number.isFinite(votos)) return `${nome} ainda sem saldo`;
+	if (votos > 0) return `${nome} ganhou cerca de ${votosTexto(votos)} votos`;
+	if (votos < 0) return `${nome} perdeu cerca de ${votosTexto(votos)} votos`;
+	return `${nome} ficou no mesmo patamar`;
+}
+
+function htmlTransferencia(vista: VistaNoite): string {
+	const comparacao: ComparacaoTurnos | undefined = vista.apuracao.analise?.comparacao;
+	const selo = `<h3>Para onde foram os votos? <span class="a-selo">ESTIMATIVA</span></h3>`;
+	const aviso = `<p data-aviso-estimativa>${AVISO_ESTIMATIVA}</p>`;
+	if (!comparacao) {
+		return secao(
+			"transferencia",
+			"Do 1º ao 2º turno",
+			`<p>A comparação dos turnos entra com a leitura da apuração.</p>${selo}<p>A estimativa entra quando o 2º turno tiver votos.</p>${aviso}`,
+		);
+	}
+	const segundo = comparacao.segundo
+		? `<div data-composicao="2"><b>2º turno</b>${fatias(comparacao.segundo)}</div>`
+		: `<p data-composicao="2">O 2º turno aparece com as primeiras seções.</p>`;
+	const est = comparacao.estimativa;
+	const saldo = est
+		? `<p data-saldo>${fraseSaldo(FLAVIO.nome, est.flavioVotos)} e ${fraseSaldo(LULA.nome, est.lulaVotos)}, em votos equivalentes. A fonte estimada soma ${votosTexto(est.fonteVotos)} votos.</p>`
+		: `<p>A estimativa entra quando o 2º turno tiver votos.</p>`;
+	return secao(
+		"transferencia",
+		"Do 1º ao 2º turno",
+		`<h3>Composição do eleitorado</h3><p>Percentual do eleitorado, para comparar o 1º turno final com o 2º turno nas seções já apuradas.</p><div data-composicao="1"><b>1º turno</b>${fatias(comparacao.primeiro)}</div>${segundo}${selo}${saldo}${aviso}`,
+	);
+}
+
+function textoTurnoColegio(
+	colegio: ColegioPresidente | undefined,
+	n: string,
+): string {
+	if (!colegio || colegio.validos <= 0) return "—";
+	const candidato = colegio.candidatos.find((c) => c.n === n);
+	return pctTexto(candidato?.pct);
+}
+
+function htmlColegios(vista: VistaNoite): string {
+	const colegios = vista.apuracao.colegios ?? {};
+	const itens = COLEGIOS_MAIORES.map((meta) => {
+		const colegio = colegios[meta.cd];
+		const ref = colegio1t(meta.cd);
+		const validos = ref?.validos ?? 0;
+		const pct1 = (n: string) => pctTexto(pctDoSnapshot(ref?.votos[n] ?? 0, validos));
+		const lider2 = liderDe(colegio?.candidatos);
+		const lider1 = ref ? liderDeVotos(ref.votos) : null;
+		const virou = Boolean(lider2 && lider1 && lider2.n !== lider1);
+		return `<li data-colegio="${escHtml(meta.cd)}"><b>${escHtml(meta.nome)}</b> <small>${meta.uf.toUpperCase()}</small> <span data-turno="2">2º turno Flávio ${textoTurnoColegio(colegio, FLAVIO.numero)} · Lula ${textoTurnoColegio(colegio, LULA.numero)}</span> <span data-turno="1">1º turno Flávio ${pct1(FLAVIO.numero)} · Lula ${pct1(LULA.numero)}</span>${virou ? " <i>viraram</i>" : ""}</li>`;
+	}).join("");
+	return secao(
+		"colegios",
+		"Maiores colégios eleitorais",
+		`<p>Os 10 municípios com mais eleitores no 1º turno. A lista é fixa e não muda de ordem durante a noite.</p><ol class="a-colegios">${itens}</ol>`,
+	);
+}
+
+/** Geografia da noite, na ordem do celular: exterior, comparecimento, comparação, estados, colégios. */
+export function htmlGeografia(vista: VistaNoite): string {
+	return [
+		htmlExterior(vista),
+		htmlComparecimento(vista),
+		htmlTransferencia(vista),
+		htmlEstados(vista),
+		htmlColegios(vista),
+	].join("");
+}
