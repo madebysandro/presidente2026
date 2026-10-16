@@ -137,8 +137,16 @@ async function fotosOficiais(page) {
 	if (!srcs[0]?.includes("280002551544.jpeg") || !srcs[1]?.includes("280002542548.jpeg")) {
 		throw new Error(`rostos fora do TSE: ${srcs.join(" | ")}`);
 	}
-	const videos = await page.locator("video").count();
-	if (videos < 2) throw new Error("a vinheta não trouxe os dois vídeos");
+	const videos = await page.locator("video").evaluateAll((els) =>
+		els.map((el) => ({
+			muted: el.muted && el.hasAttribute("muted"),
+			playsinline: el.playsInline && el.hasAttribute("playsinline"),
+		})),
+	);
+	if (videos.length < 2) throw new Error("a vinheta não trouxe os dois vídeos");
+	if (videos.some((video) => !video.muted || !video.playsinline)) {
+		throw new Error(`vídeo sem muted/playsinline: ${JSON.stringify(videos)}`);
+	}
 }
 
 function textoRuim(texto) {

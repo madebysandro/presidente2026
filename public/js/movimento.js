@@ -301,7 +301,9 @@ function videoDoLado(poster, webm, mp4) {
 	el.defaultMuted = true;
 	el.playsInline = true;
 	el.preload = "auto";
+	el.setAttribute("muted", "");
 	el.setAttribute("playsinline", "");
+	el.setAttribute("webkit-playsinline", "");
 	const fonteWebm = document.createElement("source");
 	fonteWebm.src = webm;
 	fonteWebm.type = "video/webm";
