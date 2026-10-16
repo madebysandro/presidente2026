@@ -13,7 +13,7 @@ artifacts/
 screenshots/
 shots/
 .void-*
-/.w*
+/.w[r]angler
 worker.vitest.json
 node_modules
 dist

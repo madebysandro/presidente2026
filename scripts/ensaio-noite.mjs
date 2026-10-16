@@ -116,7 +116,7 @@ function tseFalso(corpos) {
 
 function runtimeDoEnsaio(origem) {
 	const build = acharConfigDoBuild(join(RAIZ, "dist/ssr"));
-	const { ratelimits: _semTaxa, ...config } = build.json;
+	const config = build.json;
 	const opcoes = opcoesMiniflare({
 		config,
 		base: build.dir,
@@ -359,11 +359,6 @@ try {
 	);
 } catch (erro) {
 	anotar("roteiro", false, erro instanceof Error ? erro.stack || erro.message : String(erro));
-	try {
-		console.log(erro instanceof Error ? erro.message : String(erro));
-	} catch {
-		// o harness pode não ter subido
-	}
 } finally {
 	if (browser) await browser.close();
 	await servidor.dispose();

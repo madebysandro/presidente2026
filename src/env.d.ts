@@ -1,6 +1,7 @@
 /**
- * Bindings do Worker. `void prepare` e `void/env` trazem o runtime;
- * os nomes daqui acompanham `void.config.ts` e `void.lock.json`.
+ * Bindings do Worker. Os nomes acompanham `void.config.ts` e `void.lock.json`.
+ * `void prepare` gera rotas e tsconfig em `.void/`. `void/env` traz o runtime.
+ * Esta interface é o contrato dos bindings; a Void não emite esse arquivo.
  */
 declare namespace Cloudflare {
 	interface Env {
