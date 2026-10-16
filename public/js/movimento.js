@@ -52,6 +52,7 @@ function marcarAbertura(ativa) {
 
 let aberturaAtiva = false;
 let varreduraComeçou = false;
+let epoca = 0;
 let timersVinheta = [];
 let timersVarredura = [];
 
@@ -122,6 +123,7 @@ function tirarOverlay() {
 
 function pular() {
 	if (!aberturaAtiva) return;
+	epoca += 1;
 	aberturaAtiva = false;
 	varreduraComeçou = false;
 	limpar(timersVinheta);
@@ -143,6 +145,7 @@ function noTeclado(evento) {
 
 function rolar(el, texto) {
 	const proximo = String(texto);
+	const epocaDesta = epoca;
 	if (el.textContent === proximo) return;
 	if (calmo()) {
 		el.textContent = proximo;
@@ -156,6 +159,7 @@ function rolar(el, texto) {
 		{ duration: 90, easing: "ease-in" },
 	);
 	saida.onfinish = () => {
+		if (epocaDesta !== epoca) return;
 		el.textContent = proximo;
 		el.animate(
 			[
@@ -170,6 +174,7 @@ function rolar(el, texto) {
 function contar(el, para, ms = 650) {
 	const bruto = el.getAttribute("data-v");
 	const de = bruto == null || bruto === "" ? para : Number(bruto);
+	const epocaDesta = epoca;
 	el.setAttribute("data-v", String(para));
 	if (!Number.isFinite(para)) return;
 	if (calmo() || !Number.isFinite(de) || de === para) {
@@ -178,6 +183,7 @@ function contar(el, para, ms = 650) {
 	}
 	const t0 = performance.now();
 	const passo = (t) => {
+		if (epocaDesta !== epoca) return;
 		const k = Math.min(1, (t - t0) / ms);
 		el.textContent = formatar(de + (para - de) * (1 - (1 - k) ** 3));
 		if (k < 1) requestAnimationFrame(passo);
@@ -276,6 +282,7 @@ function abrir() {
 	}
 	const fim = setTimeout(() => {
 		if (!aberturaAtiva) return;
+		epoca += 1;
 		estadoFinal();
 		aberturaAtiva = false;
 		marcarAbertura(false);
@@ -305,9 +312,10 @@ function videoDoLado(poster, webm, mp4) {
 	return el;
 }
 
-function lado(classe, poster, webm, mp4, foto, nome, numero) {
+function lado(classe, poster, webm, mp4, foto, nome, numero, largura) {
 	const faixa = document.createElement("i");
 	faixa.className = classe;
+	if (largura != null) faixa.style.width = `${largura}%`;
 	faixa.append(videoDoLado(poster, webm, mp4));
 	const rosto = document.createElement("img");
 	rosto.className = "a-i-rosto";
@@ -356,6 +364,7 @@ function vinheta() {
 			fotos[0],
 			"Flávio",
 			vf.textContent || "",
+			dados.vf,
 		),
 		lado(
 			"a-i-l",

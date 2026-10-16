@@ -215,6 +215,7 @@ async function cenario(browser, largura, reduzido) {
 	} else {
 		await esperarRotulo(page);
 		await fotosOficiais(page);
+		await larguraDaMedia(page);
 		const pouso = await medirPouso(page);
 		for (const [eixo, valor] of Object.entries(pouso)) {
 			if (px(valor) !== 0) throw new Error(`pouso ${eixo}=${valor}px`);
@@ -228,6 +229,42 @@ async function cenario(browser, largura, reduzido) {
 	}
 	if (erros.length) throw new Error(erros.join(" | "));
 	await context.close();
+}
+
+async function pularNaVarredura(browser) {
+	const context = await browser.newContext({
+		viewport: { width: 1440, height: 900 },
+		reducedMotion: "no-preference",
+		colorScheme: "light",
+	});
+	const page = await context.newPage();
+	const erros = [];
+	page.on("pageerror", (erro) => erros.push(String(erro)));
+	page.on("console", (msg) => {
+		if (msg.type() === "error") erros.push(msg.text());
+	});
+	await page.goto("http://127.0.0.1:8765/", { waitUntil: "domcontentloaded" });
+	await page.waitForFunction(() => {
+		const texto = document.querySelector("[data-vf]")?.textContent;
+		return texto && texto !== "51,6" && document.documentElement.dataset.abertura === "1";
+	}, { timeout: 15000 });
+	await page.keyboard.press("Escape");
+	await page.waitForTimeout(500);
+	const texto = await page.locator("[data-vf]").innerText();
+	if (texto !== "51,6") throw new Error(`veredito depois do skip ficou em ${texto}`);
+	if (await page.locator(".a-intro").count()) throw new Error("vinheta continuou depois do skip");
+	const larguraFaixa = await page.evaluate(() => {
+		const faixa = document.querySelector(".a-i-f");
+		return faixa ? faixa.style.width : "";
+	});
+	if (larguraFaixa) throw new Error("a faixa colorida sobreviveu ao skip");
+	if (erros.length) throw new Error(erros.join(" | "));
+	await context.close();
+}
+
+async function larguraDaMedia(page) {
+	const largura = await page.locator(".a-i-f").evaluate((el) => el.style.width);
+	if (largura !== "51.62%") throw new Error(`campo do Flávio com largura ${largura}`);
 }
 
 async function pularCedo(browser, largura, tecla) {
@@ -267,6 +304,7 @@ const casos = [
 	["390 movimento", () => cenario(browser, 390, false)],
 	["1440 reduzir", () => cenario(browser, 1440, true)],
 	["390 reduzir", () => cenario(browser, 390, true)],
+	["1440 skip na varredura", () => pularNaVarredura(browser)],
 	["1440 skip tecla", () => pularCedo(browser, 1440, true)],
 	["390 skip toque", () => pularCedo(browser, 390, false)],
 ];
