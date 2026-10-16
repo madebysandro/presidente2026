@@ -20,4 +20,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Miniflare puro, sem o resolvedor do vitest: pega import que só o Node resolve.
+      - run: node scripts/sondar-agente.mjs
       - run: npm test

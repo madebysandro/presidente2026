@@ -9,9 +9,11 @@ import { defineConfig } from "void/config";
  * Anúncio: https://x.com/Cloudflare/status/2110741488548061546
  */
 export default defineConfig({
+	// staged é o padrão: tráfego só depois do readiness.
+	// --atomic só num deploy com migração de classe de Durable Object.
 	deploy: {
 		cloudflare: {
-			mode: "atomic",
+			mode: "staged",
 		},
 	},
 	routing: {
@@ -20,9 +22,11 @@ export default defineConfig({
 			"/*": [
 				"Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://resultados.tse.jus.br; media-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
 				"X-Frame-Options: DENY",
+				"X-Content-Type-Options: nosniff",
 			],
 		},
 	},
+	// vars, limits e compatibility_date ficam só aqui (precedência sobre cloudflare).
 	worker: {
 		compatibility_date: "2026-08-22",
 		vars: {
@@ -37,7 +41,6 @@ export default defineConfig({
 	cloudflare: {
 		name: "presidente2026",
 		account_id: "aaec42ffcbeebcd4cda5beff4af4c439",
-		compatibility_date: "2026-08-22",
 		workers_dev: false,
 		preview_urls: false,
 		routes: [
@@ -50,13 +53,6 @@ export default defineConfig({
 			directory: "./public",
 			binding: "ASSETS",
 			run_worker_first: true,
-		},
-		vars: {
-			TSE_BASE: "https://resultados.tse.jus.br/oficial",
-			ELEICAO_FEDERAL: "6258",
-		},
-		limits: {
-			cpu_ms: 300_000,
 		},
 		ratelimits: [
 			{

@@ -25,6 +25,7 @@
 		"test:watch": "void prepare && vite build && node scripts/preparar-teste-void.mjs && vitest",
 		"smoke": "node scripts/smoke-vinheta.mjs",
 		"ensaio": "npm run build && node scripts/ensaio-noite.mjs",
+		"sonda:agente": "npm run build && node scripts/sondar-agente.mjs",
 		"deploy": "void deploy --platform cloudflare"
 	},
 	"overrides": {

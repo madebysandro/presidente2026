@@ -173,6 +173,30 @@ export function conferirProjeto(raiz = RAIZ) {
 			`conferir: limits.cpu_ms=${JSON.stringify(build.json.limits?.cpu_ms)} (quer ${CPU_MS}; o CSV do TSE não cabe nos 10 ms do plano Free)`,
 		);
 	}
+	if (build.json.compatibility_date !== "2026-08-22") {
+		falha(
+			`conferir: compatibility_date=${JSON.stringify(build.json.compatibility_date)} (quer 2026-08-22, vindo de worker)`,
+		);
+	}
+	if (
+		build.json.vars?.TSE_BASE !== "https://resultados.tse.jus.br/oficial" ||
+		build.json.vars?.ELEICAO_FEDERAL !== "6258"
+	) {
+		falha(
+			`conferir: vars=${JSON.stringify(build.json.vars)} (quer TSE_BASE e ELEICAO_FEDERAL só via worker)`,
+		);
+	}
+	if (Object.hasOwn(build.json.vars ?? {}, "CHAVE_AGENTE")) {
+		falha(
+			"conferir: CHAVE_AGENTE não pode ser var em texto puro (é segredo; o build recusa server key em vars)",
+		);
+	}
+	const segredosObrigatorios = build.json.secrets?.required ?? [];
+	if (segredosObrigatorios.includes("CHAVE_AGENTE")) {
+		falha(
+			"conferir: CHAVE_AGENTE obrigatória bloquearia void deploy enquanto o segredo não existir no remoto",
+		);
+	}
 	if (JSON.stringify(build.json.ratelimits) !== JSON.stringify(LIMITES)) {
 		falha(
 			`conferir: ratelimits=${JSON.stringify(build.json.ratelimits)} (quer chave 30/60s e IP 5/60s)`,

@@ -9,13 +9,17 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { conferirProjeto, opcoesMiniflare, RAIZ } from "./runtime-local.mjs";
 
-const { resolved, builtNotFound } = conferirProjeto(RAIZ);
+const { build, builtNotFound } = conferirProjeto(RAIZ);
+// vars, limits e compatibility_date saem do JSON do build (bloco worker).
+// O lock guarda o bloco cloudflare, que não repete esses campos. Os checks
+// de conferirProjeto já recusaram data ou cpu_ms fora do esperado.
+const built = build.json;
 const opcoes = opcoesMiniflare({
-	config: resolved,
+	config: built,
 	base: RAIZ,
 	notFound: builtNotFound,
 	vars: {
-		...(resolved.vars ?? {}),
+		...(built.vars ?? {}),
 		CHAVE_AGENTE: "teste-chave-agente",
 	},
 });
