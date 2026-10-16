@@ -20,7 +20,7 @@ O que a spec D0 apontava, e como está hoje:
 
 | Gap da spec | Hoje |
 | --- | --- |
-| Rate limit binding | Declarado em `void.config.ts` (`LIMITE_AGENTE_CHAVE`, `LIMITE_AGENTE_IP`). O DO ainda conta no mesmo lock, porque o binding é por localização. |
+| Rate limit binding | Fora do `void.config.ts` (#64). O Void 1.1.11 não sobe rate limit com pinned secrets, então `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` ficam de fora. O contador no Durable Object continua sendo o limite global. Os bindings voltam quando o Void suportar rate limit com pinned secrets. |
 | vitest-pool-workers | O pool 0.23 só aceita Vitest 4.1. O 5 quebrou o cache. Fica no 4.1 até o pacote novo (`@cloudflare/vitest-plugin`) entrar com teste verde. |
 | Workers Builds | Produção na `main`. Não há preview de branch; o check vermelho em pull request é esperado e não bloqueia. |
 

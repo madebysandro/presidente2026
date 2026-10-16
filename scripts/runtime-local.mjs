@@ -11,18 +11,6 @@ import { fileURLToPath } from "node:url";
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
 const CPU_MS = 300_000;
-const LIMITES = [
-	{
-		name: "LIMITE_AGENTE_CHAVE",
-		namespace_id: "625801",
-		simple: { limit: 30, period: 60 },
-	},
-	{
-		name: "LIMITE_AGENTE_IP",
-		namespace_id: "625802",
-		simple: { limit: 5, period: 60 },
-	},
-];
 
 function falha(mensagem) {
 	console.error(mensagem);
@@ -151,6 +139,11 @@ export function conferirProjeto(raiz = RAIZ) {
 			"conferir: void.config.ts worker.limits.cpu_ms ausente (o void deploy lê esse campo)",
 		);
 	}
+	if (/ratelimits\s*:/.test(authored)) {
+		falha(
+			"conferir: void.config.ts declara ratelimits (o Void 1.1.11 não sobe rate limit com pinned secrets; o teto do agente fica no Durable Object até o Void suportar isso)",
+		);
+	}
 
 	const lock = JSON.parse(readFileSync(lockPath, "utf8"));
 	const resolved = lock.resolved;
@@ -159,6 +152,15 @@ export function conferirProjeto(raiz = RAIZ) {
 	}
 	if (resolved.account_id !== ACCOUNT) {
 		falha(`conferir: void.lock.json resolved.account_id != ${ACCOUNT}`);
+	}
+	if (
+		lock.source?.ratelimits != null ||
+		resolved.ratelimits != null ||
+		(typeof lock.text === "string" && lock.text.includes('"ratelimits"'))
+	) {
+		falha(
+			"conferir: void.lock.json ainda tem ratelimits (o build materializa o lock a partir do void.config.ts; no Void 1.1.11 o `void prepare` só gera `.void/`)",
+		);
 	}
 
 	const build = acharConfigDoBuild(join(raiz, "dist/ssr"));
@@ -201,9 +203,10 @@ export function conferirProjeto(raiz = RAIZ) {
 			);
 		}
 	}
-	if (JSON.stringify(build.json.ratelimits) !== JSON.stringify(LIMITES)) {
+	const limites = build.json.ratelimits;
+	if (limites != null && !(Array.isArray(limites) && limites.length === 0)) {
 		falha(
-			`conferir: ratelimits=${JSON.stringify(build.json.ratelimits)} (quer chave 30/60s e IP 5/60s)`,
+			`conferir: ratelimits=${JSON.stringify(limites)} (quer ausente; o teto do agente fica no Durable Object até o Void subir rate limit com pinned secrets)`,
 		);
 	}
 	const route = Array.isArray(build.json.routes) ? build.json.routes[0] : undefined;
