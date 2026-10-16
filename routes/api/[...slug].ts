@@ -1,6 +1,5 @@
 import { defineHandler } from "void";
 
-/** /api/* desconhecido → 404 JSON (não o HTML do catch-all SPA). */
 function naoAchei() {
 	return Response.json({ error: "não achei" }, { status: 404 });
 }
