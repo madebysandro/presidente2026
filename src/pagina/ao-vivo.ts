@@ -140,16 +140,22 @@ function lado(numero: string, vista: VistaNoite) {
 	return presidente(vista)?.candidatos.find((candidato) => candidato.n === numero);
 }
 
-function seloEleito(numero: string, vista: VistaNoite): string {
-	if (vista.fase !== "encerrada") return "";
-	const flavio = lado(FLAVIO.numero, vista);
-	const lula = lado(LULA.numero, vista);
-	if (!flavio || !lula) return "";
-	if (!Number.isFinite(flavio.votos) || !Number.isFinite(lula.votos)) return "";
-	const vencedor =
-		flavio.votos > lula.votos ? FLAVIO.numero : lula.votos > flavio.votos ? LULA.numero : null;
-	if (vencedor !== numero) return "";
+export function vencedorPorVotos(votos22: number, votos13: number): "22" | "13" | null {
+	if (!Number.isFinite(votos22) || !Number.isFinite(votos13)) return null;
+	if (votos22 > votos13) return FLAVIO.numero;
+	if (votos13 > votos22) return LULA.numero;
+	return null;
+}
+
+function seloEleito(numero: string, votos22: number, votos13: number, fase: FaseApuracao): string {
+	if (fase !== "encerrada") return "";
+	if (vencedorPorVotos(votos22, votos13) !== numero) return "";
 	return `<span class="a-eleito" data-eleito="${numero}">✓ Eleito</span>`;
+}
+
+function pctVisitante(fase: FaseApuracao, n: number | undefined): string {
+	if (n == null || !Number.isFinite(n)) return "—";
+	return (fase === "encerrada" ? p1 : pf).format(n);
 }
 
 export function htmlPlacar(vista: VistaNoite): string {
@@ -159,10 +165,11 @@ export function htmlPlacar(vista: VistaNoite): string {
 	}
 	const flavio = lado(FLAVIO.numero, vista);
 	const lula = lado(LULA.numero, vista);
-	const pct = (n: number | undefined) => (n != null && Number.isFinite(n) ? pf.format(n) : "—");
 	const votos = (n: number | undefined) => (n != null && Number.isFinite(n) ? nf.format(n) : "—");
-	const secoes = Number.isFinite(cargo.apurado) ? pf.format(cargo.apurado) : "—";
-	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pct(flavio?.pct)}%</b>${seloEleito(FLAVIO.numero, vista)}</span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pct(lula?.pct)}%</b>${seloEleito(LULA.numero, vista)}</span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
+	const secoes = pctVisitante(vista.fase, cargo.apurado);
+	const selo = (numero: string) =>
+		seloEleito(numero, flavio?.votos ?? Number.NaN, lula?.votos ?? Number.NaN, vista.fase);
+	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}</span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
 export function htmlCaboApuracao(vista: VistaNoite): string {
@@ -181,8 +188,8 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 	const legenda = media && Number.isFinite(media.vf)
 		? `A marca é a média das pesquisas em ${porExtenso(media.data)}, congelada: Flávio ${p1.format(media.vf)}%.`
 		: "A média das pesquisas de 25 de outubro entra nesta marca quando houver número publicado.";
-	const pctF = flavio && Number.isFinite(flavio.pct) ? pf.format(flavio.pct) : "—";
-	const pctL = lula && Number.isFinite(lula.pct) ? pf.format(lula.pct) : "—";
+	const pctF = pctVisitante(vista.fase, flavio?.pct);
+	const pctL = pctVisitante(vista.fase, lula?.pct);
 	const rotulo = zerado
 		? "Ainda sem votos apurados. A marca é a média das pesquisas."
 		: `Flávio ${pctF}%, Lula ${pctL}%. A marca é a média das pesquisas.`;

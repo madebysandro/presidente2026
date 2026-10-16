@@ -1,6 +1,6 @@
 import { escHtml } from "../dominio/texto";
 import { arred1, arred2 } from "../pesquisas/validos";
-import { arquivoZerado, type VistaNoite } from "./ao-vivo";
+import { arquivoZerado, vencedorPorVotos, type VistaNoite } from "./ao-vivo";
 import { FLAVIO, LULA, porExtenso } from "./topo";
 
 const p1 = new Intl.NumberFormat("pt-BR", {
@@ -10,6 +10,10 @@ const p1 = new Intl.NumberFormat("pt-BR", {
 
 function pct1(n: number): string {
 	return `${p1.format(arred1(n))}%`;
+}
+
+function linhaFinal(rotulo: string, agora: number, primeiro: number): string {
+	return `<li><b>${rotulo}</b> ${pct1(agora)} · 1º turno ${pct1(primeiro)}</li>`;
 }
 
 function textoErro(erro: number): string {
@@ -24,15 +28,9 @@ function candidato(vista: VistaNoite, numero: string) {
 	return vista.apuracao.cargos.presidente?.candidatos.find((c) => c.n === numero);
 }
 
-function vencedorVotos(votos22: number, votos13: number): "22" | "13" | null {
-	if (votos22 > votos13) return "22";
-	if (votos13 > votos22) return "13";
-	return null;
-}
-
-function liderDaVantagem(v: number): "22" | "13" | null {
-	if (v > 0) return "22";
-	if (v < 0) return "13";
+function liderDaVantagem(vantagem: number): "22" | "13" | null {
+	if (vantagem > 0) return "22";
+	if (vantagem < 0) return "13";
 	return null;
 }
 
@@ -52,7 +50,7 @@ function linhasDaMedia(vista: VistaNoite): LinhaUrna[] | null {
 	if (!flavio || !lula) return null;
 	if (![flavio.pct, lula.pct, flavio.votos, lula.votos].every(Number.isFinite)) return null;
 	const vUrna = arred2(flavio.pct - lula.pct);
-	const vencedor = vencedorVotos(flavio.votos, lula.votos);
+	const vencedor = vencedorPorVotos(flavio.votos, lula.votos);
 	const porRegistro = new Map(vista.pesquisas.publicadas.map((p) => [p.registro, p]));
 	const linhas: LinhaUrna[] = [];
 	for (const registro of media.registros) {
@@ -98,7 +96,7 @@ export function htmlAnaliseFinal(vista: VistaNoite): string {
 	if (!fechamento) {
 		return `<section class="a-est" data-analise-final><h2>Análise final</h2><p>A análise final entra com o resultado da apuração.</p></section>`;
 	}
-	return `<section class="a-est" data-analise-final><h2>Análise final</h2><ul><li><b>Comparecimento</b> ${pct1(fechamento.comparecimento)} · 1º turno ${pct1(fechamento.comparecimento1t)}</li><li><b>Brancos</b> ${pct1(fechamento.brancos)} · 1º turno ${pct1(fechamento.brancos1t)}</li><li><b>Nulos</b> ${pct1(fechamento.nulos)} · 1º turno ${pct1(fechamento.nulos1t)}</li><li><b>Viradas na noite</b> <span data-viradas>${fechamento.viradas}</span></li></ul></section>`;
+	return `<section class="a-est" data-analise-final><h2>Análise final</h2><ul>${linhaFinal("Comparecimento", fechamento.comparecimento, fechamento.comparecimento1t)}${linhaFinal("Brancos", fechamento.brancos, fechamento.brancos1t)}${linhaFinal("Nulos", fechamento.nulos, fechamento.nulos1t)}<li><b>Viradas na noite</b> <span data-viradas>${fechamento.viradas}</span></li></ul></section>`;
 }
 
 export function htmlPesquisasUrnas(vista: VistaNoite): string {

@@ -161,6 +161,9 @@ describe("resultado final (#20)", () => {
 		const lula = h1.split('class="a-x"')[1] ?? "";
 		expect(flavio).toContain('data-eleito="22"');
 		expect(flavio).toContain("✓ Eleito");
+		expect(flavio).toContain("55,0%");
+		expect(flavio).not.toContain("55,00%");
+		expect(placar).toContain("100,0% das seções");
 		expect(lula).not.toContain("data-eleito");
 		expect(lula).not.toContain("✓ Eleito");
 		expect(placar).not.toMatch(/undefined|NaN/);
