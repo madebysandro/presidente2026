@@ -31,6 +31,7 @@ export default defineConfig({
 	},
 	cloudflare: {
 		name: "presidente2026",
+		account_id: "aaec42ffcbeebcd4cda5beff4af4c439",
 		compatibility_date: "2026-08-22",
 		workers_dev: false,
 		routes: [
