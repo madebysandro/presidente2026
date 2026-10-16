@@ -132,12 +132,32 @@ export type AuditoriaAgente = {
 	motivos: string[];
 };
 
+export type FasePesquisas = "pesquisas" | "ao_vivo" | "encerrada";
+
+export type MediaPublica = {
+	data: string;
+	vf: number;
+	vl: number;
+	v: number;
+	n: number;
+	margem: number;
+	registros: string[];
+};
+
+export type PontoSerieMedia = {
+	data: string;
+	vf: number;
+	v: number;
+	n: number;
+};
+
 export type PayloadPesquisas = {
 	hoje: string;
+	fase: FasePesquisas;
 	atualizadoEm: string;
 	registroTse: { geradoEm: string | null; etag: string | null };
-	media: null;
-	serieMedia: [];
+	media: MediaPublica | null;
+	serieMedia: PontoSerieMedia[];
 	publicadas: PesquisaPublicada[];
 	liberadasSemNumero: FichaPublica[];
 	vemAi: FichaPublica[];

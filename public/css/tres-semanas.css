@@ -1,0 +1,226 @@
+@font-face {
+	font-family: "Archivo";
+	font-style: normal;
+	font-weight: 100 900;
+	font-stretch: 62% 125%;
+	font-display: swap;
+	src: url(/fontes/Archivo-100-900-normal.woff2) format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+	--papel: #f2f4f7;
+	--branco: #ffffff;
+	--tinta: #17202b;
+	--suave: #5e6878;
+	--regua: #d4dae3;
+	--f: #2d6cdf;
+	--l: #e0592a;
+}
+
+* { box-sizing: border-box; }
+
+html {
+	overflow-x: clip;
+	background: var(--papel);
+}
+
+body {
+	margin: 0;
+	overflow-x: clip;
+	background: var(--papel);
+	color: var(--tinta);
+	font: 400 15px/1.5 "Archivo", system-ui, sans-serif;
+	font-variant-numeric: tabular-nums;
+}
+
+.a {
+	max-width: 1240px;
+	margin: 0 auto;
+	padding: 28px 24px 80px;
+}
+
+.a-topo {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 8px 40px;
+	align-items: end;
+	min-width: 0;
+}
+
+.a-marca {
+	grid-column: 1 / -1;
+	margin: 0;
+	color: var(--suave);
+	font-size: 14px;
+}
+
+.a-veredito { min-width: 0; }
+
+.a-veredito h1 {
+	margin: 0;
+	font: 700 clamp(32px, 5vw, 64px)/1 "Archivo", sans-serif;
+	font-stretch: 112%;
+	letter-spacing: -0.02em;
+}
+
+.a-veredito h1 > span { white-space: nowrap; }
+
+.a-veredito p {
+	max-width: 56ch;
+	margin: 10px 0 0;
+	color: var(--suave);
+}
+
+.a-f { color: var(--f); }
+.a-l { color: var(--l); }
+
+.a-x {
+	color: var(--suave);
+	font-weight: 400;
+	font-size: 0.5em;
+	vertical-align: 0.3em;
+}
+
+.a-conta {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.a-conta b {
+	font: 800 clamp(56px, 8vw, 104px)/0.85 "Archivo", sans-serif;
+	font-stretch: 125%;
+}
+
+.a-conta > span {
+	color: var(--suave);
+	font-size: 14px;
+	line-height: 1.35;
+}
+
+.a-relogio {
+	display: inline-flex;
+	color: var(--tinta);
+	font-size: 20px;
+	font-weight: 700;
+	font-stretch: 112%;
+}
+
+.a-relogio .odo {
+	display: inline-block;
+	height: 1em;
+	overflow: hidden;
+	line-height: 1em;
+}
+
+.a-relogio .odo > span {
+	display: block;
+	line-height: 1em;
+	transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.a-relogio .odo-sep { line-height: 1em; }
+
+.a-rosto,
+.a-ponta {
+	object-fit: cover;
+	object-position: 50% 22%;
+	border-radius: 50%;
+	background: var(--regua);
+}
+
+.a-rosto {
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-right: 0.18em;
+	vertical-align: -0.08em;
+	box-shadow: 0 0 0 0.05em var(--papel), 0 0 0 0.1em currentColor;
+}
+
+.a-cabo-linha {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: 44px minmax(0, 1fr) 44px;
+	gap: 10px;
+	align-items: center;
+	margin-top: 14px;
+	min-width: 0;
+}
+
+.a-cabo {
+	position: relative;
+	display: flex;
+	height: 14px;
+	overflow: hidden;
+	border-radius: 3px;
+	background: var(--l);
+}
+
+.a-cabo-f { background: var(--f); }
+
+.a-cabo-margem {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	background: rgb(255 255 255 / 40%);
+}
+
+.a-cabo-50 {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	width: 2px;
+	margin-left: -1px;
+	background: var(--tinta);
+}
+
+.a-cabo-leg {
+	grid-column: 1 / -1;
+	max-width: 80ch;
+	margin: 8px 0 0;
+	color: var(--suave);
+	font-size: 13px;
+}
+
+.a-ponta { width: 44px; height: 44px; }
+.a-ponta:first-child { box-shadow: 0 0 0 3px var(--f); }
+.a-ponta:last-child { box-shadow: 0 0 0 3px var(--l); }
+
+.a-proxima {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 6px 0 0;
+	font-size: 15px;
+}
+
+.a-ponto {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--tinta);
+	animation: a-pulso 1.6s ease-out infinite;
+}
+
+@keyframes a-pulso {
+	from { box-shadow: 0 0 0 0 rgb(23 32 43 / 45%); }
+	to { box-shadow: 0 0 0 10px rgb(23 32 43 / 0); }
+}
+
+@media (max-width: 760px) {
+	.a { padding: 20px 16px 64px; }
+	.a-topo { grid-template-columns: minmax(0, 1fr); }
+	.a-cabo-linha { grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 8px; }
+	.a-ponta { width: 34px; height: 34px; }
+	.a-relogio { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.a-ponto { animation: none; }
+	.a-relogio .odo > span { transition: none; }
+}

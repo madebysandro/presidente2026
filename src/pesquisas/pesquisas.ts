@@ -190,11 +190,19 @@ export class Pesquisas extends DurableObject<Env> {
 		return changeset;
 	}
 
-	async listarPublico(opts: { agora: Date }): Promise<PayloadPesquisas> {
+	async listarPublico(opts: { agora: Date; encerrada?: boolean }): Promise<PayloadPesquisas> {
 		this.garantirEsquema();
 		const agora = opts.agora instanceof Date ? opts.agora : new Date(opts.agora);
 		if (Number.isNaN(agora.getTime())) throw new Error("agora inválido");
-		return montarPublico(this.lerRegistros(), this.lerMeta(), agora, this.lerResultados());
+		const suspensos = this.lerSuspensos();
+		const visiveis = this.lerRegistros().filter((registro) => !suspensos.has(registro.registro));
+		return montarPublico(
+			visiveis,
+			this.lerMeta(),
+			agora,
+			this.lerResultados(),
+			opts.encerrada === true,
+		);
 	}
 
 	async listarAuditoriaAgente(): Promise<AuditoriaAgente[]> {
@@ -615,6 +623,13 @@ export class Pesquisas extends DurableObject<Env> {
 			status: Number(row.status),
 			motivos: JSON.parse(row.motivos) as string[],
 		}));
+	}
+
+	private lerSuspensos(): Set<string> {
+		const rows = this.ctx.storage.sql
+			.exec<{ registro: string }>("SELECT registro FROM suspensoes")
+			.toArray();
+		return new Set(rows.map((row) => row.registro));
 	}
 
 	private lerResultados(): ResultadoGuardado[] {
