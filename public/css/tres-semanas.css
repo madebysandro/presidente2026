@@ -749,3 +749,125 @@ body {
 	.a-ponto, .a-vem { animation: none; }
 	.a-relogio .odo > span, .a-prog, .a-barra i, .a-pesq, .t-pt, .t-inst { transition: none; }
 }
+
+.a-faixa {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	align-items: baseline;
+	justify-content: space-between;
+	margin: 0 0 18px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--regua);
+	background: rgb(242 244 247 / 92%);
+	color: var(--suave);
+	font-size: 13px;
+}
+
+.a-faixa strong {
+	color: var(--tinta);
+	font-weight: 700;
+}
+
+.a-faixa[data-fase="ao_vivo"] strong { color: var(--f); }
+
+.a-cabo-trilha {
+	position: relative;
+	min-width: 0;
+}
+
+.a-cabo-vazio { background: var(--regua); }
+
+.a-cabo-media {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 0;
+	border-left: 2px solid var(--tinta);
+	pointer-events: none;
+}
+
+.a-noite,
+.a-momentos,
+.a-est {
+	display: grid;
+	gap: 10px;
+	min-width: 0;
+	max-width: 100%;
+	margin-top: 28px;
+	padding-top: 24px;
+	border-top: 1px solid var(--regua);
+}
+
+.a-noite h2,
+.a-momentos h2,
+.a-est h2 {
+	margin: 0;
+	font: 700 22px/1.2 "Archivo", sans-serif;
+	font-stretch: 112%;
+}
+
+.a-noite > p,
+.a-momentos li,
+.a-est > p {
+	margin: 0;
+	color: var(--suave);
+}
+
+.a-momentos ol,
+.a-est ul {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.a-est ul {
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.a-est li {
+	padding: 12px 14px;
+	border-radius: 8px;
+	background: var(--branco);
+}
+
+.a-est b { display: block; color: var(--tinta); }
+
+.t-noite { stroke: var(--tinta); }
+.t-apurar { fill: rgb(23 32 43 / 8%); }
+
+.t-virada {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 0;
+	border-left: 1px dashed var(--tinta);
+}
+
+.a-cal.encolhido { margin-top: 8px; }
+
+.a-anteriores {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	min-width: 0;
+	margin-top: 12px;
+}
+
+.a-anteriores p {
+	flex: 1 0 100%;
+	margin: 0;
+	color: var(--suave);
+	font-size: 13px;
+}
+
+@media (max-width: 760px) {
+	.a-faixa { font-size: 12px; }
+	.a-est ul { grid-template-columns: minmax(0, 1fr); }
+}

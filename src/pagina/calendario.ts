@@ -7,6 +7,7 @@ import { FLAVIO, LULA, porExtenso } from "./topo";
 const INICIO_RETA = "2026-10-05";
 const FIM_RETA = "2026-10-25";
 const DIA_VOTACAO = "2026-10-25";
+const INICIO_ULTIMA_SEMANA = "2026-10-19";
 
 const SEMANA_CURTA = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"] as const;
 const SEMANA_LONGA = [
@@ -126,8 +127,13 @@ function htmlLegenda(): string {
 	return `<div class="a-leg"><span class="a-leg-pub">pesquisa divulgada</span><span class="a-leg-vem">registrada no TSE, ainda não divulgada</span><span class="a-leg-sem">liberada, números ainda não cadastrados</span><button type="button" class="a-rever" data-rever="tres-semanas">Rever as três semanas</button></div>`;
 }
 
-export function htmlCalendario(payload: PayloadPesquisas, agora: Date): string {
+export function htmlCalendario(
+	payload: PayloadPesquisas,
+	agora: Date,
+	opcoes?: { encolher?: boolean },
+): string {
 	const hoje = payload.hoje;
+	const encolher = opcoes?.encolher === true;
 	const publicadas = porCampo(payload.publicadas);
 	const semNumero = porCampo(payload.liberadasSemNumero);
 	const vemAi = porCampo(payload.vemAi);
@@ -136,7 +142,11 @@ export function htmlCalendario(payload: PayloadPesquisas, agora: Date): string {
 	const noDia = <T extends { liberacaoEfetiva: string }>(lista: readonly T[], iso: string) =>
 		lista.filter((item) => item.liberacaoEfetiva === iso);
 
-	const celulas = diasRetaFinal()
+	const dias = diasRetaFinal().filter((iso) => !encolher || iso >= INICIO_ULTIMA_SEMANA);
+	const rotulo = encolher
+		? "Calendário das pesquisas, última semana"
+		: "Calendário das pesquisas, de 5 a 25 de outubro";
+	const celulas = dias
 		.map((iso) => {
 			const tipo = tipoDia(iso, hoje);
 			const pubs = noDia(publicadas, iso);
@@ -164,6 +174,15 @@ export function htmlCalendario(payload: PayloadPesquisas, agora: Date): string {
 		})
 		.join("");
 
+	const antes = <T extends { liberacaoEfetiva: string }>(lista: readonly T[]) =>
+		encolher ? lista.filter((item) => item.liberacaoEfetiva < INICIO_ULTIMA_SEMANA) : [];
+	const anteriores = antes(publicadas);
+	const anterioresSem = antes(semNumero);
+	const anterioresVem = antes(vemAi);
+	const htmlAnteriores =
+		anteriores.length || anterioresSem.length || anterioresVem.length
+			? `<div class="a-anteriores"><p>Pesquisas de antes da última semana</p>${anteriores.map((pesquisa) => htmlPublicada(pesquisa, pesquisa.registro === selecionada)).join("")}${anterioresSem.map(htmlSemNumero).join("")}${anterioresVem.map(htmlFutura).join("")}</div>`
+			: "";
 	const vivo = ultima ? htmlDetalhe(ultima) : "";
 	const moldes = publicadas
 		.map(
@@ -172,5 +191,5 @@ export function htmlCalendario(payload: PayloadPesquisas, agora: Date): string {
 		)
 		.join("");
 
-	return `<section class="a-cal" aria-label="Calendário das pesquisas, de 5 a 25 de outubro">${SEMANA_CURTA.map((dia) => `<span class="a-sem-tit">${dia}</span>`).join("")}${celulas}</section>${htmlLegenda()}<section class="a-det" aria-live="polite" data-detalhe-vivo="">${vivo}</section>${moldes}`;
+	return `<section class="a-cal${encolher ? " encolhido" : ""}" aria-label="${rotulo}">${SEMANA_CURTA.map((dia) => `<span class="a-sem-tit">${dia}</span>`).join("")}${celulas}</section>${htmlAnteriores}${htmlLegenda()}<section class="a-det" aria-live="polite" data-detalhe-vivo="">${vivo}</section>${moldes}`;
 }
