@@ -205,6 +205,10 @@ describe("import do TSE e GET /api/pesquisas (#8)", () => {
 			ETAG_PESQUISA_0,
 			ETAG_CONTRATANTE_0,
 		]);
+		expect(pedidosCdn.map((pedido) => pedido.ifModifiedSince)).toEqual([
+			"Thu, 15 Oct 2026 08:46:43 GMT",
+			"Thu, 15 Oct 2026 08:46:43 GMT",
+		]);
 		const corpo = await stubPesquisas().listarPublico({ agora: AGORA_15_10 });
 		expect(ids(corpo.liberadasSemNumero)).toContain("BR-02949/2026");
 		expect(

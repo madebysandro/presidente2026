@@ -135,8 +135,13 @@ function registroDeLinha(
 	const campoInicio = exigirData(linha.DT_INICIO_PESQUISA, "início", protocolo);
 	const campoFim = exigirData(linha.DT_FIM_PESQUISA, "fim", protocolo);
 	const liberacao = exigirData(linha.DT_DIVULGACAO, "divulgação", protocolo);
-	const entrevistas = Number(linha.QT_ENTREVISTADO);
-	if (!Number.isInteger(entrevistas)) {
+	const brutoEntrevistas = (linha.QT_ENTREVISTADO ?? "").trim();
+	const entrevistas = Number(brutoEntrevistas);
+	if (
+		brutoEntrevistas === "" ||
+		!Number.isInteger(entrevistas) ||
+		entrevistas <= 0
+	) {
 		throw new Error(`${protocolo}: entrevistas inválidas`);
 	}
 	const { margem, confianca } = extrairMargemConfianca({
