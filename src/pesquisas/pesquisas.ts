@@ -11,6 +11,12 @@ import { chaveConfere } from "./chave";
 import { bindingDeixaPassar } from "./limite-plataforma";
 import { confirmarHtml, lerFonte } from "./ler-fonte";
 import { montarPublico } from "./montar-publico";
+import { selecionarPendentes, type PendenteAgente } from "./pendentes";
+import {
+	lerCorpoSuspensao,
+	lerMotivoReativacao,
+	type RecusaSuspensao,
+} from "./suspensao";
 import type {
 	AuditoriaAgente,
 	Changeset,
@@ -212,6 +218,240 @@ export class Pesquisas extends DurableObject<Env> {
 		return this.lerAuditoriaAgente();
 	}
 
+	/** GET /api/agente — sem chave; a taxa de quem não autentica é por IP. */
+	async abrirInstrucoes(input: PedidoAgente): Promise<{ status: 200 } | RespostaNegacao> {
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
+		return this.ctx.blockConcurrencyWhile(async () => {
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente",
+				metodo: "GET",
+				corpo: "",
+				registro: null,
+				exigeChave: false,
+			});
+			if (portao !== "segue") return portao;
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida,
+				registro: null,
+				corpo: "",
+				status: 200,
+				motivos: [],
+				rota: "/api/agente",
+				metodo: "GET",
+			});
+			return { status: 200 as const };
+		});
+	}
+
+	/** GET /api/agente/pendentes */
+	async listarPendentes(
+		input: PedidoAgente,
+	): Promise<{ status: 200; corpo: { pendentes: PendenteAgente[] } } | RespostaNegacao> {
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
+		return this.ctx.blockConcurrencyWhile(async () => {
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/pendentes",
+				metodo: "GET",
+				corpo: "",
+				registro: null,
+				exigeChave: true,
+			});
+			if (portao !== "segue") return portao;
+			const pendentes = selecionarPendentes(
+				this.lerRegistros(),
+				this.lerResultados(),
+				this.lerSuspensos(),
+				agora,
+			);
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida: true,
+				registro: null,
+				corpo: "",
+				status: 200,
+				motivos: [],
+				rota: "/api/agente/pendentes",
+				metodo: "GET",
+			});
+			return { status: 200 as const, corpo: { pendentes } };
+		});
+	}
+
+	/** POST /api/agente/suspensoes */
+	async suspender(input: PedidoAgente & { corpo: string }): Promise<RespostaSuspensao> {
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
+		return this.ctx.blockConcurrencyWhile(async () => {
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/suspensoes",
+				metodo: "POST",
+				corpo: input.corpo,
+				registro: registroDoCorpo(input.corpo),
+				exigeChave: true,
+			});
+			if (portao !== "segue") return portao;
+			const lido = lerJson(input.corpo);
+			const corpo = lerCorpoSuspensao(lido);
+			if ("motivos" in corpo) {
+				return this.recusarSuspensao(agora, input.ip, registroDoCorpo(input.corpo), input.corpo, "POST", corpo.motivos);
+			}
+			const registro = this.registroAtivo(corpo.ok.registro);
+			if (!registro) {
+				return this.recusarSuspensao(agora, input.ip, corpo.ok.registro, input.corpo, "POST", [
+					{ codigo: "registro_desconhecido", detalhe: "registro não está no último import" },
+				]);
+			}
+			const ja = this.suspensaExiste(registro.registro);
+			this.ctx.storage.sql.exec(
+				`INSERT INTO suspensoes (registro, desde, motivo, decisao_url) VALUES (?, ?, ?, ?)
+				ON CONFLICT(registro) DO UPDATE SET
+					desde = excluded.desde,
+					motivo = excluded.motivo,
+					decisao_url = excluded.decisao_url`,
+				registro.registro,
+				agora.toISOString(),
+				corpo.ok.motivo,
+				corpo.ok.decisaoUrl,
+			);
+			const status = ja ? (200 as const) : (201 as const);
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida: true,
+				registro: registro.registro,
+				corpo: input.corpo,
+				status,
+				motivos: [],
+				rota: "/api/agente/suspensoes",
+				metodo: "POST",
+			});
+			return { status, corpo: { status: "suspensa" as const } };
+		});
+	}
+
+	/** DELETE /api/agente/suspensoes/{registro} */
+	async reativar(
+		input: PedidoAgente & { corpo: string; registro: string | null },
+	): Promise<RespostaReativacao> {
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
+		return this.ctx.blockConcurrencyWhile(async () => {
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/suspensoes",
+				metodo: "DELETE",
+				corpo: input.corpo,
+				registro: input.registro,
+				exigeChave: true,
+			});
+			if (portao !== "segue") return portao;
+			if (!input.registro) {
+				return this.recusarSuspensao(agora, input.ip, null, input.corpo, "DELETE", [
+					{ codigo: "registro_desconhecido", detalhe: "registro ausente na URL" },
+				]);
+			}
+			const motivo = lerMotivoReativacao(lerJson(input.corpo));
+			if ("motivos" in motivo) {
+				return this.recusarSuspensao(agora, input.ip, input.registro, input.corpo, "DELETE", motivo.motivos);
+			}
+			if (!this.suspensaExiste(input.registro)) {
+				return this.recusarSuspensao(agora, input.ip, input.registro, input.corpo, "DELETE", [
+					{ codigo: "nao_suspensa", detalhe: "não há suspensão para este registro" },
+				]);
+			}
+			this.ctx.storage.sql.exec("DELETE FROM suspensoes WHERE registro = ?", input.registro);
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida: true,
+				registro: input.registro,
+				corpo: input.corpo,
+				status: 200,
+				motivos: [],
+				rota: "/api/agente/suspensoes",
+				metodo: "DELETE",
+			});
+			return { status: 200 as const, corpo: { status: "reativada" as const } };
+		});
+	}
+
+	/** GET /api/agente/auditoria */
+	async listarAuditoriaPublica(input: PedidoAuditoria): Promise<RespostaAuditoria> {
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
+		return this.ctx.blockConcurrencyWhile(async () => {
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/auditoria",
+				metodo: "GET",
+				corpo: input.consulta,
+				registro: null,
+				exigeChave: true,
+			});
+			if (portao !== "segue") return portao;
+			const desde = lerDesde(input.desde);
+			const depois = lerDepois(input.depois);
+			const motivos: RecusaSuspensao[] = [];
+			if ("erro" in desde) {
+				motivos.push({ codigo: "desde_invalido", detalhe: "desde não é uma data" });
+			}
+			if ("erro" in depois) {
+				motivos.push({ codigo: "depois_invalido", detalhe: "depois não é um cursor" });
+			}
+			if ("erro" in desde || "erro" in depois) {
+				this.gravarAuditoriaAgente({
+					em: agora.toISOString(),
+					ip: input.ip || "desconhecido",
+					chaveValida: true,
+					registro: null,
+					corpo: input.consulta,
+					status: 422,
+					motivos: motivos.map((m) => m.codigo),
+					rota: "/api/agente/auditoria",
+					metodo: "GET",
+				});
+				return { status: 422 as const, corpo: { motivos } };
+			}
+			const limite = lerLimite(input.limite);
+			const pagina = this.lerAuditoriaPagina(desde.iso, depois.id, limite);
+			this.gravarAuditoriaAgente({
+				em: agora.toISOString(),
+				ip: input.ip || "desconhecido",
+				chaveValida: true,
+				registro: null,
+				corpo: input.consulta,
+				status: 200,
+				motivos: [],
+				rota: "/api/agente/auditoria",
+				metodo: "GET",
+			});
+			const ultima = pagina.entradas.at(-1);
+			const proximo =
+				pagina.temProxima && ultima
+					? caminhoProximo(input.desde, ultima.id, limite)
+					: null;
+			return { status: 200 as const, corpo: { entradas: pagina.entradas, proximo } };
+		});
+	}
+
 	/**
 	 * POST /api/agente/resultados.
 	 * A taxa e a auditoria ficam no mesmo lock. A leitura da fonte fica fora.
@@ -223,43 +463,21 @@ export class Pesquisas extends DurableObject<Env> {
 		corpoExcedeu: boolean;
 		agora: Date;
 	}): Promise<RespostaResultado> {
-		const agora = input.agora instanceof Date ? input.agora : new Date(input.agora);
-		if (Number.isNaN(agora.getTime())) throw new Error("agora inválido");
-		const segredo = this.env.CHAVE_AGENTE ?? "";
-		const chaveValida =
-			input.bearer != null && segredo.length > 0 && (await chaveConfere(input.bearer, segredo));
+		const agora = relogioDe(input.agora);
+		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		const passagem = await this.ctx.blockConcurrencyWhile(async () => {
-			this.garantirEsquema();
-			const limite = chaveValida ? 30 : 5;
-			const balde = chaveValida ? "chave" : `ip:${input.ip || "desconhecido"}`;
-			const binding = chaveValida ? this.env.LIMITE_AGENTE_CHAVE : this.env.LIMITE_AGENTE_IP;
-			const recusar429 = () => {
-				this.gravarAuditoriaAgente({
-					em: agora.toISOString(),
-					ip: input.ip || "desconhecido",
-					chaveValida,
-					registro: registroDoCorpo(input.corpo),
-					corpo: input.corpo,
-					status: 429,
-					motivos: [],
-				});
-				return { kind: "fim" as const, resposta: resposta429() };
-			};
-			if (!(await bindingDeixaPassar(binding, balde))) return recusar429();
-			if (!this.consumirTaxa(balde, limite, Date.now())) return recusar429();
-			if (!chaveValida) {
-				this.gravarAuditoriaAgente({
-					em: agora.toISOString(),
-					ip: input.ip || "desconhecido",
-					chaveValida: false,
-					registro: registroDoCorpo(input.corpo),
-					corpo: input.corpo,
-					status: 401,
-					motivos: ["nao_autorizado"],
-				});
-				return { kind: "fim" as const, resposta: resposta401() };
-			}
-			return { kind: "segue" as const };
+			const portao = await this.aplicarPortao({
+				chaveValida,
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/resultados",
+				metodo: "POST",
+				corpo: input.corpo,
+				registro: registroDoCorpo(input.corpo),
+				exigeChave: true,
+			});
+			if (portao === "segue") return { kind: "segue" as const };
+			return { kind: "fim" as const, resposta: portao };
 		});
 		if (passagem.kind === "fim") return passagem.resposta;
 		if (input.corpoExcedeu) {
@@ -385,6 +603,135 @@ export class Pesquisas extends DurableObject<Env> {
 		return this.lerRegistros().find((item) => item.registro === registro) ?? null;
 	}
 
+	private async chaveConfereBearer(bearer: string | null): Promise<boolean> {
+		const segredo = this.env.CHAVE_AGENTE ?? "";
+		return bearer != null && segredo.length > 0 && (await chaveConfere(bearer, segredo));
+	}
+
+	/** Chame dentro do lock. 401 e 429 já saem auditados. */
+	private async aplicarPortao(input: {
+		chaveValida: boolean;
+		ip: string;
+		em: string;
+		rota: string;
+		metodo: string;
+		corpo: string;
+		registro: string | null;
+		exigeChave: boolean;
+	}): Promise<"segue" | RespostaNegacao> {
+		this.garantirEsquema();
+		const ip = input.ip || "desconhecido";
+		const limite = input.chaveValida ? 30 : 5;
+		const balde = input.chaveValida ? "chave" : `ip:${ip}`;
+		const binding = input.chaveValida ? this.env.LIMITE_AGENTE_CHAVE : this.env.LIMITE_AGENTE_IP;
+		const auditar = (status: 401 | 429, motivos: string[]) => {
+			this.gravarAuditoriaAgente({
+				em: input.em,
+				ip,
+				chaveValida: input.chaveValida,
+				registro: input.registro,
+				corpo: input.corpo,
+				status,
+				motivos,
+				rota: input.rota,
+				metodo: input.metodo,
+			});
+		};
+		if (!(await bindingDeixaPassar(binding, balde))) {
+			auditar(429, []);
+			return resposta429();
+		}
+		if (!this.consumirTaxa(balde, limite, Date.now())) {
+			auditar(429, []);
+			return resposta429();
+		}
+		if (input.exigeChave && !input.chaveValida) {
+			auditar(401, ["nao_autorizado"]);
+			return resposta401();
+		}
+		return "segue";
+	}
+
+	private recusarSuspensao(
+		agora: Date,
+		ip: string,
+		registro: string | null,
+		corpo: string,
+		metodo: "POST" | "DELETE",
+		motivos: RecusaSuspensao[],
+	): { status: 422; corpo: { motivos: RecusaSuspensao[] } } {
+		this.gravarAuditoriaAgente({
+			em: agora.toISOString(),
+			ip: ip || "desconhecido",
+			chaveValida: true,
+			registro,
+			corpo,
+			status: 422,
+			motivos: motivos.map((motivo) => motivo.codigo),
+			rota: "/api/agente/suspensoes",
+			metodo,
+		});
+		return { status: 422, corpo: { motivos } };
+	}
+
+	private registroAtivo(registro: string): RegistroPesquisas | null {
+		const achado = this.lerRegistros().find((item) => item.registro === registro);
+		if (!achado || achado.removidoDoTse) return null;
+		return achado;
+	}
+
+	private suspensaExiste(registro: string): boolean {
+		const row = this.ctx.storage.sql
+			.exec<{ n: number }>("SELECT COUNT(*) AS n FROM suspensoes WHERE registro = ?", registro)
+			.one();
+		return Number(row.n) > 0;
+	}
+
+	private lerAuditoriaPagina(
+		desdeIso: string | null,
+		depois: number,
+		limite: number,
+	): { entradas: EntradaAuditoriaPublica[]; temProxima: boolean } {
+		const rows = this.ctx.storage.sql
+			.exec<{
+				id: number;
+				em: string;
+				rota: string;
+				metodo: string;
+				ip: string;
+				chave_valida: number;
+				registro: string | null;
+				corpo: string;
+				status: number;
+				motivos: string;
+			}>(
+				`SELECT id, em, rota, metodo, ip, chave_valida, registro, corpo, status, motivos
+				FROM auditoria_agente
+				WHERE (? IS NULL OR em >= ?) AND id > ?
+				ORDER BY id
+				LIMIT ?`,
+				desdeIso,
+				desdeIso,
+				depois,
+				limite + 1,
+			)
+			.toArray();
+		const temProxima = rows.length > limite;
+		const entradas = rows.slice(0, limite).map((row) => ({
+			id: Number(row.id),
+			em: row.em,
+			rota: row.rota,
+			metodo: row.metodo,
+			ip: row.ip,
+			chaveValida: Number(row.chave_valida) === 1,
+			registro: row.registro,
+			corpo: row.corpo,
+			status: Number(row.status),
+			motivos: JSON.parse(row.motivos) as string[],
+		}));
+		return { entradas, temProxima };
+	}
+
 	private garantirEsquema(): void {
 		this.ctx.storage.sql.exec(`
 			CREATE TABLE IF NOT EXISTS meta_import (
@@ -453,9 +800,11 @@ export class Pesquisas extends DurableObject<Env> {
 			CREATE TABLE IF NOT EXISTS suspensoes (
 				registro TEXT PRIMARY KEY,
 				desde TEXT NOT NULL,
-				motivo TEXT NOT NULL
+				motivo TEXT NOT NULL,
+				decisao_url TEXT
 			)
 		`);
+		this.garantirDecisaoUrl();
 		this.ctx.storage.sql.exec(`
 			CREATE TABLE IF NOT EXISTS auditoria_agente (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -575,6 +924,15 @@ export class Pesquisas extends DurableObject<Env> {
 		});
 	}
 
+	private garantirDecisaoUrl(): void {
+		const cols = this.ctx.storage.sql
+			.exec<{ name: string }>("PRAGMA table_info(suspensoes)")
+			.toArray();
+		if (!cols.some((col) => col.name === "decisao_url")) {
+			this.ctx.storage.sql.exec("ALTER TABLE suspensoes ADD COLUMN decisao_url TEXT");
+		}
+	}
+
 	private gravarAuditoriaAgente(entrada: {
 		em: string;
 		ip: string;
@@ -583,12 +941,16 @@ export class Pesquisas extends DurableObject<Env> {
 		corpo: string;
 		status: number;
 		motivos: string[];
+		rota?: string;
+		metodo?: string;
 	}): void {
 		this.ctx.storage.sql.exec(
 			`INSERT INTO auditoria_agente (
 				em, rota, metodo, ip, chave_valida, registro, corpo, status, motivos
-			) VALUES (?, '/api/agente/resultados', 'POST', ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			entrada.em,
+			entrada.rota ?? "/api/agente/resultados",
+			entrada.metodo ?? "POST",
 			entrada.ip,
 			entrada.chaveValida ? 1 : 0,
 			entrada.registro?.slice(0, 120) ?? null,
@@ -906,11 +1268,102 @@ export type RespostaResultado =
 	| { status: 429; corpo: { erro: "limite" } }
 	| { status: 422; corpo: { motivos: MotivoRecusa[] } };
 
-function resposta401(): RespostaResultado {
+type PedidoAgente = {
+	bearer: string | null;
+	ip: string;
+	agora: Date;
+};
+
+type RespostaNegacao =
+	| { status: 401; corpo: { erro: "nao_autorizado" } }
+	| { status: 429; corpo: { erro: "limite" } };
+
+type RespostaSuspensao =
+	| { status: 201; corpo: { status: "suspensa" } }
+	| { status: 200; corpo: { status: "suspensa" } }
+	| RespostaNegacao
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+
+type RespostaReativacao =
+	| { status: 200; corpo: { status: "reativada" } }
+	| RespostaNegacao
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+
+type PedidoAuditoria = PedidoAgente & {
+	desde: string | null;
+	depois: string | null;
+	limite: string | null;
+	consulta: string;
+};
+
+type EntradaAuditoriaPublica = {
+	id: number;
+	em: string;
+	rota: string;
+	metodo: string;
+	ip: string;
+	chaveValida: boolean;
+	registro: string | null;
+	corpo: string;
+	status: number;
+	motivos: string[];
+};
+
+type RespostaAuditoria =
+	| { status: 200; corpo: { entradas: EntradaAuditoriaPublica[]; proximo: string | null } }
+	| RespostaNegacao
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+
+function relogioDe(agora: Date): Date {
+	const data = agora instanceof Date ? agora : new Date(agora);
+	if (Number.isNaN(data.getTime())) throw new Error("agora inválido");
+	return data;
+}
+
+function lerJson(corpo: string): unknown {
+	try {
+		return JSON.parse(corpo) as unknown;
+	} catch {
+		return null;
+	}
+}
+
+function lerDesde(desde: string | null): { iso: string | null } | { erro: true } {
+	if (desde == null || desde.trim() === "") return { iso: null };
+	const data = new Date(desde);
+	if (Number.isNaN(data.getTime())) return { erro: true };
+	return { iso: data.toISOString() };
+}
+
+function lerDepois(depois: string | null): { id: number } | { erro: true } {
+	if (depois == null || depois.trim() === "") return { id: 0 };
+	if (!/^\d+$/.test(depois)) return { erro: true };
+	const id = Number(depois);
+	if (!Number.isSafeInteger(id)) return { erro: true };
+	return { id };
+}
+
+function lerLimite(limite: string | null): number {
+	if (limite == null || limite.trim() === "") return 500;
+	if (!/^\d+$/.test(limite)) return 500;
+	const n = Number(limite);
+	if (!Number.isSafeInteger(n) || n < 1) return 500;
+	return Math.min(500, n);
+}
+
+function caminhoProximo(desde: string | null, depois: number, limite: number): string {
+	const q = new URLSearchParams();
+	if (desde) q.set("desde", desde);
+	q.set("depois", String(depois));
+	if (limite !== 500) q.set("limite", String(limite));
+	return `/api/agente/auditoria?${q.toString()}`;
+}
+
+function resposta401(): RespostaNegacao {
 	return { status: 401, corpo: { erro: "nao_autorizado" } };
 }
 
-function resposta429(): RespostaResultado {
+function resposta429(): RespostaNegacao {
 	return { status: 429, corpo: { erro: "limite" } };
 }
 
