@@ -1,7 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { URL_ZIP_CONTRATANTE, URL_ZIP_PESQUISA } from "./fontes";
 import { parseCsvTse } from "./csv";
-import { geradoEmBrasiliaDoCsv, montarAplicar, registrosDoTse } from "./importar";
+import {
+	geradoEmBrasiliaDoCsv,
+	linhaPesquisaNoCorte,
+	montarAplicar,
+	registrosDoTse,
+} from "./importar";
 import { montarPublico } from "./montar-publico";
 import type {
 	Changeset,
@@ -87,9 +92,18 @@ export class Pesquisas extends DurableObject<Env> {
 		}
 		const zipPesquisa = await corpoGarantido(URL_ZIP_PESQUISA, pesquisa);
 		const zipContratante = await corpoGarantido(URL_ZIP_CONTRATANTE, contratante);
-		const linhasPesquisa = parseCsvTse(await extrairCsvBrasil(zipPesquisa.bytes));
+		const linhasPesquisa = parseCsvTse(await extrairCsvBrasil(zipPesquisa.bytes), {
+			manter: linhaPesquisaNoCorte,
+		});
+		const protocolos = new Set(
+			linhasPesquisa.map((linha) => linha.NR_PROTOCOLO_REGISTRO ?? ""),
+		);
 		const linhasContratante = parseCsvTse(
 			await extrairCsvBrasil(zipContratante.bytes),
+			{
+				manter: (linha) =>
+					protocolos.has(linha.NR_PROTOCOLO_REGISTRO ?? ""),
+			},
 		);
 		const changeset = montarAplicar({
 			anteriores: this.lerRegistros(),

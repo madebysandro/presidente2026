@@ -10,7 +10,7 @@ export async function extrairCsvBrasil(zip: Uint8Array): Promise<string> {
 	const eocd = localizarEocd(zip);
 	const entrada = entradaBrasil(zip, eocd);
 	const comprimido = bytesDaEntrada(zip, entrada);
-	const cru = await inflar(comprimido, entrada.tamanho);
+	const cru = await bytesDescomprimidos(entrada, comprimido);
 	return new TextDecoder("windows-1252").decode(cru);
 }
 
@@ -85,7 +85,16 @@ function bytesDaEntrada(zip: Uint8Array, entrada: Entrada): Uint8Array {
 	return zip.subarray(inicio, fim);
 }
 
-async function inflar(comprimido: Uint8Array, esperado: number): Promise<Uint8Array> {
+async function bytesDescomprimidos(entrada: Entrada, comprimido: Uint8Array): Promise<Uint8Array> {
+	if (entrada.metodo === 0) {
+		if (comprimido.byteLength !== entrada.tamanho) {
+			throw new Error(`tamanho stored ${comprimido.byteLength} != ${entrada.tamanho}`);
+		}
+		return comprimido;
+	}
+	if (entrada.metodo !== 8) {
+		throw new Error(`ZIP método ${entrada.metodo} não suportado em ${entrada.nome}`);
+	}
 	const fluxo = new ReadableStream<Uint8Array>({
 		start(controller) {
 			controller.enqueue(comprimido);
@@ -94,8 +103,8 @@ async function inflar(comprimido: Uint8Array, esperado: number): Promise<Uint8Ar
 	});
 	const descomprimido = fluxo.pipeThrough(new DecompressionStream("deflate-raw"));
 	const cru = new Uint8Array(await new Response(descomprimido).arrayBuffer());
-	if (cru.byteLength !== esperado) {
-		throw new Error(`tamanho descomprimido ${cru.byteLength} != ${esperado}`);
+	if (cru.byteLength !== entrada.tamanho) {
+		throw new Error(`tamanho descomprimido ${cru.byteLength} != ${entrada.tamanho}`);
 	}
 	return cru;
 }

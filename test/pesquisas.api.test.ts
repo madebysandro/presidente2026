@@ -5,7 +5,8 @@ import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import cronFonte from "../crons/import-pesquisas-tse.ts?raw";
-import { montarAplicar } from "../src/pesquisas/importar";
+import { parseCsvTse } from "../src/pesquisas/csv";
+import { linhaPesquisaNoCorte, montarAplicar } from "../src/pesquisas/importar";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
 import type { PayloadPesquisas, RegistroPesquisas } from "../src/pesquisas/tipos";
 import {
@@ -96,6 +97,18 @@ describe("DO Pesquisas — sanidade (#7)", () => {
 });
 
 describe("import do TSE e GET /api/pesquisas (#8)", () => {
+	it("parseCsvTse com manter descarta fora do corte na própria varredura", () => {
+		const csv = [
+			'"DS_CARGO";"DT_FIM_PESQUISA";"NR_PROTOCOLO_REGISTRO"',
+			'"Senador";"2026-10-10";"BR000012026"',
+			'"Presidente";"2026-10-01";"BR000022026"',
+			'"Presidente";"2026-10-08";"BR000032026"',
+			"",
+		].join("\n");
+		const rows = parseCsvTse(csv, { manter: linhaPesquisaNoCorte });
+		expect(rows.map((r) => r.NR_PROTOCOLO_REGISTRO)).toEqual(["BR000032026"]);
+	});
+
 	it("classifica 57 linhas em 33 nacionais, 24 estaduais e 0 ambíguas, com ME/IC em 32", async () => {
 		instalarCdnPesquisas({
 			pesquisa: dia0Pesquisa,

@@ -29,6 +29,13 @@ export function geradoEmBrasiliaDoCsv(
 	return `${data[3]}-${data[2]}-${data[1]}T${hora[1]}:${hora[2]}:${hora[3]}-03:00`;
 }
 
+/** Presidente com fim de campo no recorte do 2º turno (filtro na parse do ZIP). */
+export function linhaPesquisaNoCorte(linha: Record<string, string>): boolean {
+	if (linha.DS_CARGO !== "Presidente") return false;
+	const campoFim = dataIso(linha.DT_FIM_PESQUISA);
+	return Boolean(campoFim && campoFim >= FIM_CAMPO_MINIMO);
+}
+
 export function registrosDoTse(
 	pesquisa: Record<string, string>[],
 	contratantes: Record<string, string>[],
@@ -43,10 +50,13 @@ export function registrosDoTse(
 
 	const saida: RegistroPesquisas[] = [];
 	for (const linha of pesquisa) {
-		if (linha.DS_CARGO !== "Presidente") continue;
-		const campoFim = dataIso(linha.DT_FIM_PESQUISA);
-		if (!campoFim || campoFim < FIM_CAMPO_MINIMO) continue;
-		saida.push(registroDeLinha(linha, porProtocolo.get(linha.NR_PROTOCOLO_REGISTRO ?? "") ?? []));
+		if (!linhaPesquisaNoCorte(linha)) continue;
+		saida.push(
+			registroDeLinha(
+				linha,
+				porProtocolo.get(linha.NR_PROTOCOLO_REGISTRO ?? "") ?? [],
+			),
+		);
 	}
 	return saida;
 }
