@@ -11,7 +11,9 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "wrangler.vitest.jsonc");
 const lockPath = join(root, "void.lock.json");
+const configPath = join(root, "void.config.ts");
 const builtMain = join(root, "dist/ssr/index.js");
+const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
 
 if (!existsSync(lockPath)) {
 	console.error("ensure-void-wrangler: falta void.lock.json");
@@ -23,6 +25,22 @@ if (!existsSync(builtMain)) {
 	);
 	process.exit(1);
 }
+if (!existsSync(configPath)) {
+	console.error("ensure-void-wrangler: falta void.config.ts");
+	process.exit(1);
+}
+
+const authored = readFileSync(configPath, "utf8");
+if (!authored.includes(`account_id: "${ACCOUNT}"`)) {
+	console.error(
+		`ensure-void-wrangler: void.config.ts sem account_id ${ACCOUNT}`,
+	);
+	process.exit(1);
+}
+if (!/notFound:\s*"none"/.test(authored)) {
+	console.error('ensure-void-wrangler: void.config.ts sem notFound: "none"');
+	process.exit(1);
+}
 
 const lock = JSON.parse(readFileSync(lockPath, "utf8"));
 const resolved = lock.resolved;
@@ -30,9 +48,16 @@ if (!resolved || typeof resolved !== "object") {
 	console.error("ensure-void-wrangler: void.lock.json sem `.resolved`");
 	process.exit(1);
 }
+if (resolved.account_id !== ACCOUNT) {
+	console.error(
+		`ensure-void-wrangler: void.lock.json resolved.account_id != ${ACCOUNT}`,
+	);
+	process.exit(1);
+}
 
 const { $schema: _drop, main: _ignore, ...config } = resolved;
 config.main = "dist/ssr/index.js";
+config.account_id = ACCOUNT;
 config.assets = {
 	directory: "./public",
 	binding: "ASSETS",
