@@ -61,16 +61,11 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 ### account_id e token (Void verify)
 
-O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Sem isso, o Void em CI pode falhar ao inspecionar o Worker com `Could not verify existing Cloudflare Worker` (ele chama `deployments.status` + `versions.view` no account/Worker pinados).
+O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Só o lock não basta: o Void materializa a config a partir do bloco `cloudflare` e descarta `account_id` que exista só no lock. Sem o campo na config, o verify do Worker (com Durable Object migrations) falha com `Could not verify existing Cloudflare Worker` ao ler deployments/versions/scripts no account errado ou sem account pinado.
 
-No Workers Builds o token do painel já entra no ambiente como `CLOUDFLARE_API_TOKEN` (Wrangler/Void leem essa var). **Não** é preciso criar uma build variable `CLOUDFLARE_API_TOKEN` extra se o token do Build Configuration for o padrão.
+No Workers Builds o API token do Build Configuration autentica o deploy command como `CLOUDFLARE_API_TOKEN` (Void/`cf` leem essa var; com token presente o `whoami` é pulado). **Não** crie uma build variable `CLOUDFLARE_API_TOKEN` extra se o token do painel for o padrão — uma variável com esse nome **substitui** o token injetado.
 
-Permissões do token padrão (Create new token no Builds) bastam para o verify:
-
-- Account → Account Settings → Read
-- Account → Workers Scripts → Edit (inclui leitura de deployments/versions)
-
-Não é necessário Account Settings além do Read já incluso, nem um segundo token, salvo se o token atual estiver stale/deletado.
+Para o gate de verify (leituras de script/deployment/version), basta **Account → Workers Scripts → Edit**. Account Settings Read não é consultado nesse passo. O token padrão “Create new token” do Builds já traz Workers Scripts Edit (e também Account Settings Read + Zone Workers Routes Edit, úteis no publish de rota/`presidente2026.win` depois do verify). Só regenere o token se estiver stale/deletado.
 
 ### Trigger de produção
 
