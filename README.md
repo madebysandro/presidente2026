@@ -61,15 +61,17 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 ### account_id e token (Void verify)
 
-O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Só o lock não basta: o Void materializa a config a partir do bloco `cloudflare` e descarta `account_id` que exista só no lock. Sem o campo na config, o verify do Worker (com Durable Object migrations) falha com `Could not verify existing Cloudflare Worker` ao ler deployments/versions/scripts no account errado ou sem account pinado.
+O `void.config.ts` fixa `cloudflare.account_id` (`aaec42ffcbeebcd4cda5beff4af4c439`). Só o lock não basta: o Void materializa a config a partir do bloco `cloudflare` e descarta `account_id` que exista só no lock. Sem pin na config, o CI não-interativo para antes do verify (seleção de account / `CLOUDFLARE_ACCOUNT_ID`).
 
-No Workers Builds o API token do Build Configuration autentica o deploy command como `CLOUDFLARE_API_TOKEN` (Void/`cf` leem essa var; com token presente o `whoami` é pulado). **Não** crie uma build variable `CLOUDFLARE_API_TOKEN` extra se o token do painel for o padrão — uma variável com esse nome **substitui** o token injetado.
+A string `Could not verify existing Cloudflare Worker` só aparece **depois** do account resolvido: o Void chama `cf workers deployments list` / `versions get` (e, com DO migrations, ainda lê o script). Qualquer falha nessa leitura — token sem escopo, account errado, nome do Worker, rede — vira essa mensagem. Pin do `account_id` é necessário, mas não prova sozinho que o token do Builds consegue as leituras.
 
-Para o gate de verify (leituras de script/deployment/version), basta **Account → Workers Scripts → Edit**. Account Settings Read não é consultado nesse passo. O token padrão “Create new token” do Builds já traz Workers Scripts Edit (e também Account Settings Read + Zone Workers Routes Edit, úteis no publish de rota/`presidente2026.win` depois do verify). Só regenere o token se estiver stale/deletado.
+No Workers Builds o API token do Build Configuration autentica o deploy command como `CLOUDFLARE_API_TOKEN` (Void/`cf` leem essa var; com token presente o `whoami` é pulado). Uma build variable com o mesmo nome **substitui** o token injetado — só use se o log do Builds mostrar `deployments`/`versions` falhando com o token do painel.
+
+Para o gate de verify, o código do Void precisa conseguir ler deployments/versions/scripts: na prática **Account → Workers Scripts → Edit**. Account Settings Read não é consultado nesse passo. O token padrão “Create new token” do Builds já traz Workers Scripts Edit (e também Account Settings Read + Zone Workers Routes Edit, úteis no publish de rota/`presidente2026.win` depois do verify). Sufficiency do token do Builds fica **não provada** até um log de build mostrar essas leituras OK + readiness; se falhar, leia o stderr do passo de deploy antes de criar token custom.
 
 ### Trigger de produção
 
-| Setting | Agora (até provar void deploy) | Alvo (depois do log com readiness OK) |
+| Setting | Agora (wrangler, site no ar) | Alvo a provar no próximo Retry |
 | --- | --- | --- |
 | Git branch | `main` | `main` |
 | Root directory | `/` | `/` |
@@ -81,13 +83,15 @@ Para o gate de verify (leituras de script/deployment/version), basta **Account �
 
 Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
 
+Não dá para ter log verde de `void deploy` com o Deploy command ainda em wrangler: o flip do comando **é** o experimento. Em falha, volte ao wrangler e Retry (site volta pelo deploy wrangler).
+
 #### Cliques no dashboard (Sandro)
 
 1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
 2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (Workers Scripts Edit no padrão) e salve.
-3. **Não** adicione `CLOUDFLARE_API_TOKEN` em Build variables/secrets só por causa do Void: o token do passo 2 já autentica o deploy command.
-4. **Só depois** de um build verde com `npx void deploy --platform cloudflare` e readiness no log: em Deploy command, troque o valor da coluna “Agora” pelo da coluna “Alvo” e salve. O site continua no ar; só o próximo push/`Retry build` usa o novo comando.
-5. Se o void deploy falhar: coloque de volta `npx wrangler deploy -c dist/ssr/wrangler.json` e rode **Retry build**.
+3. Em Deploy command, troque `npx wrangler deploy -c dist/ssr/wrangler.json` por `npx void deploy --platform cloudflare` e salve → **Retry build** (trigger `0eac68b6-…`).
+4. No log desse build: confirme verify (`deployments`/`versions`) + readiness. Se OK, mantenha o comando alvo.
+5. Se falhar: coloque de volta `npx wrangler deploy -c dist/ssr/wrangler.json`, **Retry build**, e só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
 Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev`.
 

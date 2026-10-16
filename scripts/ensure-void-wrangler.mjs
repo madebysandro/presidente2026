@@ -13,6 +13,7 @@ const out = join(root, "wrangler.vitest.jsonc");
 const lockPath = join(root, "void.lock.json");
 const configPath = join(root, "void.config.ts");
 const builtMain = join(root, "dist/ssr/index.js");
+const builtWranglerPath = join(root, "dist/ssr/wrangler.json");
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
 
 if (!existsSync(lockPath)) {
@@ -22,6 +23,12 @@ if (!existsSync(lockPath)) {
 if (!existsSync(builtMain)) {
 	console.error(
 		"ensure-void-wrangler: falta dist/ssr/index.js — rode `vite build` antes dos testes.",
+	);
+	process.exit(1);
+}
+if (!existsSync(builtWranglerPath)) {
+	console.error(
+		"ensure-void-wrangler: falta dist/ssr/wrangler.json — rode `vite build` antes dos testes.",
 	);
 	process.exit(1);
 }
@@ -55,14 +62,25 @@ if (resolved.account_id !== ACCOUNT) {
 	process.exit(1);
 }
 
+const builtWrangler = JSON.parse(readFileSync(builtWranglerPath, "utf8"));
+const builtNotFound = builtWrangler.assets?.not_found_handling;
+if (builtNotFound !== "none") {
+	console.error(
+		`ensure-void-wrangler: dist/ssr/wrangler.json assets.not_found_handling=${JSON.stringify(builtNotFound)} (quer "none"; senão GET /api/* 404 vira HTML SPA)`,
+	);
+	process.exit(1);
+}
+
 const { $schema: _drop, main: _ignore, ...config } = resolved;
 config.main = "dist/ssr/index.js";
 config.account_id = ACCOUNT;
+// Política de asset 404 vem do wrangler materializado pelo build (não hardcode
+// independente): se o build voltar a SPA, o pool de teste espelha e /api/tela2 falha.
 config.assets = {
 	directory: "./public",
 	binding: "ASSETS",
 	run_worker_first: true,
-	not_found_handling: "none",
+	not_found_handling: builtNotFound,
 };
 
 writeFileSync(out, `${JSON.stringify(config, null, 2)}\n`);
