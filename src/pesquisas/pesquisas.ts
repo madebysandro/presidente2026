@@ -91,23 +91,6 @@ type LoteImport = {
 };
 
 /**
- * `import("void/env")` literal quebra o typecheck: `Env` referencia esta
- * classe e `void/env` aumenta `Cloudflare.Env`. O specifier não-literal
- * continua lendo `env.CHAVE_AGENTE` em runtime. O DO nativo não herda o
- * escopo de env do request, então o binding entra via `withRuntimeEnv`.
- */
-async function segredoAgente(bindings: Env): Promise<string> {
-	const moduloEnv = "void/env";
-	const moduloRuntime = "void/_env";
-	const { env } = await import(moduloEnv);
-	const { withRuntimeEnv } = await import(moduloRuntime);
-	return withRuntimeEnv(bindings, () => {
-		const valor = env.CHAVE_AGENTE;
-		return typeof valor === "string" ? valor : "";
-	});
-}
-
-/**
  * Singleton SQLite do registro de pesquisas.
  * O cron e o GET convergem no mesmo upsert: rodar de novo não duplica linha.
  */
@@ -621,7 +604,7 @@ export class Pesquisas extends DurableObject<Env> {
 	}
 
 	private async chaveConfereBearer(bearer: string | null): Promise<boolean> {
-		const segredo = await segredoAgente(this.env);
+		const segredo = this.env.CHAVE_AGENTE ?? "";
 		return bearer != null && segredo.length > 0 && (await chaveConfere(bearer, segredo));
 	}
 

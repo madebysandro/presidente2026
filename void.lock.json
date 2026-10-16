@@ -3,6 +3,7 @@
   "source": {
     "name": "presidente2026",
     "account_id": "aaec42ffcbeebcd4cda5beff4af4c439",
+    "compatibility_date": "2026-08-22",
     "workers_dev": false,
     "preview_urls": false,
     "routes": [
@@ -15,6 +16,13 @@
       "directory": "./public",
       "binding": "ASSETS",
       "run_worker_first": true
+    },
+    "vars": {
+      "TSE_BASE": "https://resultados.tse.jus.br/oficial",
+      "ELEICAO_FEDERAL": "6258"
+    },
+    "limits": {
+      "cpu_ms": 300000
     },
     "ratelimits": [
       {
@@ -47,6 +55,7 @@
   "resolved": {
     "name": "presidente2026",
     "account_id": "aaec42ffcbeebcd4cda5beff4af4c439",
+    "compatibility_date": "2026-08-22",
     "workers_dev": false,
     "preview_urls": false,
     "routes": [
@@ -60,24 +69,10 @@
       "binding": "ASSETS",
       "run_worker_first": true
     },
-    "ratelimits": [
-      {
-        "name": "LIMITE_AGENTE_CHAVE",
-        "namespace_id": "625801",
-        "simple": {
-          "limit": 30,
-          "period": 60
-        }
-      },
-      {
-        "name": "LIMITE_AGENTE_IP",
-        "namespace_id": "625802",
-        "simple": {
-          "limit": 5,
-          "period": 60
-        }
-      }
-    ],
+    "vars": {
+      "TSE_BASE": "https://resultados.tse.jus.br/oficial",
+      "ELEICAO_FEDERAL": "6258"
+    },
     "cache": {
       "enabled": true
     },
@@ -112,7 +107,28 @@
           "PollerDurableObject"
         ]
       }
+    ],
+    "limits": {
+      "cpu_ms": 300000
+    },
+    "ratelimits": [
+      {
+        "name": "LIMITE_AGENTE_CHAVE",
+        "namespace_id": "625801",
+        "simple": {
+          "limit": 30,
+          "period": 60
+        }
+      },
+      {
+        "name": "LIMITE_AGENTE_IP",
+        "namespace_id": "625802",
+        "simple": {
+          "limit": 5,
+          "period": 60
+        }
+      }
     ]
   },
-  "text": "{\n  \"name\": \"presidente2026\",\n  \"account_id\": \"aaec42ffcbeebcd4cda5beff4af4c439\",\n  \"workers_dev\": false,\n  \"preview_urls\": false,\n  \"routes\": [\n    {\n      \"pattern\": \"presidente2026.win\",\n      \"custom_domain\": true\n    }\n  ],\n  \"assets\": {\n    \"directory\": \"./public\",\n    \"binding\": \"ASSETS\",\n    \"run_worker_first\": true\n  },\n  \"ratelimits\": [\n    {\n      \"name\": \"LIMITE_AGENTE_CHAVE\",\n      \"namespace_id\": \"625801\",\n      \"simple\": {\n        \"limit\": 30,\n        \"period\": 60\n      }\n    },\n    {\n      \"name\": \"LIMITE_AGENTE_IP\",\n      \"namespace_id\": \"625802\",\n      \"simple\": {\n        \"limit\": 5,\n        \"period\": 60\n      }\n    }\n  ],\n  \"cache\": {\n    \"enabled\": true\n  },\n  \"observability\": {\n    \"enabled\": true,\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"PESQUISAS\",\n        \"class_name\": \"PesquisasDurableObject\"\n      },\n      {\n        \"name\": \"POLLER\",\n        \"class_name\": \"PollerDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"void-durable-pesquisas-v1\",\n      \"new_sqlite_classes\": [\n        \"PesquisasDurableObject\"\n      ]\n    },\n    {\n      \"tag\": \"void-durable-poller-v1\",\n      \"new_sqlite_classes\": [\n        \"PollerDurableObject\"\n      ]\n    }\n  ]\n}\n"
+  "text": "{\n  \"name\": \"presidente2026\",\n  \"account_id\": \"aaec42ffcbeebcd4cda5beff4af4c439\",\n  \"compatibility_date\": \"2026-08-22\",\n  \"workers_dev\": false,\n  \"preview_urls\": false,\n  \"routes\": [\n    {\n      \"pattern\": \"presidente2026.win\",\n      \"custom_domain\": true\n    }\n  ],\n  \"assets\": {\n    \"directory\": \"./public\",\n    \"binding\": \"ASSETS\",\n    \"run_worker_first\": true\n  },\n  \"vars\": {\n    \"TSE_BASE\": \"https://resultados.tse.jus.br/oficial\",\n    \"ELEICAO_FEDERAL\": \"6258\"\n  },\n  \"cache\": {\n    \"enabled\": true\n  },\n  \"observability\": {\n    \"enabled\": true,\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"PESQUISAS\",\n        \"class_name\": \"PesquisasDurableObject\"\n      },\n      {\n        \"name\": \"POLLER\",\n        \"class_name\": \"PollerDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"void-durable-pesquisas-v1\",\n      \"new_sqlite_classes\": [\n        \"PesquisasDurableObject\"\n      ]\n    },\n    {\n      \"tag\": \"void-durable-poller-v1\",\n      \"new_sqlite_classes\": [\n        \"PollerDurableObject\"\n      ]\n    }\n  ],\n  \"limits\": {\n    \"cpu_ms\": 300000\n  },\n  \"ratelimits\": [\n    {\n      \"name\": \"LIMITE_AGENTE_CHAVE\",\n      \"namespace_id\": \"625801\",\n      \"simple\": {\n        \"limit\": 30,\n        \"period\": 60\n      }\n    },\n    {\n      \"name\": \"LIMITE_AGENTE_IP\",\n      \"namespace_id\": \"625802\",\n      \"simple\": {\n        \"limit\": 5,\n        \"period\": 60\n      }\n    }\n  ]\n}\n"
 }

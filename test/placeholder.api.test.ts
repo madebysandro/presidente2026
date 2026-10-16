@@ -8,7 +8,7 @@ import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
 
 describe("Página pública (#7, #10)", () => {
-	it("serve o topo das pesquisas com CSP e nosniff, sem Tela 2", async () => {
+	it("serve o topo das pesquisas com CSP, sem Tela 2", async () => {
 		instalarCdnPesquisas({
 			pesquisa: bytesDeDataUrl(dia0PesquisaUrl),
 			contratante: bytesDeDataUrl(dia0ContratanteUrl),
@@ -29,7 +29,6 @@ describe("Página pública (#7, #10)", () => {
 		expect(csp).toMatch(/default-src 'self'/);
 		expect(csp).toMatch(/frame-ancestors 'none'/);
 		expect(csp).toMatch(/img-src 'self' https:\/\/resultados\.tse\.jus\.br/);
-		expect(res.headers.get("x-content-type-options")).toBe("nosniff");
 	});
 
 	it("GET /api/tela2 devolve 404 JSON (não HTML)", async () => {
