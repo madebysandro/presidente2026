@@ -1,4 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
+import { env } from "void/env";
+import { withRuntimeEnv } from "void/_env";
 import { urlsRegistroTse } from "./fontes";
 import { parseCsvTse } from "./csv";
 import {
@@ -91,16 +93,13 @@ type LoteImport = {
 };
 
 /**
- * `import("void/env")` literal quebra o typecheck: `Env` referencia esta
- * classe e `void/env` aumenta `Cloudflare.Env`. O specifier não-literal
- * continua lendo `env.CHAVE_AGENTE` em runtime. O DO nativo não herda o
- * escopo de env do request, então o binding entra via `withRuntimeEnv`.
+ * Import estático de propósito: o Vite só empacota `void/env` quando vê o
+ * specifier literal. Um `import()` com string em variável sobrevive cru no
+ * chunk e o workerd tenta `assets/void/env` (500 em /api/agente, #50/#51).
+ * O DO nativo não herda o escopo de env do request, então o binding entra
+ * via `withRuntimeEnv`.
  */
-async function segredoAgente(bindings: Env): Promise<string> {
-	const moduloEnv = "void/env";
-	const moduloRuntime = "void/_env";
-	const { env } = await import(moduloEnv);
-	const { withRuntimeEnv } = await import(moduloRuntime);
+function segredoAgente(bindings: Env): string {
 	return withRuntimeEnv(bindings, () => {
 		const valor = env.CHAVE_AGENTE;
 		return typeof valor === "string" ? valor : "";
@@ -621,7 +620,7 @@ export class Pesquisas extends DurableObject<Env> {
 	}
 
 	private async chaveConfereBearer(bearer: string | null): Promise<boolean> {
-		const segredo = await segredoAgente(this.env);
+		const segredo = segredoAgente(this.env);
 		return bearer != null && segredo.length > 0 && (await chaveConfere(bearer, segredo));
 	}
 

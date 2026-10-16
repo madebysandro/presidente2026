@@ -166,6 +166,7 @@ npm run dev
 | --- | --- |
 | `npm test` | `void prepare` + build + Vitest no runtime local (Miniflare), TSE falso via MSW |
 | `npm run build` | `void prepare` + `tsc --noEmit` + `vite build` |
+| `npm run sonda:agente` | build + todas as rotas `/api/agente*` no bundle de produção (Miniflare puro, com e sem `CHAVE_AGENTE`) |
 | `npm run dev` | `vite` com `voidPlugin` (dev local da Void, Miniflare) |
 | `npm run prepare:void` | `void prepare` — tipos em `.void/` sem subir o dev server |
 | `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback da ativação) |
