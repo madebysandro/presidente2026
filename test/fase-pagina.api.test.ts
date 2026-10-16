@@ -111,7 +111,8 @@ describe("GET / segue a fase do servidor (#18)", () => {
 		await forcarConsulta();
 		const html = await htmlPagina();
 		expect(html).toContain("Encerrada");
-		expect(html).toContain("Sem nova consulta");
+		expect(html).toContain("Resultado final · 2º turno");
+		expect(html).not.toContain("Próxima consulta");
 		expect(html).not.toContain("data-estimativas");
 		expect(html).toContain("Rever as três semanas");
 		expect(html).not.toMatch(/undefined|NaN/);

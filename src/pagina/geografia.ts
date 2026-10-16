@@ -1,5 +1,5 @@
 import { COLEGIOS_MAIORES } from "../apuracao/escopos";
-import { COLEGIOS_1T, colegio1t, liderDeVotos } from "../apuracao/referencia-1t";
+import { COLEGIOS_1T, colegio1t, liderDeVotos, votosUf1t } from "../apuracao/referencia-1t";
 import { NOMES_UF, SIGLAS_UF } from "../config/ufs";
 import { escHtml, nf, pf } from "../dominio/texto";
 import type {
@@ -67,11 +67,22 @@ function classeTile(n: string | null | undefined): string {
 }
 
 function liderDe(candidatos: readonly CandidatoUf[] | undefined): CandidatoUf | null {
+	return vantagemDe(candidatos)?.lider ?? null;
+}
+
+function vantagemDe(
+	candidatos: readonly CandidatoUf[] | undefined,
+): { lider: CandidatoUf; margem: number } | null {
 	if (!candidatos?.length) return null;
 	const ordenados = [...candidatos].sort((a, b) => b.votos - a.votos);
 	const topo = ordenados[0];
 	if (!topo || topo.votos <= 0) return null;
-	return topo;
+	return { lider: topo, margem: topo.pct - (ordenados[1]?.pct ?? 0) };
+}
+
+function margemCurta(margem: number): string {
+	if (margem < 9.95) return pf.format(margem);
+	return String(Math.round(margem));
 }
 
 function pctTexto(valor: number | undefined): string {
@@ -105,6 +116,8 @@ function htmlEstados(vista: VistaNoite): string {
 	);
 	let flavio = 0;
 	let lula = 0;
+	let flavio1t = 0;
+	let lula1t = 0;
 	const ordem = [...SIGLAS_UF].sort((a, b) => {
 		const pa = GRADE[a] ?? [0, 99];
 		const pb = GRADE[b] ?? [0, 99];
@@ -114,19 +127,31 @@ function htmlEstados(vista: VistaNoite): string {
 		.map((sigla) => {
 			const pos = GRADE[sigla] ?? [0, 0];
 			const unidade = ufs[sigla];
-			const lider = liderDe(unidade?.candidatos);
+			const vantagem = vantagemDe(unidade?.candidatos);
+			const lider = vantagem?.lider ?? null;
+			const lider1 = liderDeVotos(votosUf1t(sigla));
 			const virou = sigla !== "zz" && Boolean(lider) && viraram.has(sigla);
 			if (sigla !== "zz" && lider?.n === FLAVIO.numero) flavio += 1;
 			if (sigla !== "zz" && lider?.n === LULA.numero) lula += 1;
+			if (sigla !== "zz" && lider1 === FLAVIO.numero) flavio1t += 1;
+			if (sigla !== "zz" && lider1 === LULA.numero) lula1t += 1;
 			const nome = NOMES_UF[sigla] ?? unidade?.nome ?? sigla.toUpperCase();
 			const rotulo = sigla === "zz" ? "EXT" : sigla.toUpperCase();
-			const liderTxt = lider ? nomeLado(lider.n) : "sem apuração";
 			const marca = virou ? " viraram" : "";
-			const aria = `${nome}: ${lider ? `${liderTxt} lidera no 2º turno` : "sem seções apuradas"}${marca}`;
-			return `<div class="a-uf${classeTile(lider?.n)}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1}" aria-label="${escHtml(aria)}"><b>${rotulo}</b><small class="${classeLado(lider?.n)}">${escHtml(liderTxt)}</small>${virou ? "<i>viraram</i>" : ""}</div>`;
+			const aria = lider
+				? `${nome}: ${nomeLado(lider.n)} lidera no 2º turno${marca}`
+				: `${nome}: sem seções apuradas · 1º turno: ${nomeLado(lider1)}`;
+			const cor = lider?.n ?? lider1;
+			const alfa = vantagem ? Math.round(28 + Math.min(60, vantagem.margem * 2.4)) : 10;
+			const miolo = vantagem
+				? `<small>${margemCurta(vantagem.margem)}</small>${virou ? "<i>viraram</i>" : ""}`
+				: "";
+			return `<div class="a-uf${classeTile(cor)}${vantagem ? "" : " a-uf-1t"}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1};--a:${alfa}%" aria-label="${escHtml(aria)}"><b>${rotulo}</b>${miolo}</div>`;
 		})
 		.join("");
-	const placar = `Flávio ${flavio} · Lula ${lula} UFs lideradas · ${viraram.size} viraram`;
+	const placar = flavio + lula === 0
+		? `No 1º turno, Flávio liderou em ${flavio1t} UFs e Lula em ${lula1t}. O quadro mostra esse 1º turno, apagado, até as primeiras seções.`
+		: `Flávio ${flavio} · Lula ${lula} UFs lideradas · ${viraram.size} viraram`;
 	const regioes = vista.apuracao.analise?.regioes ?? [];
 	const linhas = regioes.length
 		? regioes
@@ -143,7 +168,7 @@ function htmlEstados(vista: VistaNoite): string {
 	return secao(
 		"estados",
 		"Estados e regiões",
-		`<p>A cor segue quem lidera na UF. Quem mudou de líder em relação ao 1º turno leva a marca viraram. O exterior aparece na grade e fica de fora deste placar.</p><p data-placar-ufs>${placar}</p><div class="a-mapa" role="group" aria-label="Grade de UFs em 7 colunas">${tiles}</div><h3>Por região</h3><ul class="a-regioes">${linhas}</ul>`,
+		`<p>A cor segue quem lidera na UF. Sem seções apuradas, o quadro mostra o 1º turno, apagado. Quem mudou de líder leva a marca viraram. O exterior aparece na grade e fica de fora deste placar.</p><p data-placar-ufs>${placar}</p><div class="a-mapa" role="group" aria-label="Grade de UFs em 7 colunas">${tiles}</div><h3>Por região</h3><ul class="a-regioes">${linhas}</ul>`,
 	);
 }
 

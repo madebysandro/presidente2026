@@ -151,7 +151,7 @@ describe("resultado final (#20)", () => {
 		const faixa = htmlFaixa(vista());
 		expect(faixa).toContain("Resultado final · 2º turno");
 		expect(faixa).toContain("Encerrada");
-		expect(faixa).toContain("Sem nova consulta");
+		expect(faixa).not.toContain("Próxima consulta");
 		expect(faixa).not.toContain("Ao vivo");
 		expect(faixa).not.toContain("Aguardando 17h");
 

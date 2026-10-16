@@ -172,8 +172,8 @@ describe("faixa de status (#18)", () => {
 			}),
 		);
 		expect(vazia).toContain("Aguardando 17h");
+		expect(vazia).toContain("Primeiros resultados às 17:00");
 		expect(vazia).toContain("Próxima consulta às 17h");
-		expect(vazia).toContain("ainda sem leitura");
 		expect(vazia).not.toContain("arquivo zerado");
 
 		const zerado = htmlFaixa(
@@ -227,7 +227,8 @@ describe("faixa de status (#18)", () => {
 			}),
 		);
 		expect(html).toContain("Encerrada");
-		expect(html).toContain("Sem nova consulta");
+		expect(html).toContain("Resultado final · 2º turno");
+		expect(html).not.toContain("Próxima consulta");
 		expect(html).not.toContain("Aguardando 17h");
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
@@ -517,6 +518,15 @@ describe("paridade com o protótipo da #16", () => {
 		documentoPesquisas(payload(), AGORA, { apuracao: estado(), historico: HISTORICO });
 	const coluna = (doc: string, lado: "esq" | "dir") =>
 		doc.match(new RegExp(`<div class="a-noite-${lado}">[\\s\\S]*?<!--/${lado}-->`))?.[0] ?? "";
+
+	it("as estimativas ficam sob o gráfico, não numa seção própria", () => {
+		const esq = coluna(html(), "esq");
+		const noite = esq.match(/<section class="a-noite"[\s\S]*?<\/section>/)?.[0] ?? "";
+		expect(noite).toContain("data-estimativas");
+		expect(noite).toContain("Válidos que faltam");
+		expect(esq.indexOf("data-estimativas")).toBeLessThan(esq.indexOf("Momentos da noite"));
+		expect(esq).not.toContain("<h2>Estimativas</h2>");
+	});
 
 	it("grade 2/3 + 1/3: gráfico e momentos à esquerda, pesquisas, exterior e comparecimento à direita", () => {
 		const doc = html();

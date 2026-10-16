@@ -3,6 +3,7 @@
  * Seam: htmlGeografia — o mesmo HTML que o documento ao vivo inclui.
  */
 import { describe, expect, it } from "vitest";
+import { liderDeVotos, votosUf1t } from "../src/apuracao/referencia-1t";
 import { SIGLAS_UF } from "../src/config/ufs";
 import type {
 	Cargo,
@@ -158,8 +159,25 @@ describe("estados e regiões (#19)", () => {
 		expect(exterior).toContain("Flávio");
 
 		expect(html).toContain("Flávio 1 · Lula 1 UFs lideradas · 1 viraram");
+		expect(bahia).not.toContain("a-uf-1t");
 		expect(html).toContain("Grade de UFs em 7 colunas");
 		for (const sigla of SIGLAS_UF) expect(html).toContain(`data-uf="${sigla}"`);
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("sem seções apuradas, a grade mostra o 1º turno apagado", () => {
+		let flavio = 0;
+		let lula = 0;
+		for (const sigla of SIGLAS_UF) {
+			if (sigla === "zz") continue;
+			const lider = liderDeVotos(votosUf1t(sigla));
+			if (lider === "22") flavio += 1;
+			if (lider === "13") lula += 1;
+		}
+		const html = htmlGeografia(vista(estado()));
+		expect(html).toContain(`Flávio liderou em ${flavio} UFs e Lula em ${lula}`);
+		expect(html).toContain("apagado, até as primeiras seções");
+		expect(html.match(/a-uf-1t/g)).toHaveLength(SIGLAS_UF.length);
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 });
