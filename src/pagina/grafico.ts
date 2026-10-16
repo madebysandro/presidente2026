@@ -121,7 +121,7 @@ export function htmlVantagem(
 		: "";
 	const ultimo = serie.at(-1);
 	const rotulo = ultimo
-		? `<span class="t-rot" style="left:${n2(px(ultimo.data))}%;top:${n2(py(ultimo.v))}%;transform:${px(ultimo.data) > 62 ? "translate(calc(-100% - 8px), -100%)" : "translate(8px, -100%)"}">${escHtml(rotuloMedia(ultimo))}</span>`
+		? `<span class="t-rot" style="left:${n2(px(ultimo.data))}%;top:${n2(py(ultimo.v))}%;transform:${px(ultimo.data) > 50 ? "translate(calc(-100% - 8px), -100%)" : "translate(8px, -100%)"}">${escHtml(rotuloMedia(ultimo))}</span>`
 		: "";
 
 	const passo = Math.max(1, Math.ceil((x1 - x0) / 4));

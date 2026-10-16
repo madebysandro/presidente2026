@@ -427,10 +427,6 @@ body {
 	.a-mini-rosto { width: 26px; height: 26px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.a-ponto, .a-vem { animation: none; }
-	.a-relogio .odo > span, .a-prog, .a-barra i, .a-pesq { transition: none; }
-}
 
 .a-tend,
 .a-calc,
@@ -604,5 +600,6 @@ body {
 .a-graf-vazio { margin: 0; color: var(--suave); }
 
 @media (prefers-reduced-motion: reduce) {
-	.t-pt, .t-inst { transition: none; }
+	.a-ponto, .a-vem { animation: none; }
+	.a-relogio .odo > span, .a-prog, .a-barra i, .a-pesq, .t-pt, .t-inst { transition: none; }
 }
