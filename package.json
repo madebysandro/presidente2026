@@ -34,7 +34,7 @@
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.23.0",
 		"@msw/cloudflare": "^0.2.0",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.5",
 		"msw": "^3.0.3",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
