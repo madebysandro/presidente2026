@@ -353,7 +353,13 @@ describe("import do TSE e GET /api/pesquisas (#8)", () => {
 		expect((await stubPesquisas().obterEstado()).registros).toBe(0);
 		expect(cronFonte).toContain('["0 9 * * *", "0 15 * * *", "0 21 * * *"]');
 		expect(cronFonte).toContain('motivo: "cron"');
-		const resultado = await SELF.scheduled({
+		const selfComCron = SELF as typeof SELF & {
+			scheduled: (opts: {
+				cron: string;
+				scheduledTime: Date;
+			}) => Promise<{ outcome: string }>;
+		};
+		const resultado = await selfComCron.scheduled({
 			cron: "0 9 * * *",
 			scheduledTime: new Date("2026-10-16T09:00:00Z"),
 		});
