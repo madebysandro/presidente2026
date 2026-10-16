@@ -15,7 +15,6 @@ screenshots/
 shots/
 .void-wrangler.jsonc
 wrangler.vitest.jsonc
-wrangler.ensaio.json
 node_modules
 dist
 .void
