@@ -163,6 +163,8 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 
 Nenhum evento carrega bearer, `CHAVE_AGENTE`, IP, query nem corpo do pedido.
 
+A auditoria (import e agente) não tem `DELETE`: fica legível até 31/12/2026. O export é o `GET /api/agente/auditoria` paginado. A nota inteira (Void, retenção, dívida triada) está em [docs/operacao/pos-eleicao.md](docs/operacao/pos-eleicao.md).
+
 ## Desenvolvimento
 
 Requer **Node.js 24.x** (Void 1.1.11).
