@@ -21,6 +21,7 @@ const opcoes = opcoesMiniflare({
 	vars: {
 		...(built.vars ?? {}),
 		CHAVE_AGENTE: "teste-chave-agente",
+		CHAVE_IMPORT: "teste-chave-import",
 	},
 });
 // O pool resolve caminhos a partir da raiz do projeto.

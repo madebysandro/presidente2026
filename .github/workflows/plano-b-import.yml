@@ -1,0 +1,33 @@
+name: Plano B import
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.21"
+          cache: npm
+      - run: npm ci
+      - name: dry-run da fixture (33 nacionais)
+        run: |
+          node scripts/plano-b.mjs --fixture > /tmp/recorte.json
+          node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/recorte.json','utf8')); if (j.registros.length !== 33) { console.error(j.registros.length); process.exit(1) }"
+      - name: baixar o ZIP do TSE e enviar
+        if: ${{ secrets.CHAVE_IMPORT != '' }}
+        env:
+          CHAVE_IMPORT: ${{ secrets.CHAVE_IMPORT }}
+          PLANO_B_URL: https://presidente2026.win/api/import
+        run: |
+          curl -fsSL -o /tmp/pesquisa.zip https://cdn.tse.jus.br/estatistica/sead/odsele/pesquisa_eleitoral/pesquisa_eleitoral_2026.zip
+          curl -fsSL -o /tmp/contratante.zip https://cdn.tse.jus.br/estatistica/sead/odsele/pesquisa_eleitoral/pesquisa_contratante_2026.zip
+          node scripts/plano-b.mjs --zip-pesquisa /tmp/pesquisa.zip --zip-contratante /tmp/contratante.zip --post

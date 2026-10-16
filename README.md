@@ -147,7 +147,25 @@ O passe no aparelho, em https://presidente2026.win, é manual e só depois do de
 
 ## Plano B do import
 
-Se no primeiro deploy real o log do cron (ou do primeiro `GET /api/pesquisas`) mostrar que `cdn.tse.jus.br` bloqueou o IP da Cloudflare, a [#22](https://github.com/madebysandro/presidente2026/issues/22) vira o bloqueio operacional: Action diária e `CHAVE_IMPORT`, chave distinta da do agente. Não ligue isso antes de ver o bloqueio.
+Ligue só se o cron in-Worker falhar: conta Free (o CSV não cabe nos 10 ms) ou `cdn.tse.jus.br` bloqueando o IP da Cloudflare. O sinal está no log `evento=import` com `resultado=erro`, ou no cron que deixa de atualizar `registroTse` em `GET /api/pesquisas`.
+
+A Action `.github/workflows/plano-b-import.yml` roda todo dia às 09:00 UTC. Sem o segredo, ela só confere a fixture (33 nacionais) e não envia nada. Com `CHAVE_IMPORT` no repositório, baixa os dois ZIP do TSE e faz `POST /api/import`.
+
+A chave é outra, distinta da do agente, e não vai para o Grok Bot. Grave as duas pontas com o mesmo valor:
+
+```bash
+npx void secret put CHAVE_IMPORT
+```
+
+No GitHub: Settings → Secrets and variables → Actions → `CHAVE_IMPORT`. Sem esse nome no `void.config.ts`. `env.ts` deixa a chave `.optional()`: o site sobe sem ela e a rota responde `401`.
+
+A chave do agente leva `401` em `POST /api/import`. `CHAVE_IMPORT` leva `401` em `/api/agente/*`. O corpo é `{ "registros": [ … ] }`, só nacionais. Estadual e ambígua que já estavam no DO ficam. Nacional que sumiu do recorte fica `removido do TSE`.
+
+Dry-run local, sem rede e sem chave:
+
+```bash
+node scripts/plano-b.mjs --fixture > /tmp/recorte.json
+```
 
 ## Logs
 
@@ -157,7 +175,7 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 | --- | --- |
 | `evento` | `import`, `poller`, `agente` |
 | `resultado` | import: `aplicado`, `nao_modificado`, `erro`; poller: `ok`, `erro` (os de `erro` saem em nível error) |
-| `motivo` | import: `cron`, `primeiro_acesso` |
+| `motivo` | import: `cron`, `primeiro_acesso`, `plano_b` |
 | `rota` | agente: caminho do template, sem ids nem query (ex. `/api/agente/suspensoes/:registro`) |
 | `status` | agente: status HTTP da resposta |
 

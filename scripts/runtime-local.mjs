@@ -186,16 +186,20 @@ export function conferirProjeto(raiz = RAIZ) {
 			`conferir: vars=${JSON.stringify(build.json.vars)} (quer TSE_BASE e ELEICAO_FEDERAL só via worker)`,
 		);
 	}
-	if (Object.hasOwn(build.json.vars ?? {}, "CHAVE_AGENTE")) {
-		falha(
-			"conferir: CHAVE_AGENTE não pode ser var em texto puro (é segredo; o build recusa server key em vars)",
-		);
+	for (const nome of ["CHAVE_AGENTE", "CHAVE_IMPORT"]) {
+		if (Object.hasOwn(build.json.vars ?? {}, nome)) {
+			falha(
+				`conferir: ${nome} não pode ser var em texto puro (é segredo; o build recusa server key em vars)`,
+			);
+		}
 	}
 	const segredosObrigatorios = build.json.secrets?.required ?? [];
-	if (segredosObrigatorios.includes("CHAVE_AGENTE")) {
-		falha(
-			"conferir: CHAVE_AGENTE obrigatória bloquearia void deploy enquanto o segredo não existir no remoto",
-		);
+	for (const nome of ["CHAVE_AGENTE", "CHAVE_IMPORT"]) {
+		if (segredosObrigatorios.includes(nome)) {
+			falha(
+				`conferir: ${nome} obrigatória bloquearia void deploy enquanto o segredo não existir no remoto`,
+			);
+		}
 	}
 	if (JSON.stringify(build.json.ratelimits) !== JSON.stringify(LIMITES)) {
 		falha(

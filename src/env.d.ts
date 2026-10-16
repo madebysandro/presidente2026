@@ -11,6 +11,8 @@ declare namespace Cloudflare {
 		POLLER: DurableObjectNamespace<import("./poller/poller").PollerApuracao>;
 		PESQUISAS: DurableObjectNamespace<import("./pesquisas/pesquisas").Pesquisas>;
 		CHAVE_AGENTE?: string;
+		/** Plano B do CSV. Não autoriza `/api/agente/*` e não vai para o Grok Bot. */
+		CHAVE_IMPORT?: string;
 		/** 30 requisições / 60 s por chave válida em /api/agente/*. */
 		LIMITE_AGENTE_CHAVE?: RateLimit;
 		/** 5 tentativas / 60 s por IP sem chave válida. */
