@@ -296,6 +296,29 @@ export function htmlMomentos(vista: VistaNoite): string {
 	return `<section class="a-momentos" aria-labelledby="a-momentos-titulo"><h2 id="a-momentos-titulo">Momentos da noite</h2><ol>${itens}</ol></section>`;
 }
 
+function textoVantagem(v: number): string {
+	const nome = v >= 0 ? FLAVIO.nome : LULA.nome;
+	return `${nome} +${p1.format(Math.abs(v))}`;
+}
+
+/** Topo da coluna da direita, antes do resultado final: a média das pesquisas contra a urna de agora. */
+export function htmlPesquisasNoite(vista: VistaNoite): string {
+	if (vista.fase === "encerrada") return "";
+	const media = vista.pesquisas.media;
+	const titulo = `<h2>O que as pesquisas diziam</h2>`;
+	if (!media || !Number.isFinite(media.vf)) {
+		return `<section class="a-est" data-pesquisas-noite>${titulo}<p>A média das pesquisas entra aqui quando houver número publicado.</p></section>`;
+	}
+	const cargo = presidente(vista);
+	const flavio = lado(FLAVIO.numero, vista);
+	const lula = lado(LULA.numero, vista);
+	const urna =
+		cargo && !arquivoZerado(vista.apuracao) && flavio && lula
+			? `<p>Na urna, agora: ${escHtml(textoVantagem(flavio.pct - lula.pct))}, com ${pf.format(cargo.apurado)}% apurado. A comparação justa só vem no fim, porque as urnas não chegam em ordem aleatória.</p>`
+			: "";
+	return `<section class="a-est" data-pesquisas-noite>${titulo}<p>Média de ${media.n} institutos: <b class="a-f">${FLAVIO.nome} ${p1.format(media.vf)}</b> a <b class="a-l">${LULA.nome} ${p1.format(media.vl)}</b>, ${escHtml(textoVantagem(media.v))}.</p>${urna}<p>A marca no cabo de guerra é esta média.</p></section>`;
+}
+
 function textoTendencia(tendencia: TendenciaCandidato): string {
 	const nome = nomeLado(tendencia.n);
 	if (!Number.isFinite(tendencia.ppPor10pct)) return "";

@@ -48,9 +48,6 @@ const GRADE: Record<string, readonly [number, number]> = {
 const AVISO_EXTERIOR =
 	"O exterior costuma apurar por último: as urnas fecham no fuso de cada país.";
 
-const AVISO_ESTIMATIVA =
-	"O TSE não publica transferência de votos. Este saldo é uma estimativa e não é dado oficial do TSE.";
-
 function nomeLado(n: string | null | undefined): string {
 	if (n === FLAVIO.numero) return FLAVIO.nome;
 	if (n === LULA.numero) return LULA.nome;
@@ -236,40 +233,22 @@ function fatias(fatia: FatiaEleitorado): string {
 	return `<div class="a-barra" aria-hidden="true">${barra}</div><p class="a-legenda">${legenda}</p>`;
 }
 
-function votosTexto(votos: number): string {
-	if (!Number.isFinite(votos)) return "—";
-	return nf.format(Math.abs(Math.round(votos)));
-}
-
-function fraseSaldo(nome: string, votos: number): string {
-	if (!Number.isFinite(votos)) return `${nome} ainda sem saldo`;
-	if (votos > 0) return `${nome} ganhou cerca de ${votosTexto(votos)} votos`;
-	if (votos < 0) return `${nome} perdeu cerca de ${votosTexto(votos)} votos`;
-	return `${nome} ficou no mesmo patamar`;
-}
-
 function htmlTransferencia(vista: VistaNoite): string {
 	const comparacao: ComparacaoTurnos | undefined = vista.apuracao.analise?.comparacao;
-	const selo = `<h3>Para onde foram os votos? <span class="a-selo">ESTIMATIVA</span></h3>`;
-	const aviso = `<p data-aviso-estimativa>${AVISO_ESTIMATIVA}</p>`;
 	if (!comparacao) {
 		return secao(
 			"transferencia",
 			"Do 1º ao 2º turno",
-			`<p>A comparação dos turnos entra com a leitura da apuração.</p>${selo}<p>A estimativa entra quando o 2º turno tiver votos.</p>${aviso}`,
+			`<p>A comparação dos turnos entra com a leitura da apuração.</p>`,
 		);
 	}
 	const segundo = comparacao.segundo
 		? `<div data-composicao="2"><b>2º turno</b>${fatias(comparacao.segundo)}</div>`
 		: `<p data-composicao="2">O 2º turno aparece com as primeiras seções.</p>`;
-	const est = comparacao.estimativa;
-	const saldo = est
-		? `<p data-saldo>${fraseSaldo(FLAVIO.nome, est.flavioVotos)} e ${fraseSaldo(LULA.nome, est.lulaVotos)}, em votos equivalentes. A fonte estimada soma ${votosTexto(est.fonteVotos)} votos.</p>`
-		: `<p>A estimativa entra quando o 2º turno tiver votos.</p>`;
 	return secao(
 		"transferencia",
 		"Do 1º ao 2º turno",
-		`<h3>Composição do eleitorado</h3><p>Percentual do eleitorado, para comparar o 1º turno final com o 2º turno nas seções já apuradas.</p><div data-composicao="1"><b>1º turno</b>${fatias(comparacao.primeiro)}</div>${segundo}${selo}${saldo}${aviso}`,
+		`<h3>Composição do eleitorado</h3><p>Percentual do eleitorado, para comparar o 1º turno final com o 2º turno nas seções já apuradas.</p><div data-composicao="1"><b>1º turno</b>${fatias(comparacao.primeiro)}</div>${segundo}`,
 	);
 }
 
@@ -301,13 +280,17 @@ function htmlColegios(vista: VistaNoite): string {
 	);
 }
 
-/** Geografia da noite, na ordem do celular: exterior, comparecimento, comparação, estados, colégios. */
+/** Coluna da direita da grade da noite (#16): exterior e comparecimento. */
+export function htmlGeografiaLateral(vista: VistaNoite): string {
+	return `${htmlExterior(vista)}${htmlComparecimento(vista)}`;
+}
+
+/** Abaixo da grade, na largura toda (#16): estados, colégios e a comparação dos turnos. */
+export function htmlGeografiaCheia(vista: VistaNoite): string {
+	return `${htmlEstados(vista)}${htmlColegios(vista)}${htmlTransferencia(vista)}`;
+}
+
+/** Geografia da noite, na ordem do celular. */
 export function htmlGeografia(vista: VistaNoite): string {
-	return [
-		htmlExterior(vista),
-		htmlComparecimento(vista),
-		htmlTransferencia(vista),
-		htmlEstados(vista),
-		htmlColegios(vista),
-	].join("");
+	return `${htmlGeografiaLateral(vista)}${htmlGeografiaCheia(vista)}`;
 }

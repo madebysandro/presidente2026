@@ -511,3 +511,34 @@ describe("relógio da página (#18)", () => {
 		expect(relogioDaPagina("ao_vivo", tarde)).toBe(tarde);
 	});
 });
+
+describe("paridade com o protótipo da #16", () => {
+	const html = () =>
+		documentoPesquisas(payload(), AGORA, { apuracao: estado(), historico: HISTORICO });
+	const coluna = (doc: string, lado: "esq" | "dir") =>
+		doc.match(new RegExp(`<div class="a-noite-${lado}">[\\s\\S]*?<!--/${lado}-->`))?.[0] ?? "";
+
+	it("grade 2/3 + 1/3: gráfico e momentos à esquerda, pesquisas, exterior e comparecimento à direita", () => {
+		const doc = html();
+		expect(doc).toContain('class="a-noite-grade"');
+		const esq = coluna(doc, "esq");
+		const dir = coluna(doc, "dir");
+		expect(esq).toContain("a-noite");
+		expect(esq).toContain("Momentos da noite");
+		expect(dir).toContain("data-pesquisas-noite");
+		expect(dir).toContain('data-geo="exterior"');
+		expect(dir).toContain('data-geo="comparecimento"');
+		expect(dir.indexOf("data-pesquisas-noite")).toBeLessThan(dir.indexOf('data-geo="exterior"'));
+	});
+
+	it("ao vivo, a coluna da direita abre com o que as pesquisas diziam", () => {
+		const dir = coluna(html(), "dir");
+		expect(dir).toContain("O que as pesquisas diziam");
+		expect(dir).toContain("51,8");
+		expect(dir).not.toMatch(/undefined|NaN/);
+	});
+
+	it("não traz mais \"Para onde foram os votos?\"", () => {
+		expect(html()).not.toContain("Para onde foram os votos?");
+	});
+});
