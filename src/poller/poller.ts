@@ -277,6 +277,7 @@ export class PollerApuracao extends DurableObject<Env> {
 				maxAgeCiclo = Math.min(base * 2, 600);
 				novoBackoff = maxAgeCiclo;
 			}
+			estado.tfPorEscopo = tfPorEscopo;
 			if (mudou) {
 				estado.versao += 1;
 				await this.registrarLeitura(estado);

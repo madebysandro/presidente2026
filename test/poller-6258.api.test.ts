@@ -307,6 +307,25 @@ describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 		expect(dados.encerrada).toBeFalsy();
 	});
 
+	it("um 503 no meio guarda o tf que já chegou e o ciclo seguinte pode encerrar", async () => {
+		tse.definirVarianteSecoes({ padrao: "100,00", tf: "n" });
+		await forcarConsulta();
+		expect((await lerApuracao()).encerrada).toBeFalsy();
+
+		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
+		tse.simularErroUf("zz", 503);
+		await forcarConsulta();
+		const meio = await lerApuracao();
+		expect(meio.erro).toMatch(/503/);
+		expect(meio.encerrada).toBeFalsy();
+
+		await forcarConsulta();
+		const fim = await lerApuracao();
+		expect(fim.erro).toBeNull();
+		expect(fim.encerrada).toBe(true);
+		expect(fim.proximaConsulta).toBeNull();
+	});
+
 	it("404 num colégio não segura o encerramento nem a leitura", async () => {
 		tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
 		tse.simularErroUrl("71072", 404);
