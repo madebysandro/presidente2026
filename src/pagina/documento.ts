@@ -11,6 +11,7 @@ import {
 	type HistoricoNoite,
 	type VistaNoite,
 } from "./ao-vivo";
+import { htmlAnaliseFinal, htmlPesquisasUrnas } from "./encerrada";
 import { htmlGeografia } from "./geografia";
 import { dadosAbertura } from "./abertura";
 import { htmlCalendario } from "./calendario";
@@ -44,7 +45,7 @@ function htmlMiolo(vista: VistaNoite): string {
 	if (vista.fase === "pesquisas") {
 		return `${htmlTopo(vista.pesquisas, vista.agora)}${htmlCalendario(vista.pesquisas, vista.agora)}${htmlVantagem(vista.pesquisas)}${htmlComoCalculamos()}${htmlRodape()}`;
 	}
-	return `<header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header>${htmlGraficoNoite(vista)}${htmlMomentos(vista)}${htmlEstimativas(vista)}${htmlGeografia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
+	return `<header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header>${htmlGraficoNoite(vista)}${htmlMomentos(vista)}${htmlEstimativas(vista)}${htmlAnaliseFinal(vista)}${htmlPesquisasUrnas(vista)}${htmlGeografia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
 }
 
 export function fragmentoPagina(payload: PayloadPesquisas, agora: Date, noite?: NoiteDaPagina) {

@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { faseDe, limitarEsperaMs } from "../apuracao/abertura";
+import { faseDe, limitarEsperaMs, type FaseApuracao } from "../apuracao/abertura";
 import {
 	anexarReferenciaColegio,
 	comparacaoTurnos,
@@ -96,6 +96,12 @@ export class PollerApuracao extends DurableObject<Env> {
 			(await this.ctx.storage.get<EstadoApuracao>(CHAVE_ESTADO)) ??
 			estadoVazio()
 		);
+	}
+
+	/** Fase sem agendar consulta. A página e `/api/pesquisas` leem o mesmo relógio. */
+	async fasePublica(): Promise<FaseApuracao> {
+		const estado = await this.lerEstado();
+		return faseDe(await this.agora(), estado.encerrada);
 	}
 
 	async obterEstado(): Promise<EstadoApuracao> {

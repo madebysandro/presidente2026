@@ -774,6 +774,30 @@ body {
 
 .a-faixa[data-fase="ao_vivo"] strong { color: var(--f); }
 
+.a-faixa [data-carimbo] {
+	color: var(--tinta);
+	font-weight: 700;
+}
+
+.a-eleito {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--tinta);
+	color: var(--branco);
+	font: 700 14px/1.2 "Archivo", sans-serif;
+	letter-spacing: 0.02em;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.a-veredito h1 > span:has(.a-eleito) { white-space: normal; }
+
+.a-est li[data-linha="media"] {
+	box-shadow: inset 0 0 0 1px var(--tinta);
+}
+
 .a-cabo-trilha {
 	position: relative;
 	min-width: 0;
