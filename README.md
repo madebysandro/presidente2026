@@ -18,7 +18,7 @@ Base em **[Void](https://void.cloud)** (Vite + Workers). Config: `void.config.ts
 ## Estado atual
 
 - Worker `presidente2026` no domínio `presidente2026.win` (`workers_dev` desligado).
-- Poller Durable Object por eleição (`ele-6258`), ciclo mínimo só Presidente `br`.
+- Poller Durable Object por eleição (`ele-6258`): Presidente `br`, 27 UFs, exterior e 10 maiores colégios.
 - Durable Object `Pesquisas` (SQLite) vazio, com RPC de sanidade.
 - Página pública placeholder (“Em breve”) + CSP base.
 - `GET /api/apuracao` e `GET /api/historico` reaproveitam o poller educado (ETag, escada, backoff).

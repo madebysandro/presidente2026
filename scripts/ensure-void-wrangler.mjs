@@ -71,6 +71,28 @@ if (builtNotFound !== "none") {
 	process.exit(1);
 }
 
+const route = Array.isArray(builtWrangler.routes) ? builtWrangler.routes[0] : undefined;
+const routeKeys = route && typeof route === "object" ? Object.keys(route).sort() : [];
+const routeOk =
+	builtWrangler.routes?.length === 1 &&
+	route?.pattern === "presidente2026.win" &&
+	route?.custom_domain === true &&
+	routeKeys.length === 2;
+if (
+	builtWrangler.workers_dev !== false ||
+	builtWrangler.preview_urls !== false ||
+	!routeOk
+) {
+	console.error(
+		`ensure-void-wrangler: dist/ssr/wrangler.json traffic=${JSON.stringify({
+			workers_dev: builtWrangler.workers_dev,
+			preview_urls: builtWrangler.preview_urls,
+			routes: builtWrangler.routes,
+		})} (quer workers_dev false, preview_urls false, custom domain presidente2026.win)`,
+	);
+	process.exit(1);
+}
+
 const { $schema: _drop, main: _ignore, ...config } = resolved;
 config.main = "dist/ssr/index.js";
 config.account_id = ACCOUNT;

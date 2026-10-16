@@ -279,8 +279,12 @@ export type TseFalso = {
 	urlPresidente: string;
 	urlDepfed: string;
 	urlDepest: string;
+	/** Próxima URL que contém este trecho responde com erro HTTP. */
+	simularErroUrl: (trecho: string, status?: number) => void;
 	/** Ciclo vigente para UFs / sequência da noite. */
 	cicloAtual: () => string;
+	/** Substitui o Presidente `br` por corpos sintéticos; `avancar` anda na lista. */
+	usarNoiteSintetica: (corpos: object[]) => void;
 };
 
 function formatarPctTse(valor: number | string): { pst: string; pstn: string } {
@@ -331,6 +335,8 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 			status: number;
 			retryAfter?: number;
 		} | null,
+		corposSinteticos: null as object[] | null,
+		erroUrl: null as { trecho: string; status: number } | null,
 	};
 	const modoProp = opcoes.proporcionais ?? "real";
 	const sequenciaNoite = opcoes.sequenciaNoite ?? false;
@@ -414,6 +420,17 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 	};
 
 	const presidenteAtual = () => {
+		if (estado.corposSinteticos) {
+			const i = Math.min(
+				estado.indice,
+				estado.corposSinteticos.length - 1,
+			);
+			return {
+				etag: `"sint-${i}"`,
+				cacheControl: "max-age=10",
+				corpo: estado.corposSinteticos[i]!,
+			};
+		}
 		if (sequenciaNoite) {
 			const m = resolver("presidente");
 			if (!m) throw new Error("presidente ausente na sequência da noite");
@@ -534,7 +551,39 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 				"depest",
 			),
 		),
-		// Presidente por UF / exterior: …/dados/{uf}/{uf}-c0001-e006257-u.json
+		http.get(
+			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1(\d+)-c0001-e006258-u\.json/,
+			({ request, params }) => {
+				const uf = String(params[0] ?? "");
+				const cd = String(params[1] ?? "");
+				const ifNoneMatch = request.headers.get("if-none-match");
+				if (
+					estado.erroUrl &&
+					request.url.includes(estado.erroUrl.trecho)
+				) {
+					const status = estado.erroUrl.status;
+					estado.erroUrl = null;
+					estado.pedidos.push({ url: request.url, ifNoneMatch });
+					return new HttpResponse("falha município", { status });
+				}
+				const meta = resolver(`pres-${uf}`);
+				if (!meta) {
+					estado.pedidos.push({ url: request.url, ifNoneMatch });
+					return new HttpResponse("município sem UF", { status: 404 });
+				}
+				return responderArquivo(
+					request.url,
+					ifNoneMatch,
+					{
+						etag: `"mu-${cd}-${meta.etag.replaceAll('"', "")}"`,
+						cacheControl: meta.cacheControl,
+						corpo: meta.corpo,
+					},
+					`pres-${uf}`,
+				);
+			},
+		),
+		// Presidente por UF / exterior: …/dados/{uf}/{uf}-c0001-e006258-u.json
 		http.get(
 			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1-c0001-e006258-u\.json/,
 			({ request, params }) => {
@@ -616,6 +665,13 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		urlPresidente: URLS_TSE.presidente,
 		urlDepfed: URLS_TSE.depfed,
 		urlDepest: URLS_TSE.depest,
+		simularErroUrl(trecho: string, status = 404) {
+			estado.erroUrl = { trecho, status };
+		},
 		cicloAtual: () => cicloPresidente(),
+		usarNoiteSintetica(corpos: object[]) {
+			estado.corposSinteticos = corpos;
+			estado.indice = 0;
+		},
 	};
 }

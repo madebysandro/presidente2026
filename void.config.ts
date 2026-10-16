@@ -35,6 +35,7 @@ export default defineConfig({
 		account_id: "aaec42ffcbeebcd4cda5beff4af4c439",
 		compatibility_date: "2026-08-22",
 		workers_dev: false,
+		preview_urls: false,
 		routes: [
 			{
 				pattern: "presidente2026.win",
