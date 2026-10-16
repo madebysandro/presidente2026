@@ -792,7 +792,8 @@ body {
 
 .a-noite,
 .a-momentos,
-.a-est {
+.a-est,
+.a-geo {
 	display: grid;
 	gap: 10px;
 	min-width: 0;
@@ -804,7 +805,8 @@ body {
 
 .a-noite h2,
 .a-momentos h2,
-.a-est h2 {
+.a-est h2,
+.a-geo h2 {
 	margin: 0;
 	font: 700 22px/1.2 "Archivo", sans-serif;
 	font-stretch: 112%;
@@ -812,7 +814,9 @@ body {
 
 .a-noite > p,
 .a-momentos li,
-.a-est > p {
+.a-est > p,
+.a-geo > p,
+.a-geo li {
 	margin: 0;
 	color: var(--suave);
 }
@@ -867,7 +871,113 @@ body {
 	font-size: 13px;
 }
 
+.a-geo h3 {
+	margin: 8px 0 0;
+	color: var(--tinta);
+	font: 600 16px/1.3 "Archivo", sans-serif;
+}
+
+.a-geo b { color: var(--tinta); }
+
+.a-mapa {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 4px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.a-uf {
+	min-width: 0;
+	overflow: hidden;
+	padding: 4px 2px;
+	border-radius: 6px;
+	background: var(--branco);
+	color: var(--tinta);
+	text-align: center;
+	font-size: 11px;
+	line-height: 1.2;
+	overflow-wrap: anywhere;
+}
+
+.a-uf b { display: block; font-size: 12px; }
+
+.a-uf small,
+.a-uf i { display: block; }
+
+.a-uf i,
+.a-colegios i { color: var(--tinta); font-style: normal; font-weight: 700; }
+
+.a-uf-f { box-shadow: inset 0 0 0 2px var(--f); }
+.a-uf-l { box-shadow: inset 0 0 0 2px var(--l); }
+.a-uf[data-virou="1"] { outline: 2px solid var(--tinta); outline-offset: -2px; }
+
+.a-regioes,
+.a-colegios,
+.a-comp,
+.a-lados {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.a-regioes li,
+.a-colegios li,
+.a-comp li,
+.a-lados li {
+	min-width: 0;
+	max-width: 100%;
+	padding: 12px 14px;
+	border-radius: 8px;
+	background: var(--branco);
+	overflow-wrap: anywhere;
+}
+
+.a-barra {
+	display: flex;
+	min-width: 0;
+	max-width: 100%;
+	height: 12px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--branco);
+}
+
+.a-barra i { display: block; height: 100%; min-width: 0; }
+
+.a-legenda {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	min-width: 0;
+}
+
+.a-selo {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: var(--tinta);
+	color: var(--branco);
+	font: 700 11px/1.2 "Archivo", sans-serif;
+	letter-spacing: 0.04em;
+	vertical-align: middle;
+}
+
 @media (max-width: 760px) {
 	.a-faixa { font-size: 12px; }
 	.a-est ul { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 420px) {
+	.a-uf { padding: 3px 1px; font-size: 9px; }
+	.a-uf b { font-size: 11px; }
+	.a-regioes li,
+	.a-colegios li,
+	.a-comp li,
+	.a-lados li { padding: 10px 12px; }
 }
