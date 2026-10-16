@@ -212,6 +212,7 @@ describe("GET /api/agente/pendentes (#14)", () => {
 		});
 		await inserirRegistro({ registro: "BR-REC/2026", instituto: "Quaest" });
 		await inserirRegistro({ registro: "BR-VEL/2026", instituto: "AtlasIntel" });
+		await inserirRegistro({ registro: "BR-TRO/2026", instituto: "Quaest" });
 		await inserirRegistro({ registro: "BR-SUS/2026" });
 		await runInDurableObject(stub(), async (_inst, state) => {
 			state.storage.sql.exec(
@@ -226,6 +227,13 @@ describe("GET /api/agente/pendentes (#14)", () => {
 					registro, totais_json, validos_publicados_json, vf, vl, v,
 					fonte, margem, confianca, cadastrado_em, substituido_em
 				) VALUES ('BR-VEL/2026', '{}', NULL, 50, 50, 0, 'https://www.poder360.com.br/y', 2, 95, '2020-01-01T00:00:00.000Z', NULL)`,
+			);
+			state.storage.sql.exec(
+				`INSERT INTO resultados (
+					registro, totais_json, validos_publicados_json, vf, vl, v,
+					fonte, margem, confianca, cadastrado_em, substituido_em
+				) VALUES ('BR-TRO/2026', '{}', NULL, 50, 50, 0, 'https://www.poder360.com.br/z', 2, 95, '2020-01-01T00:00:00.000Z', ?)`,
+				new Date().toISOString(),
 			);
 			state.storage.sql.exec(
 				"INSERT INTO suspensoes (registro, desde, motivo) VALUES ('BR-SUS/2026', '2026-10-01', 'liminar')",

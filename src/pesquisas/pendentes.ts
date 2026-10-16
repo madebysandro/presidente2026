@@ -30,7 +30,8 @@ export function selecionarPendentes(
 		if (suspensos.has(registro.registro)) continue;
 		if (antesDaLiberacao(registro, agora)) continue;
 		const resultado = porRegistro.get(registro.registro);
-		if (resultado && !publicadaHaMaisDeSeteDias(resultado.cadastradoEm, agora)) continue;
+		const marco = resultado?.substituidoEm ?? resultado?.cadastradoEm;
+		if (resultado && marco && !publicadaHaMaisDeSeteDias(marco, agora)) continue;
 		saida.push({
 			registro: registro.registro,
 			instituto: registro.instituto,

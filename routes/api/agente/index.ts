@@ -1,7 +1,7 @@
 import { defineHandler } from "void";
 import instrucoes from "../../../docs/agente/instrucoes.md?raw";
 import { Pesquisas } from "../../../durable-objects/pesquisas";
-import { pedidoAgente } from "../../../src/pesquisas/pedido-agente";
+import { pedidoAgente, responderAgente } from "../../../src/pesquisas/pedido-agente";
 import { NOME_INSTANCIA } from "../../../src/pesquisas/fontes";
 
 export const GET = defineHandler(async (c) => {
@@ -11,12 +11,7 @@ export const GET = defineHandler(async (c) => {
 		ip,
 		agora: new Date(),
 	});
-	if (resposta.status === 429) {
-		return c.json(resposta.corpo, {
-			status: 429,
-			headers: { "retry-after": "60", "cache-control": "no-store" },
-		});
-	}
+	if (resposta.status === 429) return responderAgente(c, resposta);
 	return new Response(instrucoes, {
 		status: 200,
 		headers: {

@@ -9,7 +9,7 @@ A chave vai no cabeçalho `Authorization: Bearer …`. Ela não entra no corpo n
 `GET /api/agente/pendentes` devolve o que você pode publicar agora.
 
 - Sem `jaPublicado`: liberada, sem número. Cadastre.
-- Com `jaPublicado`: já publicada há mais de 7 dias. Confira a fonte. Só substitua se os números mudaram.
+- Com `jaPublicado`: a última publicação (cadastro ou substituição) tem mais de 7 dias. Confira a fonte. Só substitua se os números mudaram.
 - Lista vazia (`{"pendentes":[]}`): não há trabalho. Termine.
 
 Cada item traz `registro`, `instituto`, `contratantes`, `campo.inicio`, `campo.fim`, `liberacaoEfetiva`, `entrevistas`, `faltaMargem`, `faltaConfianca`.

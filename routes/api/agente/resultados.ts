@@ -1,7 +1,7 @@
 import { defineHandler } from "void";
 import { Pesquisas } from "../../../durable-objects/pesquisas";
 import { NOME_INSTANCIA } from "../../../src/pesquisas/fontes";
-import { pedidoAgente } from "../../../src/pesquisas/pedido-agente";
+import { pedidoAgente, responderAgente } from "../../../src/pesquisas/pedido-agente";
 
 const TETO_CORPO = 32_768;
 
@@ -19,7 +19,5 @@ export const POST = defineHandler(async (c) => {
 		corpoExcedeu,
 		agora: new Date(),
 	});
-	const headers: Record<string, string> = {};
-	if (resposta.status === 429) headers["retry-after"] = "60";
-	return c.json(resposta.corpo, { status: resposta.status, headers });
+	return responderAgente(c, resposta);
 });
