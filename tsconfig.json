@@ -17,6 +17,7 @@
 		"src/**/*.ts",
 		"test/**/*.ts",
 		"routes/**/*.ts",
+		"crons/**/*.ts",
 		"durable-objects/**/*.ts",
 		"middleware/**/*.ts",
 		"void.config.ts",
