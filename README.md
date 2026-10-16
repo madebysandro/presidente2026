@@ -21,7 +21,7 @@ Base em **[Void](https://void.cloud)** (Vite + Workers). Config: `void.config.ts
 - Poller Durable Object `ele-6258`: Presidente nacional (`br`), 27 UFs, exterior (`zz`) e os 10 maiores colégios. ETag, escada e backoff.
 - Import do registro do TSE no Durable Object `Pesquisas`: cron às 06h, 12h e 18h de Brasília, e no primeiro acesso se o banco ainda estiver vazio.
 - `GET /api/pesquisas` e `GET /api/apuracao` públicos, com cache na borda.
-- `POST /api/agente/resultados` só com `CHAVE_AGENTE`. Sem chave (ou chave errada): `401 {"erro":"nao_autorizado"}` e linha na auditoria. A lista de pendentes, a suspensão e o `GET /api/agente/auditoria` são a [#14](https://github.com/madebysandro/presidente2026/issues/14).
+- `POST /api/agente/resultados` só com `CHAVE_AGENTE`. Sem chave (ou chave errada): `401 {"erro":"nao_autorizado"}` e linha na auditoria. Pendentes, suspensão, instruções e auditoria estão em `GET/POST/DELETE /api/agente/*`.
 
 ## Poller
 
@@ -46,7 +46,18 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 | Chave válida | 30 a cada 60 s | binding `LIMITE_AGENTE_CHAVE` (`namespace_id` `625801`) e contador no DO |
 | IP sem chave válida | 5 a cada 60 s | binding `LIMITE_AGENTE_IP` (`namespace_id` `625802`) e contador no DO |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção leva os dois em `dist/ssr/wrangler.json`. Hoje a única rota do agente é `POST /api/agente/resultados`, e é ela que consulta o binding. As rotas da #14 (`GET /api/agente`, `/pendentes`, suspensão, auditoria) têm de passar pelo mesmo `bindingDeixaPassar` quando entrarem.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O binding é por localização da Cloudflare; o contador do DO é o teto global e fica no mesmo lock da auditoria. Nos testes o binding não entra (não zera entre casos); a produção leva os dois em `dist/ssr/wrangler.json`. Toda rota em `/api/agente/*` passa por `bindingDeixaPassar`: chave válida usa `LIMITE_AGENTE_CHAVE`, o resto usa `LIMITE_AGENTE_IP`.
+
+| Rota | Autenticação | Resposta |
+| --- | --- | --- |
+| `GET /api/agente` | sem chave (taxa por IP; Bearer válido entra no teto da chave) | `200` `text/markdown` — instruções em `docs/agente/instrucoes.md` |
+| `GET /api/agente/pendentes` | `Bearer` | `200` `{"pendentes":[…]}`. Vazio: `{"pendentes":[]}`. Cada item: `registro`, `instituto`, `contratantes`, `campo` (`inicio`/`fim`), `liberacaoEfetiva`, `entrevistas`, `faltaMargem`, `faltaConfianca`, `jaPublicado` |
+| `POST /api/agente/resultados` | `Bearer` | `201 {"status":"publicado"}` ou `200 {"status":"substituido"}`. Recusa: `422 {"motivos":[{"codigo","detalhe"}]}` |
+| `POST /api/agente/suspensoes` | `Bearer` | corpo `{"registro","decisaoUrl","motivo"}`. `201` ou `200` `{"status":"suspensa"}`. `decisaoUrl` https |
+| `DELETE /api/agente/suspensoes/{registro}` | `Bearer` | corpo `{"motivo"}`. `200 {"status":"reativada"}` |
+| `GET /api/agente/auditoria?desde=&depois=&limite=` | `Bearer` | `200 {"entradas":[…],"proximo":"/api/agente/auditoria?…" \| null}`. Máximo 500. `entradas`: `id`, `em`, `rota`, `metodo`, `ip`, `chaveValida`, `registro`, `corpo`, `status`, `motivos` |
+
+Sem chave (ou chave errada) nas rotas que exigem `Bearer`: `401 {"erro":"nao_autorizado"}`, com linha na auditoria. `429` é `{"erro":"limite"}` e `retry-after: 60`. Cabeçalho das rotas do agente: `cache-control: no-store`.
 
 `GET /api/apuracao` usa `cache-control: public, max-age=0, s-maxage=5, must-revalidate`. `GET /api/historico` fica `no-store`.
 
@@ -79,7 +90,7 @@ curl -sS -H @~/.config/presidente2026/chave.txt \
   https://presidente2026.win/api/agente/pendentes
 ```
 
-`/pendentes` só existe depois da #14. Até lá, o mesmo arquivo autentica o `POST /api/agente/resultados`.
+O mesmo arquivo autentica `GET /api/agente/pendentes`, o `POST /api/agente/resultados`, a suspensão e `GET /api/agente/auditoria`. `GET /api/agente` (as instruções) não usa a chave.
 
 ## Routines do Grok Bot
 
@@ -97,7 +108,11 @@ Leia https://presidente2026.win/api/agente e siga as instruções.
 Leia https://presidente2026.win/api/agente/auditoria?desde=<ontem> e me mande um resumo: publicados, substituídos, recusados por motivo e tentativas sem chave por IP.
 ```
 
-As duas URLs (`GET /api/agente` e `GET /api/agente/auditoria`) são a #14. O texto está pronto para colar; as rotas entram com aquela issue. O `POST /api/agente/resultados` já recusa quem não tem a chave e audita a tentativa.
+A Routine 1 lê `GET /api/agente` (markdown, sem chave) e segue o que está em `docs/agente/instrucoes.md`. Se `GET /api/agente/pendentes` vier `{"pendentes":[]}`, não há trabalho. A Routine 2 lê a auditoria paginada: `proximo` é o caminho da página seguinte, ou `null`. O `401` sem chave continua na auditoria.
+
+## Semeadura inicial
+
+Cinco pesquisas do protótipo (`b1fe8ea`, `docs/prototipo/novo-design/dados/pesquisas.json`), com as URLs de fonte de lá: PoderData `BR-08134/2026`, Datafolha `BR-02949/2026`, AtlasIntel `BR-03663/2026`, PoderData `BR-01209/2026` e Quaest `BR-08729/2026` (sem válidos publicados). O teste `test/agente-operacao.api.test.ts` publica as cinco por `POST /api/agente/resultados` e confere `GET /api/pesquisas`. Não há carga automática em produção: o número só entra por essa API, com a página-fonte confirmando.
 
 ## Bot Fight Mode
 
