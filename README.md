@@ -149,6 +149,20 @@ O passe no aparelho, em https://presidente2026.win, é manual e só depois do de
 
 Se no primeiro deploy real o log do cron (ou do primeiro `GET /api/pesquisas`) mostrar que `cdn.tse.jus.br` bloqueou o IP da Cloudflare, a [#22](https://github.com/madebysandro/presidente2026/issues/22) vira o bloqueio operacional: Action diária e `CHAVE_IMPORT`, chave distinta da do agente. Não ligue isso antes de ver o bloqueio.
 
+## Logs
+
+Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento JSON por unidade de trabalho; o tipo é `EventoLog` em `src/log.ts`. Campos para filtrar:
+
+| Campo | Valores |
+| --- | --- |
+| `evento` | `import`, `poller`, `agente` |
+| `resultado` | import: `aplicado`, `nao_modificado`, `erro`; poller: `ok`, `erro` (os de `erro` saem em nível error) |
+| `motivo` | import: `cron`, `primeiro_acesso` |
+| `rota` | agente: caminho do template, sem ids nem query (ex. `/api/agente/suspensoes/:registro`) |
+| `status` | agente: status HTTP da resposta |
+
+Nenhum evento carrega bearer, `CHAVE_AGENTE`, IP, query nem corpo do pedido.
+
 ## Desenvolvimento
 
 Requer **Node.js 24.x** (Void 1.1.11).
