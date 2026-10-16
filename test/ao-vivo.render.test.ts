@@ -311,6 +311,20 @@ describe("gráfico, momentos e estimativas (#18)", () => {
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 
+	it("sem leituras a área inteira ainda vai ser apurada", () => {
+		const html = htmlGraficoNoite(vista({ historico: [] }));
+		expect(html).toContain('class="t-apurar" x="8.00" width="84.00"');
+		expect(html).toContain("2ª leitura");
+		const encerrada = htmlGraficoNoite(
+			vista({
+				fase: "encerrada",
+				historico: [],
+				apuracao: estado({ fase: "encerrada", encerrada: true }),
+			}),
+		);
+		expect(encerrada).not.toContain("t-apurar");
+	});
+
 	it("a primeira leitura já sombreia o que falta e marca virada", () => {
 		const html = htmlGraficoNoite(
 			vista({ historico: [leitura(12, 55, 45, "17:20:00")] }),

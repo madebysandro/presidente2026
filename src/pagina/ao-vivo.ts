@@ -203,7 +203,14 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 	const pontos = pontosNoite(vista.historico);
 	const eixos = `<div class="a-eixo-x" aria-hidden="true"><span style="left:${n2(px(0))}%">0%</span><span style="left:${n2(px(100))}%">100%</span></div>`;
 	if (pontos.length === 0) {
-		return `${intro}<p class="a-graf-vazio">A linha aparece a partir da 2ª leitura do TSE.</p>${eixos}</section>`;
+		const sombra =
+			vista.fase !== "encerrada"
+				? `<rect class="t-apurar" x="${n2(px(0))}" width="${n2(px(100) - px(0))}" y="0" height="100"/>`
+				: "";
+		const grafico = sombra
+			? `<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}</svg></div>${eixos}</div>`
+			: eixos;
+		return `${intro}<p class="a-graf-vazio">A linha aparece a partir da 2ª leitura do TSE.</p>${grafico}</section>`;
 	}
 	const pico = Math.max(2, ...pontos.map((ponto) => Math.abs(ponto.v)));
 	const lim = Math.ceil(pico / 2) * 2;

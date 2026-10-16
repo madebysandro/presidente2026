@@ -6,6 +6,7 @@
 	const main = document.querySelector("main");
 	if (!main) return;
 
+	// Espelha textoIdade e textoFaixaProxima em src/pagina/ao-vivo.ts.
 	function idade(consultado, agora) {
 		if (!Number.isFinite(consultado)) return "ainda sem leitura";
 		const segundos = Math.max(0, Math.round((agora - consultado) / 1000));
