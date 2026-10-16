@@ -1,6 +1,7 @@
-import { escHtml, nf } from "../dominio/texto";
+import { escHtml } from "../dominio/texto";
 import { urlFonteValida } from "../pesquisas/validar-resultado";
 import type { FichaPublica, PayloadPesquisas, PesquisaPublicada, TotaisPublicos } from "../pesquisas/tipos";
+import { textoFicha } from "./grafico";
 import { FLAVIO, LULA, porExtenso } from "./topo";
 
 const INICIO_RETA = "2026-10-05";
@@ -85,21 +86,12 @@ function porCampo<T extends { campoFim: string; registro: string }>(lista: reado
 	);
 }
 
-function textoPontos(margem: number): string {
-	return `${n1.format(margem)} ponto${margem === 1 ? "" : "s"}`;
-}
-
 function textoTotais(totais: TotaisPublicos): string {
 	const resto =
 		totais.brancoNuloNaoSabe != null
 			? `brancos, nulos e indecisos ${n1.format(totais.brancoNuloNaoSabe)}%`
 			: `brancos e nulos ${n1.format(totais.brancoNulo ?? 0)}%, não sabem ${n1.format(totais.naoSabe ?? 0)}%`;
 	return `Flávio ${n1.format(totais.flavio)}%, Lula ${n1.format(totais.lula)}%, ${resto}`;
-}
-
-function textoContratantes(nomes: readonly string[]): string {
-	if (nomes.includes("recursos próprios")) return "Feita com recursos próprios";
-	return `Contratada por ${nomes.join(" e ")}`;
 }
 
 function htmlFonte(fonte: string): string {
@@ -111,7 +103,7 @@ export function htmlDetalhe(pesquisa: PesquisaPublicada): string {
 	const publicados = pesquisa.validosPublicados
 		? `; o instituto publicou ${n1.format(pesquisa.validosPublicados.flavio)} a ${n1.format(pesquisa.validosPublicados.lula)}`
 		: "";
-	const ficha = `${escHtml(pesquisa.instituto)} ouviu ${nf.format(pesquisa.entrevistas)} eleitores de ${ddmm(pesquisa.campoInicio)} a ${ddmm(pesquisa.campoFim)}; margem de erro de ${textoPontos(pesquisa.margem)}, confiança de ${n1.format(pesquisa.confianca)}%. ${escHtml(textoContratantes(pesquisa.contratantes))}. Registro no TSE ${escHtml(pesquisa.registro)}.${htmlFonte(pesquisa.fonte)}`;
+	const ficha = `${escHtml(textoFicha(pesquisa))}${htmlFonte(pesquisa.fonte)}`;
 	return `<div class="a-det-num"><span class="a-f"><img class="a-mini-rosto" data-numero="${FLAVIO.numero}" src="${FLAVIO.foto}" alt="" width="161" height="225">${FLAVIO.nome} <b>${p1.format(pesquisa.vf)}</b></span><span class="a-l">${LULA.nome} <b>${p1.format(pesquisa.vl)}</b><img class="a-mini-rosto" data-numero="${LULA.numero}" src="${LULA.foto}" alt="" width="161" height="225"></span></div><div class="a-barra"><i style="width:${pesquisa.vf}%"></i><i style="width:${pesquisa.vl}%"></i></div><p class="a-det-tit"><b>${escHtml(pesquisa.instituto)}</b>, divulgada em ${porExtenso(pesquisa.liberacaoEfetiva)}. Votos válidos calculados dos totais (${escHtml(textoTotais(pesquisa.totais))}${publicados}).</p><p class="a-ficha">${ficha}</p>`;
 }
 
