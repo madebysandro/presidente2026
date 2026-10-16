@@ -22,6 +22,7 @@
 
 html {
 	overflow-x: clip;
+	scrollbar-gutter: stable;
 	background: var(--papel);
 }
 
@@ -86,6 +87,11 @@ body {
 	display: flex;
 	align-items: center;
 	gap: 12px;
+}
+
+.a-conta b,
+.a-veredito b {
+	display: inline-block;
 }
 
 .a-conta b {
@@ -598,6 +604,146 @@ body {
 .a-rodape a { color: var(--tinta); }
 
 .a-graf-vazio { margin: 0; color: var(--suave); }
+
+.a-fantasma {
+	position: fixed;
+	z-index: 50;
+	margin: 0;
+	transform-origin: top left;
+	pointer-events: none;
+}
+
+.a-intro {
+	position: fixed;
+	inset: 0;
+	z-index: 80;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	background: rgb(242 244 247);
+}
+
+.a-i-faixa {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	transform-origin: top left;
+}
+
+.a-i-f,
+.a-i-l {
+	position: relative;
+	display: grid;
+	align-content: center;
+	gap: 18px;
+	padding: 0 5vw;
+	overflow: hidden;
+	color: #fff;
+	font-style: normal;
+}
+
+.a-i-f { background: var(--f); transform-origin: left; }
+.a-i-l {
+	flex: 1;
+	justify-items: end;
+	text-align: right;
+	background: var(--l);
+	transform-origin: right;
+}
+
+.a-i-f span,
+.a-i-l span {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	font: 600 clamp(20px, 3vw, 36px)/1.1 "Archivo", sans-serif;
+}
+
+.a-i-f b,
+.a-i-l b {
+	font: 800 clamp(64px, 15vw, 230px)/0.9 "Archivo", sans-serif;
+	font-stretch: 112%;
+	letter-spacing: -0.03em;
+}
+
+.a-i-faixa em {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	z-index: 1;
+	width: 3px;
+	margin-left: -1.5px;
+	background: #fff;
+	transform-origin: top;
+}
+
+.a-i-txt {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	justify-items: center;
+	gap: 12px;
+	padding: 0 16px;
+	text-align: center;
+}
+
+.a-i-data {
+	overflow: hidden;
+	font: 800 clamp(44px, 10vw, 150px)/1.02 "Archivo", sans-serif;
+	font-stretch: 118%;
+	letter-spacing: -0.03em;
+}
+
+.a-i-data span { display: inline-block; }
+
+.a-i-sub {
+	color: var(--suave);
+	font-size: clamp(16px, 2vw, 22px);
+}
+
+.a-i-faltam { font-size: clamp(18px, 2.4vw, 28px); }
+
+.a-i-faltam b {
+	display: inline-block;
+	min-width: 1.3em;
+	font-weight: 800;
+}
+
+.a-i-rosto {
+	position: relative;
+	z-index: 1;
+	width: clamp(110px, 16vw, 200px);
+	height: clamp(110px, 16vw, 200px);
+	object-fit: cover;
+	object-position: 50% 22%;
+	border-radius: 50%;
+	background: var(--regua);
+	box-shadow: 0 0 0 5px #fff;
+}
+
+.a-i-multidao {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center bottom;
+	mix-blend-mode: multiply;
+	opacity: 0.62;
+	pointer-events: none;
+}
+
+.a-i-ia {
+	position: absolute;
+	z-index: 2;
+	top: 16px;
+	left: 50%;
+	color: #fff;
+	font: 500 12px/1 "Archivo", sans-serif;
+	white-space: nowrap;
+	transform: translateX(-50%);
+}
 
 @media (prefers-reduced-motion: reduce) {
 	.a-ponto, .a-vem { animation: none; }

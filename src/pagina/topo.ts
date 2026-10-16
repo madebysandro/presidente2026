@@ -88,7 +88,7 @@ export function htmlVeredito(payload: PayloadPesquisas): string {
 		return `<div class="a-veredito"><h1>Ainda não há média</h1><p>As pesquisas publicadas entram aqui, em votos válidos.</p></div>`;
 	}
 	const institutos = `${n1.format(media.n)} instituto${media.n === 1 ? "" : "s"}`;
-	return `<div class="a-veredito"><h1><span class="a-f">${rosto(FLAVIO, "a-rosto")}${FLAVIO.nome} <b data-vf>${p1.format(media.vf)}</b></span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA, "a-rosto")}${LULA.nome} <b data-vl>${p1.format(media.vl)}</b></span></h1><p>É a média das últimas pesquisas de ${institutos}, em votos válidos. Cada quadrado abaixo é um dia da reta final.</p></div>`;
+	return `<div class="a-veredito"><h1><span class="a-f">${rosto(FLAVIO, "a-rosto")}${FLAVIO.nome} <b data-vf data-v="${media.vf}">${p1.format(media.vf)}</b></span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA, "a-rosto")}${LULA.nome} <b data-vl data-v="${media.vl}">${p1.format(media.vl)}</b></span></h1><p>É a média das últimas pesquisas de <span data-institutos>${institutos}</span>, em votos válidos. Cada quadrado abaixo é um dia da reta final.</p></div>`;
 }
 
 export function htmlLegendaCabo(payload: PayloadPesquisas): string {
@@ -132,7 +132,7 @@ function htmlCabo(payload: PayloadPesquisas): string {
 	const media = payload.media;
 	if (!media) return "";
 	const rotulo = `Flávio ${p1.format(media.vf)}%, Lula ${p1.format(media.vl)}%, margem de erro média de ${textoPontos(media.margem)}`;
-	return `<div class="a-cabo-linha">${rosto(FLAVIO, "a-ponta")}<div class="a-cabo" role="img" aria-label="${escHtml(rotulo)}"><i class="a-cabo-f" style="width:${media.vf}%"></i><span class="a-cabo-margem" style="left:${media.vf - media.margem}%;width:${2 * media.margem}%"></span><em class="a-cabo-50"></em></div>${rosto(LULA, "a-ponta")}</div>`;
+	return `<div class="a-cabo-linha">${rosto(FLAVIO, "a-ponta")}<div class="a-cabo" role="img" aria-label="${escHtml(rotulo)}"><i class="a-cabo-f" data-base="${media.vf}" data-margem="${media.margem}" style="width:${media.vf}%"></i><span class="a-cabo-margem" style="left:${media.vf - media.margem}%;width:${2 * media.margem}%"></span><em class="a-cabo-50"></em></div>${rosto(LULA, "a-ponta")}</div>`;
 }
 
 export function htmlTopo(payload: PayloadPesquisas, agora: Date): string {

@@ -35,6 +35,7 @@ function textoFalta(ms) {
 }
 
 function tique() {
+	if (document.documentElement.dataset.pausaRelogio === "1") return;
 	const topo = document.querySelector("[data-alvo-votacao]");
 	if (topo) {
 		const alvo = Date.parse(topo.getAttribute("data-alvo-votacao") || "");

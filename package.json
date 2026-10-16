@@ -23,6 +23,7 @@
 		"build": "void prepare && tsc --noEmit && vite build",
 		"test": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest run",
 		"test:watch": "void prepare && vite build && node scripts/ensure-void-wrangler.mjs && vitest",
+		"smoke": "node scripts/smoke-vinheta.mjs",
 		"deploy": "void deploy --platform cloudflare",
 		"deploy:wrangler": "wrangler deploy -c dist/ssr/wrangler.json",
 		"cf-typegen": "wrangler types -c .void-wrangler.jsonc"
@@ -36,6 +37,7 @@
 		"@msw/cloudflare": "^0.2.0",
 		"@types/node": "^26.6.5",
 		"msw": "^3.0.3",
+		"playwright-core": "^1.64.1",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
 		"vitest": "^5.0.3",
