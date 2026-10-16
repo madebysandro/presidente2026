@@ -27,8 +27,10 @@ import type {
 	Leitura,
 } from "../dominio/tipos";
 import { buscarArquivoTse, ErroTse } from "./cliente-tse";
+import { registrar } from "../log";
 import { escoposProntosParaEncerrar } from "./encerrada";
 import { montarLeitura } from "./historico";
+import { eventoPoller } from "./log";
 
 const CHAVE_ESTADO = "estado";
 const CHAVE_ETAGS = "etags";
@@ -175,6 +177,10 @@ export class PollerApuracao extends DurableObject<Env> {
 		const cfg = this.cfg();
 		const estado = await this.lerEstado();
 		if (estado.encerrada) return;
+		const inicio = Date.now();
+		let lidos = 0;
+		let naoModificados = 0;
+		let erroCiclo: unknown = null;
 
 		const etags =
 			(await this.ctx.storage.get<Etags>(CHAVE_ETAGS)) ?? {};
@@ -211,6 +217,7 @@ export class PollerApuracao extends DurableObject<Env> {
 					maxAgeCiclo = Math.max(maxAgeCiclo, maxAge);
 					if (etag) etags[alvo.chave] = etag;
 					if (!json) {
+						naoModificados += 1;
 						if (
 							alvo.tipo !== "municipio" &&
 							!this.escopoGuardado(estado, alvo.chave)
@@ -219,6 +226,7 @@ export class PollerApuracao extends DurableObject<Env> {
 						}
 						continue;
 					}
+					lidos += 1;
 					const bruto = json as DadosBrutosCargo;
 					const tf = chaveTf(alvo);
 					if (tf) guardarTfEscopo(tf, bruto);
@@ -272,6 +280,7 @@ export class PollerApuracao extends DurableObject<Env> {
 			estado.erro = null;
 			novoBackoff = null;
 		} catch (erro) {
+			erroCiclo = erro;
 			const e = erro as ErroTse;
 			estado.erro = e.message ?? String(erro);
 			estado.encerrada = false;
@@ -304,11 +313,27 @@ export class PollerApuracao extends DurableObject<Env> {
 			await this.ctx.storage.put(CHAVE_BACKOFF, novoBackoff);
 		}
 
+		const registrarCiclo = (proximaMs: number | null) =>
+			registrar(
+				eventoPoller({
+					lidos,
+					naoModificados,
+					mudou,
+					cicloCompleto,
+					apurado: estado.cargos.presidente?.apurado ?? null,
+					encerrada: Boolean(estado.encerrada),
+					proximaMs,
+					erro: erroCiclo,
+					ms: Date.now() - inicio,
+				}),
+			);
+
 		if (estado.encerrada) {
 			estado.proximaConsulta = null;
 			await this.ctx.storage.put(CHAVE_ESTADO, estado);
 			await this.ctx.storage.deleteAlarm();
 			await this.ctx.storage.delete(CHAVE_ESCADA);
+			registrarCiclo(null);
 			return;
 		}
 
@@ -336,6 +361,7 @@ export class PollerApuracao extends DurableObject<Env> {
 		estado.proximaConsulta = agora + esperaMs;
 		await this.ctx.storage.put(CHAVE_ESTADO, estado);
 		await this.ctx.storage.setAlarm(estado.proximaConsulta);
+		registrarCiclo(esperaMs);
 	}
 
 	private escopoGuardado(estado: EstadoApuracao, chave: string): boolean {
