@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bindingsRecusados, recusarBindings } from "./pre-deploy.mjs";
+import { bindingsRecusados, recusarBindings, recusarPreviews } from "./pre-deploy.mjs";
 
 function limpo() {
 	return {
@@ -93,4 +93,52 @@ test("build com ratelimits vazio passa", () => {
 	const entrada = limpo();
 	entrada.buildJson.ratelimits = [];
 	assert.deepEqual(recusarBindings(entrada), { ok: true });
+});
+
+test("config sem bloco previews passa", () => {
+	assert.deepEqual(recusarPreviews(limpo()), { ok: true });
+});
+
+test("previews vazio no config falha", () => {
+	const entrada = limpo();
+	entrada.configText += "previews: {}\n";
+	const resultado = recusarPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(
+		resultado.erros.some(
+			(erro) => erro.includes("previews") && erro.includes("void.config.ts"),
+		),
+	);
+});
+
+test("previews com espaços antes dos dois pontos falha", () => {
+	const entrada = limpo();
+	entrada.configText += "previews  : {}\n";
+	const resultado = recusarPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(resultado.erros.some((erro) => erro.includes("void.config.ts")));
+});
+
+test("lock source.previews falha", () => {
+	const entrada = limpo();
+	entrada.lock.source.previews = {};
+	const resultado = recusarPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(
+		resultado.erros.some(
+			(erro) => erro.includes("previews") && erro.includes("void.lock.json"),
+		),
+	);
+});
+
+test("build com previews vazio falha", () => {
+	const entrada = limpo();
+	entrada.buildJson.previews = {};
+	const resultado = recusarPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(
+		resultado.erros.some(
+			(erro) => erro.includes("previews") && erro.includes("{}"),
+		),
+	);
 });
