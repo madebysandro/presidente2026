@@ -5,6 +5,11 @@ import { acharConfigDoBuild, RAIZ } from "./config-do-build.mjs";
 
 export const bindingsRecusados = ["ratelimits"];
 
+export const comandoDeployEsperado = "void deploy --platform cloudflare";
+
+const MOTIVO_MENSAGEM =
+	"a anotação workers/message é o estado schema 2 do Void 1.1.11; um wrapper pode gravar outro texto e o deploy seguinte deixa de ler o snapshot";
+
 const MOTIVO =
 	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput cai no default do switch";
 
@@ -67,18 +72,39 @@ export function recusarPreviews({ configText, lock, buildJson }) {
 	return { ok: false, erros };
 }
 
+export function recusarComandoDeploy(scripts) {
+	const erros = [];
+	if (scripts?.deploy !== comandoDeployEsperado) {
+		erros.push(
+			`package.json scripts.deploy é ${JSON.stringify(scripts?.deploy)}; precisa ser ${JSON.stringify(comandoDeployEsperado)} (${MOTIVO_MENSAGEM})`,
+		);
+	}
+	for (const gancho of ["predeploy", "postdeploy"]) {
+		if (scripts?.[gancho] != null) {
+			erros.push(
+				`package.json scripts.${gancho} não pode existir (${MOTIVO_MENSAGEM})`,
+			);
+		}
+	}
+	if (erros.length === 0) return { ok: true };
+	return { ok: false, erros };
+}
+
 function main() {
 	const configText = readFileSync(join(RAIZ, "void.config.ts"), "utf8");
 	const lock = JSON.parse(readFileSync(join(RAIZ, "void.lock.json"), "utf8"));
 	const build = acharConfigDoBuild(join(RAIZ, "dist/ssr"));
+	const pacote = JSON.parse(readFileSync(join(RAIZ, "package.json"), "utf8"));
 	const entrada = {
 		configText,
 		lock,
 		buildJson: build.json,
 	};
-	const erros = [recusarBindings(entrada), recusarPreviews(entrada)].flatMap(
-		(resultado) => (resultado.ok ? [] : resultado.erros),
-	);
+	const erros = [
+		recusarBindings(entrada),
+		recusarPreviews(entrada),
+		recusarComandoDeploy(pacote.scripts),
+	].flatMap((resultado) => (resultado.ok ? [] : resultado.erros));
 	if (erros.length > 0) {
 		for (const erro of erros) console.error(erro);
 		process.exit(1);
