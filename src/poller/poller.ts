@@ -143,7 +143,7 @@ export class PollerApuracao extends DurableObject<Env> {
 		return historico.filter((p) => p.t > desde);
 	}
 
-	/** Força um ciclo de consulta (usado nos testes e no primeiro aquecimento). */
+	/** Força um ciclo de consulta. Os testes chamam antes de afirmar dado do TSE. */
 	async consultarAgora(): Promise<EstadoApuracao> {
 		await this.consultar();
 		return this.lerEstado();
@@ -160,10 +160,6 @@ export class PollerApuracao extends DurableObject<Env> {
 		const alarme = await this.ctx.storage.getAlarm();
 		if (alarme != null) return;
 
-		if (estado.consultadoEm == null) {
-			await this.consultar();
-			return;
-		}
 		const agora = await this.agora();
 		const espera = limitarEsperaMs(
 			30,

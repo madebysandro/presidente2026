@@ -6,6 +6,7 @@ import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratan
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
 import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
+import { lerAlarme } from "./helpers/poller";
 
 describe("Página pública (#7, #10)", () => {
 	it("serve o topo das pesquisas com CSP e nosniff, sem Tela 2", async () => {
@@ -30,6 +31,12 @@ describe("Página pública (#7, #10)", () => {
 		expect(csp).toMatch(/frame-ancestors 'none'/);
 		expect(csp).toMatch(/img-src 'self' https:\/\/resultados\.tse\.jus\.br/);
 		expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+		const api = await fetchWorker(
+			new Request("http://presidente2026.test/api/apuracao"),
+		);
+		const dados = (await api.json()) as { consultadoEm: number | null };
+		expect(dados.consultadoEm).toBeNull();
+		expect(await lerAlarme()).toEqual(expect.any(Number));
 	});
 
 	it("GET / responde com cache-control no-cache (#62)", async () => {

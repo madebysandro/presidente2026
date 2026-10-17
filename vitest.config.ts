@@ -19,6 +19,7 @@ export default defineConfig({
 			...configDefaults.exclude,
 			"scripts/modo-deploy.test.mjs",
 			"scripts/pre-deploy.test.mjs",
+			"scripts/alerta-workers-builds.test.mjs",
 		],
 	},
 });
