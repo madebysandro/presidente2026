@@ -64,11 +64,12 @@ export async function lerFonte(urlInicial: string): Promise<LeituraFonte> {
 
 export function confirmarHtml(
 	html: string,
+	registro: string,
 	instituto: string,
 	totais: { flavio: number; lula: number },
 	validos: { flavio: number; lula: number } | null,
 ): boolean {
 	const pares: Array<[number, number]> = [[totais.flavio, totais.lula]];
 	if (validos) pares.push([validos.flavio, validos.lula]);
-	return paginaConfirma(html, instituto, pares);
+	return paginaConfirma(html, registro, instituto, pares);
 }

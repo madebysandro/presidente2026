@@ -626,6 +626,7 @@ export class Pesquisas extends DurableObject<Env> {
 					htmlFonte != null &&
 					confirmarHtml(
 						htmlFonte,
+						lido.envio.registro,
 						deNovo.instituto,
 						lido.envio.totais,
 						lido.envio.validosPublicados,
