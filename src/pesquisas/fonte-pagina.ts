@@ -54,6 +54,14 @@ export function parPresente(texto: string, a: number, b: number): boolean {
 	return fa.length > 0 && fb.length > 0;
 }
 
+/** Apelido entra como palavra. "futuramente" e "futuras" não valem "Futura". */
+function apelidoPresente(texto: string, apelido: string): boolean {
+	const normal = normalizarTexto(apelido);
+	if (!normal) return false;
+	const corpo = normal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(?<![a-z0-9])${corpo}(?![a-z0-9])`).test(texto);
+}
+
 export function paginaConfirma(
 	html: string,
 	registro: string,
@@ -61,7 +69,9 @@ export function paginaConfirma(
 	pares: ReadonlyArray<readonly [number, number]>,
 ): boolean {
 	const texto = textoDaPagina(html);
-	const nomes = [instituto, ...(APELIDOS_INSTITUTO_POR_REGISTRO[registro] ?? [])];
-	if (!nomes.some((nome) => texto.includes(normalizarTexto(nome)))) return false;
+	const apelidos = APELIDOS_INSTITUTO_POR_REGISTRO[registro] ?? [];
+	const temInstituto = texto.includes(normalizarTexto(instituto));
+	const temApelido = apelidos.some((apelido) => apelidoPresente(texto, apelido));
+	if (!temInstituto && !temApelido) return false;
 	return pares.some(([a, b]) => parPresente(texto, a, b));
 }

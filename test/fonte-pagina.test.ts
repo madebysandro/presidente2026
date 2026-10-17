@@ -39,4 +39,25 @@ describe("apelido Futura na confirmação da fonte", () => {
 			confirmarHtml("<p>Pesquisa Futura divulgada hoje.</p>", "BR-00650/2026", "100% Cidades", totais, null),
 		).toBe(false);
 	});
+
+	it("futuramente e futuras não contam como o nome Futura", () => {
+		expect(
+			confirmarHtml(
+				"<p>O instituto divulga futuramente: Flávio 46%, Lula 41%.</p>",
+				"BR-00650/2026",
+				"100% Cidades",
+				totais,
+				null,
+			),
+		).toBe(false);
+		expect(
+			confirmarHtml(
+				"<p>Eleições futuras: Flávio 46%, Lula 41%.</p>",
+				"BR-03764/2026",
+				"100% Cidades",
+				totais,
+				null,
+			),
+		).toBe(false);
+	});
 });
