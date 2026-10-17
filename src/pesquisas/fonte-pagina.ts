@@ -37,6 +37,15 @@ export function casaNumero(texto: string, n: number): boolean {
 	return ocorrencias(texto, n).length > 0;
 }
 
+/**
+ * A matéria cita este nome no lugar do instituto, só no registro indicado.
+ * Não é apelido geral do instituto.
+ */
+export const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly string[]>> = {
+	"BR-00650/2026": ["Futura"],
+	"BR-03764/2026": ["Futura"],
+};
+
 /** Os dois números ocupam trechos diferentes. 50% e 50% exigem duas ocorrências. */
 export function parPresente(texto: string, a: number, b: number): boolean {
 	const fa = ocorrencias(texto, a);
@@ -45,12 +54,24 @@ export function parPresente(texto: string, a: number, b: number): boolean {
 	return fa.length > 0 && fb.length > 0;
 }
 
+/** Apelido entra como palavra. "futuramente" e "futuras" não valem "Futura". */
+function apelidoPresente(texto: string, apelido: string): boolean {
+	const normal = normalizarTexto(apelido);
+	if (!normal) return false;
+	const corpo = normal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(?<![a-z0-9])${corpo}(?![a-z0-9])`).test(texto);
+}
+
 export function paginaConfirma(
 	html: string,
+	registro: string,
 	instituto: string,
 	pares: ReadonlyArray<readonly [number, number]>,
 ): boolean {
 	const texto = textoDaPagina(html);
-	if (!texto.includes(normalizarTexto(instituto))) return false;
+	const apelidos = APELIDOS_INSTITUTO_POR_REGISTRO[registro] ?? [];
+	const temInstituto = texto.includes(normalizarTexto(instituto));
+	const temApelido = apelidos.some((apelido) => apelidoPresente(texto, apelido));
+	if (!temInstituto && !temApelido) return false;
 	return pares.some(([a, b]) => parPresente(texto, a, b));
 }
