@@ -218,7 +218,7 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 `npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade; restaura código e triggers; não desfaz migração de banco nem de classe de Durable Object) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. `npx void project logs` acompanha o tail ao vivo.
 
-O modo em `void.config.ts` é `staged` (padrão do Void): o tráfego só muda depois do readiness. `npx void deploy --platform cloudflare --atomic` fica só para deploy com migração de classe de Durable Object — o atômico publica antes da checagem, e essa migração não tem rollback.
+O modo em `void.config.ts` é `atomic`, temporário enquanto o Cloudflare APIError 100405 não tiver correção. A mensagem é `All versions in a multi-version deployment must declare identical exports`, issue voidzero-dev/void#460. O tráfego muda antes do readiness. O modo não reescreve as migrações de Durable Object em `void.lock.json`. Uma migração de classe pendente passa. O rollback ainda não cruza a fronteira dessa migração. Rollback de banco também não desfaz migração.
 
 Antes do deploy, na máquina já autenticada na Cloudflare (não entra no CI e não usa token no log): `npx void env check --remote`.
 
