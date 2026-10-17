@@ -203,7 +203,7 @@ npm run dev
 | `npm run sonda:agente` | build + todas as rotas `/api/agente*` no bundle de produção (Miniflare puro, com e sem `CHAVE_AGENTE`) |
 | `npm run dev` | `vite` com `voidPlugin` (dev local da Void, Miniflare) |
 | `npm run prepare:void` | `void prepare` — tipos em `.void/` sem subir o dev server |
-| `npm run deploy` | `void deploy --platform cloudflare` (readiness + rollback da ativação) |
+| `npm run deploy` | `void deploy --platform cloudflare` (modo `atomic`: o tráfego muda antes do readiness) |
 
 ## Vars
 
@@ -216,9 +216,9 @@ npm run dev
 
 Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no painel; sem GitHub Actions de deploy).
 
-`npm run deploy` usa `void deploy --platform cloudflare` porque o Void faz verify do Worker existente, readiness check e rollback se a ativação falhar. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade; restaura código e triggers; não desfaz migração de banco nem de classe de Durable Object) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. `npx void project logs` acompanha o tail ao vivo.
+`npm run deploy` usa `void deploy --platform cloudflare`. O Void verifica o Worker existente antes de subir a versão. No modo `atomic`, o tráfego muda antes do readiness. Se essa checagem falhar, a versão nova já está no ar, e o Void não desfaz a ativação sozinho. Se a versão que já está no ar precisar voltar, o plano B é `void project rollback` (id completo da Worker Version, ou um prefixo sem ambiguidade; restaura código e triggers; não desfaz migração de banco nem de classe de Durable Object) ou o dashboard: Workers & Pages → `presidente2026` → Deployments → versão anterior. `npx void project logs` acompanha o tail ao vivo.
 
-O modo em `void.config.ts` é `staged` (padrão do Void): o tráfego só muda depois do readiness. `npx void deploy --platform cloudflare --atomic` fica só para deploy com migração de classe de Durable Object — o atômico publica antes da checagem, e essa migração não tem rollback.
+O modo em `void.config.ts` é `atomic`, temporário enquanto o Cloudflare APIError 100405 não tiver correção. A mensagem é `All versions in a multi-version deployment must declare identical exports`, issue voidzero-dev/void#460. O tráfego muda antes do readiness. O modo não reescreve as migrações de Durable Object em `void.lock.json`. Uma migração de classe pendente passa. O rollback ainda não cruza a fronteira dessa migração. Rollback de banco também não desfaz migração.
 
 Antes do deploy, na máquina já autenticada na Cloudflare (não entra no CI e não usa token no log): `npx void env check --remote`.
 
@@ -253,8 +253,8 @@ Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci`
 1. Cloudflare dashboard → Workers & Pages → Worker `presidente2026` → **Settings** → **Builds**.
 2. Em **Build configuration** → **API token**: confirme o token ativo. Se o build falhou com auth/verify e o token parece antigo, **Create new token** (Workers Scripts Edit no padrão) e salve.
 3. Em Deploy command, deixe `npx void deploy --platform cloudflare` e salve → **Retry build** se a config mudou.
-4. No log desse build: confirme verify (`deployments`/`versions`) + readiness.
-5. Se a ativação falhar, o Void desfaz a ativação. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
+4. No log desse build, confirme o verify (`deployments`/`versions`). O readiness corre depois que o tráfego já mudou.
+5. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
 Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
 

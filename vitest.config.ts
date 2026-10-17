@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 const miniflare = JSON.parse(readFileSync("./worker.vitest.json", "utf8"));
 
@@ -15,5 +15,6 @@ export default defineConfig({
 	],
 	test: {
 		setupFiles: ["./test/setup.ts"],
+		exclude: [...configDefaults.exclude, "scripts/modo-deploy.test.mjs"],
 	},
 });

@@ -9,11 +9,16 @@ import { defineConfig } from "void/config";
  * Anúncio: https://x.com/Cloudflare/status/2110741488548061546
  */
 export default defineConfig({
-	// staged é o padrão: tráfego só depois do readiness.
-	// --atomic só num deploy com migração de classe de Durable Object.
+	// atomic é temporário enquanto o Cloudflare APIError 100405 não tiver
+	// correção. A mensagem é "All versions in a multi-version deployment
+	// must declare identical exports", issue voidzero-dev/void#460. O
+	// tráfego muda antes do readiness. O modo não reescreve migrações de
+	// Durable Object em void.lock.json. Uma migração de classe pendente
+	// passa. O rollback ainda não cruza a fronteira dessa migração.
+	// Rollback de banco também não desfaz migração.
 	deploy: {
 		cloudflare: {
-			mode: "staged",
+			mode: "atomic",
 		},
 	},
 	routing: {
