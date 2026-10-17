@@ -1,6 +1,6 @@
 # Agentes
 
-- Fluxo: issue, depois branch `cursor/...`, depois PR com `Closes #N`. TDD. `npm test` e `npm run build`. No corpo, a saída dos comandos e o resumo do code-review.
+- Fluxo: 1. Issue, depois branch `cursor/...`. 2. TDD. `npm test` e `npm run build`. 3. Antes de abrir o PR, limpar o diff com a skill pstack `/no-comments`. 4. Provar no app com `.cursor/skills/verify-presidente2026`: `npm run dev` (Vite + Void no Miniflare local; nunca `wrangler` na conta), páginas alteradas em 390 px e 1280 px com capturas, e os testes existentes. Aí o PR com `Closes #N`. No corpo, a saída dos comandos, o resumo do code-review e a evidência.
 - Merge só com o `ci` verde e o Workers Builds verde. Depois do merge, conferir o Workers Builds da `main` e o site no ar.
 - Código: `/to-spec`, `/to-tickets`, `/implement`, `/implement-spec` ou prototype seguem essas skills, sem `/poteto-mode`. Nas demais, `/poteto-mode`. Em todas, `/interrogate` antes do merge.
 - Modelo dos agentes de código: `grok-4.7` sem fast, effort conforme a complexidade.
