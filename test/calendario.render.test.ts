@@ -329,6 +329,7 @@ describe("calendário da reta final (#11)", () => {
 
 		const mobile = css.slice(css.indexOf("@media (max-width: 760px)"));
 		const estreita = regra(mobile, ".a-cal {");
+		expect(estreita).toMatch(/display:\s*flex/);
 		expect(estreita).toMatch(/flex-direction:\s*column-reverse/);
 		expect(estreita).not.toMatch(/repeat\(7/);
 	});
