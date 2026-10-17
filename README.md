@@ -243,7 +243,7 @@ Para o gate de verify, o código do Void precisa conseguir ler deployments/versi
 | Build command | `npm run build` |
 | Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
 | Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
-| Preview builds | desligado |
+| Preview builds | desligar em **Branch control** (`previews_enabled`) |
 | API token | token do Builds (Create new token se stale) |
 
 Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
@@ -256,7 +256,11 @@ Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci`
 4. No log desse build, confirme o verify (`deployments`/`versions`). O readiness corre depois que o tráfego já mudou.
 5. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
-Sem preview de branch. Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
+Sem preview de branch. O Void 1.1.11 não tem chave para desligar o build de branch. A doc de Cloudflare do Void cobre `preview_urls`, e `cloudflare` é repassado para o Wrangler. Não adicionar um bloco `previews` nesse config. O Wrangler 4.151 pede o bloco vazio para rodar `npx wrangler preview`, e esse comando publica uma URL de branch com namespace novo de Durable Object. A API do agente fica sem segundo endereço (`workers_dev: false` e `preview_urls: false`).
+
+O interruptor é o painel. Workers & Pages → `presidente2026` → **Settings** → **Builds** → **Branch control** → desmarcar **Enable Preview Builds**. O mesmo campo na API é `previews_enabled` em `PATCH /accounts/{account_id}/builds/workers/{script_tag}`. Em 17/10/2026 esse campo estava `true`, o deploy de preview era `npx wrangler preview`, e o build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou com `missing a previews block`. A produção continua `npx void deploy --platform cloudflare` na `main`. O token que leu essa config recebeu erro 10000 no PATCH. Quem tem escrita no Builds desmarca o checkbox. Enquanto `previews_enabled` ficar `true`, o check Workers Builds fica vermelho em todo PR por esse motivo. Depois do desligamento, vermelho nesse check é falha real.
+
+Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 

@@ -15,6 +15,10 @@ export default defineConfig({
 	],
 	test: {
 		setupFiles: ["./test/setup.ts"],
-		exclude: [...configDefaults.exclude, "scripts/modo-deploy.test.mjs"],
+		exclude: [
+			...configDefaults.exclude,
+			"scripts/modo-deploy.test.mjs",
+			"scripts/pre-deploy.test.mjs",
+		],
 	},
 });
