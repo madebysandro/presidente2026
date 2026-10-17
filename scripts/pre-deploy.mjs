@@ -1,6 +1,6 @@
 /**
  * Bindings que o Void 1.1.11 não sobe com pinned secrets.
- * bindingsFromOutput não tem case `ratelimit` e lança na branch default.
+ * bindingsFromOutput não tem case `ratelimit` e cai no default do switch.
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -9,11 +9,11 @@ import { pathToFileURL } from "node:url";
 export const bindingsRecusados = ["ratelimits"];
 
 const MOTIVO =
-	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput lança na branch default";
+	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput cai no default do switch";
 
 function propriedadeNoConfig(chave, texto) {
 	const literal = chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	return new RegExp(`${literal}\\s?:`).test(texto);
+	return new RegExp(`${literal}\\s*:`).test(texto);
 }
 
 export function recusarBindings({ configText, lock, buildJson }) {

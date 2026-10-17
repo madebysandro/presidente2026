@@ -21,6 +21,14 @@ test("config limpa passa", () => {
 	assert.deepEqual(recusarBindings(limpo()), { ok: true });
 });
 
+test("ratelimits com espaços antes dos dois pontos falha", () => {
+	const entrada = limpo();
+	entrada.configText += "ratelimits  : []\n";
+	const resultado = recusarBindings(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(resultado.erros.some((erro) => erro.includes("void.config.ts")));
+});
+
 test("ratelimits: no config falha", () => {
 	const entrada = limpo();
 	entrada.configText += "ratelimits: []\n";
