@@ -20,13 +20,10 @@ function exigirNode() {
 function ambienteLocal() {
 	return {
 		...process.env,
-		PATH: `${dirname(process.execPath)}${pathSep()}${process.env.PATH ?? ""}`,
+		PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ""}`,
 		VOID_REMOTE: "0",
+		NO_COLOR: "1",
 	};
-}
-
-function pathSep() {
-	return process.platform === "win32" ? ";" : ":";
 }
 
 function planoLancamento(porta) {
@@ -71,7 +68,10 @@ async function variavel(pid, nome) {
 }
 
 function redigir(texto) {
-	return texto.replace(/x-void-dev-trigger:\s*\S+/g, "x-void-dev-trigger: [redigido]");
+	return texto
+		.replace(/\x1b\[[0-9;]*m/g, "")
+		.replace(/x-void-dev-trigger:\s*\S+/g, "x-void-dev-trigger: [redigido]")
+		.replace(/([?&]token=)[^&\s'"]+/g, "$1[redigido]");
 }
 
 async function redigirLog(logPath) {
@@ -85,7 +85,7 @@ async function esperarUrl(logPath, porta, pid) {
 	const inicio = Date.now();
 	while (Date.now() - inicio < 60_000) {
 		if (!vivo(pid)) throw new Error("O Vite encerrou antes de ficar pronto.");
-		const texto = await readFile(logPath, "utf8").catch(() => "");
+		const texto = redigir(await readFile(logPath, "utf8").catch(() => ""));
 		if (texto.includes("ready") && texto.includes(alvo)) return alvo;
 		await dormir(200);
 	}
@@ -117,12 +117,16 @@ async function launch(porta) {
 	await saida.close();
 	const pid = filho.pid;
 	if (!pid) throw new Error("O Vite não devolveu pid.");
-	const base = await esperarUrl(logPath, porta, pid);
-	await dormir(1500);
-	await redigirLog(logPath);
+	const base = `http://127.0.0.1:${porta}/`;
 	const estado = { pid, porta, base, prova, logPath };
 	await mkdir(dirname(ESTADO), { recursive: true });
 	await writeFile(ESTADO, JSON.stringify(estado, null, 2));
+	try {
+		await esperarUrl(logPath, porta, pid);
+	} catch (erro) {
+		await cleanup();
+		throw erro;
+	}
 	console.log(JSON.stringify({ pronto: base, pid, prova }));
 }
 
@@ -157,8 +161,7 @@ async function doctor() {
 	if (resposta.status !== 200) throw new Error(`GET / respondeu ${resposta.status}.`);
 	if (!html.includes("<title>Presidente 2026")) throw new Error("O HTML não é a página do 2º turno.");
 	if (!html.includes('class="a"')) throw new Error("O HTML não tem o <main> da página.");
-	await redigirLog(estado.logPath);
-	const trecho = await readFile(estado.logPath, "utf8")
+	const trecho = redigir(await readFile(estado.logPath, "utf8"))
 		.split("\n")
 		.filter((item) => item.includes("Local:") || item.includes("ready"))
 		.join("\n");
@@ -220,16 +223,16 @@ async function drivePagina(estado) {
 			const titulo = await pagina.title();
 			const h1 = (await pagina.locator("h1").first().textContent())?.trim() ?? "";
 			const fase = await pagina.locator("main.a").getAttribute("data-fase");
-			const como = await pagina.getByRole("heading", { name: "Como calculamos" }).count();
+			const comoCalculamos = await pagina.getByRole("heading", { name: "Como calculamos" }).count();
 			const topo = await diaNoTopo(pagina);
 			const png = await capturar(pagina, estado.prova, `pagina-${largura}`);
-			relatorio.larguras[largura] = { titulo, h1, fase, como, topo, png };
+			relatorio.larguras[largura] = { titulo, h1, fase, comoCalculamos, topo, png };
 			if (titulo !== "Presidente 2026 · 2º turno") throw new Error(`Título inesperado: ${titulo}`);
 			if (!h1) throw new Error("A página não tem h1.");
-			if (fase !== "pesquisas" && fase !== "apuracao" && fase !== "encerrada") {
+			if (fase !== "pesquisas" && fase !== "ao_vivo" && fase !== "encerrada") {
 				throw new Error(`Fase desconhecida: ${fase}`);
 			}
-			if (!como) throw new Error('O heading "Como calculamos" não apareceu.');
+			if (!comoCalculamos) throw new Error('O heading "Como calculamos" não apareceu.');
 			await contexto.close();
 		}
 	} finally {
@@ -237,8 +240,10 @@ async function drivePagina(estado) {
 	}
 	const estreita = relatorio.larguras[390].topo;
 	const larga = relatorio.larguras[1280].topo;
+	const fase = relatorio.larguras[390].fase;
+	const topoLargo = fase === "pesquisas" ? "2026-10-05" : "2026-10-19";
 	if (estreita !== "2026-10-25") throw new Error(`Em 390 px o dia do topo foi ${estreita}.`);
-	if (larga !== "2026-10-05") throw new Error(`Em 1280 px o dia do topo foi ${larga}.`);
+	if (larga !== topoLargo) throw new Error(`Em 1280 px o dia do topo foi ${larga}.`);
 	await writeFile(join(estado.prova, "pagina-pesquisas.json"), JSON.stringify(relatorio, null, 2));
 	console.log(JSON.stringify(relatorio));
 }
@@ -314,60 +319,75 @@ async function drive(feature) {
 	throw new Error(`Feature desconhecida: ${feature}`);
 }
 
+function urlLocal(base, caminho) {
+	if (!caminho.startsWith("/") || caminho.startsWith("//")) {
+		throw new Error(`Rota fora do servidor local: ${caminho}`);
+	}
+	const url = new URL(caminho, base);
+	if (url.origin !== new URL(base).origin) throw new Error(`Rota fora do servidor local: ${caminho}`);
+	return url;
+}
+
 async function paginas(caminhos) {
 	const estado = await lerEstado();
-	const navegador = await browser();
 	const feito = [];
+	let navegador;
 	try {
 		for (const caminho of caminhos) {
-			if (caminho.startsWith("/api/")) {
-				const resposta = await fetch(new URL(caminho, estado.base), { signal: AbortSignal.timeout(180_000) });
-				const corpo = await resposta.text();
-				const nome = caminho.slice(1).replaceAll("/", "-") || "raiz";
-				await writeFile(join(estado.prova, `pagina-api-${nome}.txt`), `status ${resposta.status}\n${corpo.slice(0, 4000)}`);
-				if (resposta.status >= 500) throw new Error(`${caminho} respondeu ${resposta.status}.`);
-				feito.push({ caminho, status: resposta.status });
+			const url = urlLocal(estado.base, caminho);
+			const resposta = await fetch(url, { signal: AbortSignal.timeout(180_000) });
+			const tipo = resposta.headers.get("content-type") ?? "";
+			const corpo = Buffer.from(await resposta.arrayBuffer());
+			if (resposta.status !== 200) throw new Error(`${caminho} respondeu ${resposta.status}.`);
+			const nome = caminho === "/" ? "raiz" : caminho.slice(1).replaceAll("/", "-");
+			if (!tipo.includes("text/html")) {
+				await writeFile(join(estado.prova, `alterada-${nome}.bin`), corpo);
+				feito.push({ caminho, status: 200, tipo });
 				continue;
 			}
+			navegador ??= await browser();
 			for (const largura of LARGURAS) {
 				const contexto = await navegador.newContext({
 					viewport: { width: largura, height: largura === 390 ? 844 : 800 },
 					colorScheme: "light",
 				});
 				const pagina = await contexto.newPage();
-				if (caminho === "/" || caminho === "") await abrir(pagina, estado.base);
-				else await pagina.goto(new URL(caminho, estado.base).href, { waitUntil: "domcontentloaded", timeout: 180_000 });
-				const nome = (caminho === "/" ? "raiz" : caminho.slice(1).replaceAll("/", "-")) + `-${largura}`;
-				await pagina.screenshot({ path: join(estado.prova, `alterada-${nome}.png`), fullPage: caminho === "/" });
+				if (caminho === "/") await abrir(pagina, estado.base);
+				else {
+					const ida = await pagina.goto(url.href, { waitUntil: "domcontentloaded", timeout: 180_000 });
+					if (!ida || ida.status() !== 200) throw new Error(`${caminho} respondeu ${ida?.status()}.`);
+				}
+				await pagina.screenshot({ path: join(estado.prova, `alterada-${nome}-${largura}.png`), fullPage: caminho === "/" });
 				await contexto.close();
-				feito.push({ caminho, largura });
+				feito.push({ caminho, largura, status: 200 });
 			}
 		}
 	} finally {
-		await navegador.close();
+		await navegador?.close();
 	}
 	console.log(JSON.stringify({ paginas: feito, prova: estado.prova }));
 }
 
-function testes() {
+async function testes() {
 	exigirNode();
-	return new Promise(async (resolver, rejeitar) => {
-		const estado = await lerEstado().catch(() => null);
-		const prova = estado?.prova ?? join(RAIZ, "artifacts/verificacao/provas", "testes");
-		await mkdir(prova, { recursive: true });
-		const logPath = join(prova, "npm-test.log");
-		const saida = await open(logPath, "w");
-		const filho = spawn("npm", ["test"], {
-			cwd: RAIZ,
-			env: ambienteLocal(),
-			stdio: ["ignore", saida.fd, saida.fd],
+	const estado = await lerEstado();
+	const logPath = join(estado.prova, "npm-test.log");
+	const saida = await open(logPath, "w");
+	try {
+		const codigo = await new Promise((resolver, rejeitar) => {
+			const filho = spawn("npm", ["test"], {
+				cwd: RAIZ,
+				env: ambienteLocal(),
+				stdio: ["ignore", saida.fd, saida.fd],
+			});
+			filho.on("error", rejeitar);
+			filho.on("exit", (codigoSaida) => resolver(codigoSaida ?? 1));
 		});
-		filho.on("exit", async (codigo) => {
-			await saida.close();
-			if (codigo === 0) resolver(console.log(JSON.stringify({ ok: true, log: logPath })));
-			else rejeitar(new Error(`npm test saiu com ${codigo}. Log: ${logPath}`));
-		});
-	});
+		if (codigo !== 0) throw new Error(`npm test saiu com ${codigo}. Log: ${logPath}`);
+	} finally {
+		await saida.close();
+	}
+	console.log(JSON.stringify({ ok: true, log: logPath }));
 }
 
 async function cleanup() {

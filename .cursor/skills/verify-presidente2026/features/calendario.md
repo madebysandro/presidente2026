@@ -28,4 +28,4 @@ Preconditions:
 
 - Pesquisa com número é um botão `.a-pesq`. Sem número publicado o dia mostra o texto "sem números ainda" ou o item futuro, e não há botão para abrir ficha. Não invente um clique numa pesquisa que o TSE local não publicou.
 - "Rever as três semanas" com `.a-cabo` e movimento ligado dispara a vinheta de novo. Sem cabo, só volta ao topo.
-- Fase `apuracao` ou `encerrada` troca o rótulo para a última semana. Reporte o pré-requisito em vez de aceitar a região errada.
+- Fase `ao_vivo` ou `encerrada` troca o rótulo para a última semana. Reporte o pré-requisito em vez de aceitar a região errada.
