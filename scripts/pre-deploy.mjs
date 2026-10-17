@@ -1,10 +1,7 @@
-/**
- * Bindings que o Void 1.1.11 não sobe com pinned secrets.
- * bindingsFromOutput não tem case `ratelimit` e cai no default do switch.
- */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { acharConfigDoBuild, RAIZ } from "./config-do-build.mjs";
 
 export const bindingsRecusados = ["ratelimits"];
 
@@ -70,9 +67,7 @@ export function recusarPreviews({ configText, lock, buildJson }) {
 	return { ok: false, erros };
 }
 
-async function main() {
-	// runtime-local importa este módulo. O import estático fecharia o ciclo.
-	const { acharConfigDoBuild, RAIZ } = await import("./runtime-local.mjs");
+function main() {
 	const configText = readFileSync(join(RAIZ, "void.config.ts"), "utf8");
 	const lock = JSON.parse(readFileSync(join(RAIZ, "void.lock.json"), "utf8"));
 	const build = acharConfigDoBuild(join(RAIZ, "dist/ssr"));

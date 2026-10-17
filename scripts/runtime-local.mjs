@@ -5,11 +5,11 @@
  * que o site precisa em produção.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { acharConfigDoBuild, RAIZ } from "./config-do-build.mjs";
 import { recusarBindings, recusarPreviews } from "./pre-deploy.mjs";
 
-export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
+export { acharConfigDoBuild, RAIZ };
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
 const CPU_MS = 300_000;
 
@@ -21,35 +21,6 @@ function falha(mensagem) {
 function absoluto(base, caminho) {
 	if (typeof caminho !== "string" || caminho.length === 0) return caminho;
 	return isAbsolute(caminho) ? caminho : resolve(base, caminho);
-}
-
-export function acharConfigDoBuild(dir) {
-	if (!existsSync(dir)) falha(`config do build: falta ${dir}`);
-	const achados = [];
-	for (const nome of readdirSync(dir)) {
-		if (!nome.endsWith(".json")) continue;
-		const caminho = join(dir, nome);
-		let json;
-		try {
-			json = JSON.parse(readFileSync(caminho, "utf8"));
-		} catch {
-			continue;
-		}
-		if (
-			json &&
-			json.name === "presidente2026" &&
-			json.assets &&
-			typeof json.main === "string"
-		) {
-			achados.push({ caminho, json, dir: dirname(caminho) });
-		}
-	}
-	if (achados.length !== 1) {
-		falha(
-			`config do build: esperava 1 JSON do Worker em ${dir}, achei ${achados.length}`,
-		);
-	}
-	return achados[0];
 }
 
 function classesSqlite(config) {
