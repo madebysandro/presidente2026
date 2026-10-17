@@ -1,0 +1,31 @@
+name: Alerta Workers Builds
+
+on:
+  check_run:
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+  checks: read
+
+jobs:
+  alerta:
+    if: "${{ github.event.check_run.name == 'Workers Builds: presidente2026' && github.event.check_run.conclusion == 'failure' && github.event.check_run.check_suite.head_branch == 'main' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.21"
+      - name: gravar check_run
+        env:
+          CHECK_RUN_PATH: ${{ runner.temp }}/check-run.json
+        run: |
+          node --input-type=module -e 'import { readFileSync, writeFileSync } from "node:fs"; const evento = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")); writeFileSync(process.env.CHECK_RUN_PATH, JSON.stringify(evento.check_run));'
+      - name: abrir ou comentar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECK_RUN_PATH: ${{ runner.temp }}/check-run.json
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/alerta-workers-builds.mjs
