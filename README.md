@@ -220,6 +220,20 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 O modo em `void.config.ts` é `atomic`, temporário enquanto o Cloudflare APIError 100405 não tiver correção. A mensagem é `All versions in a multi-version deployment must declare identical exports`, issue voidzero-dev/void#460. O tráfego muda antes do readiness. O modo não reescreve as migrações de Durable Object em `void.lock.json`. Uma migração de classe pendente passa. O rollback ainda não cruza a fronteira dessa migração. Rollback de banco também não desfaz migração.
 
+### Mensagem da versão
+
+No painel, cada versão criada por `npx void deploy` mostra `void:{"schema":2,...}`. No Void 1.1.11 esse texto é a anotação `workers/message`. `encodeCloudflareVersionMessage` grava `void:` mais JSON. Com trigger, o schema é 2: `migrations`, `triggerConfig` (`settingsHash`, `preserve`, rotas, `workers_dev`, `preview_urls`, crons, filas, workflows) e, se o terceiro argumento for um sha256 em hex, `contentHash`. O deploy deste repo chama a função com dois argumentos, então a versão sobe sem `contentHash`.
+
+`parseCloudflareVersionMessage` devolve null se a string não começa com `void:` ou se o resto não é JSON de schema 1 ou 2. Prefixo, sufixo ou uma nota no lugar do JSON dão null, mesmo abaixo do teto de 1000 bytes. Um campo extra no topo, ou uma chave estranha dentro de `triggerConfig`, some na releitura. O `activateCloudflareVersion` só lê a mensagem da versão anterior quando a mensagem nova parseia como schema 2. Aí compara `settingsHash` e os triggers e regrava com dois argumentos, sem `contentHash`. Se o parse falha, o snapshot anterior não entra.
+
+Neste Worker o deploy grava `preserve: true`. O rollback de hoje não restaura triggers pelo snapshot: move o tráfego e mantém rotas e crons. Sem o JSON, o deploy seguinte segue sem esse snapshot. Se o config passar a omitir `routes`, `workers_dev` ou `preview_urls`, `resolvePreservedTraffic` devolve null e o deploy para com `traffic-preservation-unavailable`.
+
+Não há flag, chave de `void.config.ts` nem variável de ambiente para uma nota humana. `deploy.cloudflare` só aceita `mode`. `WORKERS_CI` no Void só detecta CI. O Workers Builds injeta `WORKERS_CI_COMMIT_SHA` e `WORKERS_CI_BRANCH`. A doc não lista `WORKERS_CI_COMMIT_MESSAGE`. O `cf` 1.0.0-beta.17 que este lock instala só preenche `workers/commit_sha` no upload de preview, e lê `GITHUB_SHA`, `CI_COMMIT_SHA`, `CIRCLE_SHA1` ou `COMMIT_SHA`. O fallback `git log -1 --format=%B` também é só do preview, e só quando ninguém passou `--message`. O Void sempre passa `--message` no deploy. No modo `atomic` o upload manda `annotations` só com `workers/message`.
+
+`workers/tag` cabe 100 bytes. O JSON deste Worker, com as duas migrações e a rota `presidente2026.win`, tem 353 bytes. A versão é imutável. O `scripts/pre-deploy.mjs` recusa `scripts.deploy` diferente de `void deploy --platform cloudflare` e recusa `scripts.predeploy` e `scripts.postdeploy`, porque `npm run deploy` rodaria esses ganchos.
+
+Quando o Void gravar a nota num campo que ele não relê, o formato é `<sha de 7> <primeira linha do assunto> (#N)`. Exemplo: `2481396 Fluxo: limpar o diff e provar no app local (#81)`. Sem PR, `<sha de 7> <assunto>`. A tag opcional repete a string se couber em 100 bytes; senão, só o sha de 7. Uma nota na frente do JSON quebra o parser de hoje. Se o upstream puser a nota nesse campo, tem de omitir a nota quando a soma estourar 1000 bytes.
+
 Antes do deploy, na máquina já autenticada na Cloudflare (não entra no CI e não usa token no log): `npx void env check --remote`.
 
 `routing.notFound` fica em `"none"` para o `createAssetFallback` do Void não trocar GET `/api/*` 404 por `index.html` (modo SPA padrão quando só há rotas de API).
