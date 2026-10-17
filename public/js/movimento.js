@@ -10,6 +10,10 @@ function calmo() {
 	return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+function telaEstreita() {
+	return matchMedia("(max-width: 760px)").matches;
+}
+
 function formatar(n) {
 	return new Intl.NumberFormat("pt-BR", {
 		minimumFractionDigits: 1,
@@ -220,33 +224,36 @@ function abrir() {
 	celulas.forEach((celula, i) => {
 		const futuro = i > iHoje;
 		const t = futuro ? tHoje + 380 + (i - iHoje) * 45 : i * PASSO;
-		animar(
-			celula,
-			futuro
-				? [
-						{ opacity: 0, transform: "translateY(6px)" },
-						{ opacity: 1, transform: "none" },
-					]
-				: [{ opacity: 0.25 }, { opacity: 1 }],
-			{ delay: t, duration: futuro ? 300 : 260 },
-		);
-		[...celula.querySelectorAll(".a-item")].forEach((item, j) => {
+		// Na coluna invertida o futuro é o topo. fill "both" seguraria esses cards em opacity 0 durante o atraso.
+		if (!(futuro && telaEstreita())) {
 			animar(
-				item,
-				[
-					{ opacity: 0, transform: "translateY(-10px)" },
-					{ opacity: 1, transform: "none" },
-				],
-				{ delay: t + 70 + j * 70, duration: 380 },
+				celula,
+				futuro
+					? [
+							{ opacity: 0, transform: "translateY(6px)" },
+							{ opacity: 1, transform: "none" },
+						]
+					: [{ opacity: 0.25 }, { opacity: 1 }],
+				{ delay: t, duration: futuro ? 300 : 260 },
 			);
-			[...item.querySelectorAll(".a-mini i")].forEach((fatia, k) => {
-				fatia.style.transformOrigin = k ? "left" : "right";
-				animar(fatia, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
-					delay: t + 140 + j * 70,
-					duration: 520,
+			[...celula.querySelectorAll(".a-item")].forEach((item, j) => {
+				animar(
+					item,
+					[
+						{ opacity: 0, transform: "translateY(-10px)" },
+						{ opacity: 1, transform: "none" },
+					],
+					{ delay: t + 70 + j * 70, duration: 380 },
+				);
+				[...item.querySelectorAll(".a-mini i")].forEach((fatia, k) => {
+					fatia.style.transformOrigin = k ? "left" : "right";
+					animar(fatia, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
+						delay: t + 140 + j * 70,
+						duration: 520,
+					});
 				});
 			});
-		});
+		}
 		if (futuro) return;
 		const id = setTimeout(() => {
 			if (conta) rolar(conta, diasRestantes() + (iHoje - i));
