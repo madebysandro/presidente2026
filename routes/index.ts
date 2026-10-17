@@ -25,7 +25,7 @@ export const GET = defineHandler(async (c) => {
 			headers: { "cache-control": "no-cache" },
 		});
 	}
-	return c.html(documentoPesquisas(corpo, agoraPagina, noite), 200, {
+	return c.html(documentoPesquisas(corpo, agoraPagina, noite, new URL(c.req.url).origin), 200, {
 		"cache-control": "no-cache",
 	});
 });

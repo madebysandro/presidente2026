@@ -16,6 +16,7 @@ import { htmlGeografiaCheia, htmlGeografiaLateral } from "./geografia";
 import { dadosAbertura } from "./abertura";
 import { htmlCalendario } from "./calendario";
 import { htmlComoCalculamos, htmlRodape, htmlVantagem } from "./grafico";
+import { htmlMetasPrevia, ORIGEM_PREVIA } from "./previa";
 import { htmlTopo } from "./topo";
 
 export type NoiteDaPagina = {
@@ -64,6 +65,7 @@ export function documentoPesquisas(
 	payload: PayloadPesquisas,
 	agora: Date,
 	noite?: NoiteDaPagina,
+	origem = ORIGEM_PREVIA,
 ): string {
 	const vista = vistaDe(payload, agora, noite);
 	const abertura = escHtml(JSON.stringify(dadosAbertura(vista.pesquisas)));
@@ -73,6 +75,7 @@ export function documentoPesquisas(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Presidente 2026 · 2º turno</title>
+${htmlMetasPrevia(vista.pesquisas, agora, origem)}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/tres-semanas.css">
 </head>
