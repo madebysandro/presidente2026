@@ -17,7 +17,12 @@ const OG = [
 
 const AMBAS = ["src/pagina/previa.ts"];
 
-const NOITE = ["src/pagina/ao-vivo.ts", "src/pagina/encerrada.ts", "src/pagina/geografia.ts"];
+const NOITE = [
+	"src/pagina/ao-vivo.ts",
+	"src/pagina/encerrada.ts",
+	"src/pagina/geografia.ts",
+	"public/js/ao-vivo.js",
+];
 
 export function htmlDoisTurno(titulo, fase, temMarca) {
 	return titulo === "Presidente 2026 · 2º turno" && fase.length > 0 && temMarca;
@@ -51,6 +56,7 @@ export function paginasDoDiff(arquivos) {
 
 export function alvosDaProva(arquivos) {
 	const urls = paginasDoDiff(arquivos);
-	if (urls.length === 0) return [{ url: "/", motivo: "sem-pagina-no-diff" }];
-	return urls.map((url) => ({ url, motivo: "diff" }));
+	const alvos = [{ url: "/", motivo: urls.includes("/") ? "diff" : "sem-pagina-no-diff" }];
+	if (urls.includes("/og.png")) alvos.push({ url: "/og.png", motivo: "diff" });
+	return alvos;
 }

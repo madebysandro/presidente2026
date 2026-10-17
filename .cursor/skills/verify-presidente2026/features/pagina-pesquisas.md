@@ -20,8 +20,8 @@ Preconditions:
 - O doctor em `http://127.0.0.1:5173` está ok.
 - `data-fase` no `main` é `pesquisas`. Se for `ao_vivo` ou `encerrada`, esta feature não foi alcançada.
 
-- **Abrir.** Run `node .cursor/skills/verify-presidente2026/verificar.mjs provar --base http://127.0.0.1:5173 --base-ref main`. O `relatorio.json` traz `pagina.titulo` igual a `Presidente 2026 · 2º turno`, `pagina.fase` igual a `pesquisas` e `pagina.h1` não vazio. Existem `pagina-390.png` e `pagina-1280.png`.
-- **Rever.** O mesmo comando clica em `Rever as três semanas` a 1280 px. `pagina.h1Depois` continua não vazio e existe `acao-rever-1280.png`.
+- **Abrir.** Run `node .cursor/skills/verify-presidente2026/verificar.mjs provar --base http://127.0.0.1:5173 --base-ref main`. O `relatorio.json` traz `pagina.titulo` igual a `Presidente 2026 · 2º turno` e `pagina.h1` não vazio. Esta feature só está provada se `pagina.fase` for `pesquisas`. Outra fase encerra a jornada aqui. Existem `pagina-390.png` e `pagina-1280.png`.
+- **Rever.** O mesmo comando desce a página e clica em `Rever as três semanas` a 1280 px. `pagina.scrollAntes` é maior que 0, o scroll volta a 0, `pagina.h1Depois` continua não vazio e existe `acao-rever-1280.png`.
 - **Prova.** As duas larguras mostram a marca `Presidente 2026, 2º turno` e o `h1`.
 
 ## Gotchas

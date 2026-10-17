@@ -35,6 +35,7 @@ test("diff da noite com a fase pesquisas não conta como noite exercitada", () =
 	assert.equal(noiteSemSuperficie(["src/pagina/ao-vivo.ts"], "pesquisas"), true);
 	assert.equal(noiteSemSuperficie(["src/pagina/encerrada.ts"], "pesquisas"), true);
 	assert.equal(noiteSemSuperficie(["src/pagina/geografia.ts"], "ao_vivo"), false);
+	assert.equal(noiteSemSuperficie(["public/js/ao-vivo.js"], "pesquisas"), true);
 	assert.equal(noiteSemSuperficie(["src/pagina/grafico.ts"], "pesquisas"), false);
 });
 
@@ -46,6 +47,13 @@ test("diff sem página ainda prova a superfície primária", () => {
 	assert.deepEqual(paginasDoDiff(["AGENTS.md"]), []);
 	assert.deepEqual(alvosDaProva(["AGENTS.md", ".cursor/skills/verify-presidente2026/SKILL.md"]), [
 		{ url: "/", motivo: "sem-pagina-no-diff" },
+	]);
+});
+
+test("arquivo de imagem não esconde a página", () => {
+	assert.deepEqual(alvosDaProva(["src/pesquisas/pesquisas.ts", "routes/og.png.ts"]), [
+		{ url: "/", motivo: "sem-pagina-no-diff" },
+		{ url: "/og.png", motivo: "diff" },
 	]);
 });
 

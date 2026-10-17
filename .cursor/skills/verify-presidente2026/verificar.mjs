@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { accessSync, constants, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
@@ -9,13 +10,27 @@ import { chromium } from "playwright-core";
 import { LARGURAS, alvosDaProva, htmlDoisTurno, noiteSemSuperficie } from "./paginas.mjs";
 
 const RAIZ = fileURLToPath(new URL("../../..", import.meta.url));
-const PID = "/tmp/verify-presidente2026.pid";
-const LOG = "/tmp/verify-presidente2026-server.log";
-const RUN = "/tmp/verify-presidente2026.run";
+const SUFIXO = createHash("sha256").update(RAIZ).digest("hex").slice(0, 8);
+const PID = `/tmp/verify-presidente2026-${SUFIXO}.pid`;
+const LOG = `/tmp/verify-presidente2026-${SUFIXO}.log`;
+const RUN = `/tmp/verify-presidente2026-${SUFIXO}.run`;
 const ALTURA = 900;
 
 const args = process.argv.slice(2);
-const comando = args.find((item) => !item.startsWith("--")) || "tudo";
+
+function comandoDe(lista) {
+	const pulados = new Set();
+	for (let i = 0; i < lista.length; i++) {
+		if (lista[i] === "--port" || lista[i] === "--base" || lista[i] === "--base-ref") pulados.add(i + 1);
+	}
+	for (let i = 0; i < lista.length; i++) {
+		if (pulados.has(i) || lista[i].startsWith("--")) continue;
+		return lista[i];
+	}
+	return "tudo";
+}
+
+const comando = comandoDe(args);
 
 function valor(nome, padrao) {
 	const indice = args.indexOf(`--${nome}`);
@@ -81,7 +96,7 @@ function arquivosDoDiff(baseRef) {
 }
 
 async function lerPagina(base) {
-	const resposta = await fetch(base + "/", { redirect: "manual" });
+	const resposta = await fetch(base + "/", { redirect: "manual", signal: AbortSignal.timeout(60_000) });
 	const corpo = await resposta.text();
 	const tipo = resposta.headers.get("content-type") || "";
 	const titulo = corpo.match(/<title>([^<]*)<\/title>/)?.[1] ?? "";
@@ -109,10 +124,14 @@ export async function doctor(base) {
 	};
 }
 
-function esperarPronto(base) {
+function esperarPronto(base, filho) {
 	const limite = Date.now() + 180_000;
 	return new Promise((resolve, reject) => {
 		const olhar = async () => {
+			if (filho.exitCode !== null) {
+				reject(new Error(`o servidor local saiu com código ${filho.exitCode}`));
+				return;
+			}
 			let log = "";
 			try {
 				log = readFileSync(LOG, "utf8");
@@ -127,7 +146,9 @@ function esperarPronto(base) {
 						return;
 					}
 				} catch (erro) {
-					if (!(erro instanceof TypeError)) {
+					const nome = erro && erro.name;
+					const rede = erro instanceof TypeError || nome === "TimeoutError" || nome === "AbortError";
+					if (!rede) {
 						reject(erro);
 						return;
 					}
@@ -166,7 +187,7 @@ async function launch(porta) {
 	writeFileSync(PID, String(filho.pid));
 	const base = `http://127.0.0.1:${porta}`;
 	try {
-		const laudo = await esperarPronto(base);
+		const laudo = await esperarPronto(base, filho);
 		return { pid: filho.pid, base, laudo };
 	} catch (erro) {
 		await cleanup();
@@ -216,15 +237,11 @@ async function cleanup() {
 }
 
 function pastaDaProva() {
-	try {
-		return readFileSync(RUN, "utf8").trim();
-	} catch {
-		const id = new Date().toISOString().replace(/[:.]/g, "-");
-		const pasta = join(RAIZ, "artifacts", "verify-presidente2026", id);
-		mkdirSync(pasta, { recursive: true });
-		writeFileSync(RUN, pasta);
-		return pasta;
-	}
+	const id = new Date().toISOString().replace(/[:.]/g, "-");
+	const pasta = join(RAIZ, "artifacts", "verify-presidente2026", id);
+	mkdirSync(pasta, { recursive: true });
+	writeFileSync(RUN, pasta);
+	return pasta;
 }
 
 async function capturar(base, alvos, pasta) {
@@ -265,6 +282,18 @@ async function capturar(base, alvos, pasta) {
 					if (!h1 || !htmlDoisTurno(titulo, fase ?? "", marca.includes("Presidente 2026, 2º turno"))) {
 						throw new Error(`a página ${largura}px não mostrou o 2º turno`);
 					}
+					if (!calendario?.startsWith("Calendário das pesquisas")) {
+						throw new Error("o calendário não está na página");
+					}
+					if (comoCalculamos !== "Como calculamos") {
+						throw new Error("falta a seção Como calculamos");
+					}
+					if (graficoVazio > 0) {
+						const textoVazio = (await page.locator(".a-graf-vazio").innerText()).trim();
+						if (textoVazio !== "Ainda não há pesquisas publicadas neste gráfico.") {
+							throw new Error("o gráfico vazio não diz o que o visitante lê");
+						}
+					}
 					pagina = {
 						fase,
 						h1,
@@ -292,8 +321,11 @@ async function capturar(base, alvos, pasta) {
 					if ((await botao.count()) !== 1) {
 						throw new Error("o botão Rever as três semanas não está na página");
 					}
+					await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+					const scrollAntes = await page.evaluate(() => window.scrollY);
+					if (scrollAntes < 100) throw new Error("a página não desceu para provar o botão");
 					await botao.click();
-					await page.locator("h1").waitFor();
+					await page.waitForFunction(() => window.scrollY === 0);
 					const h1Depois = (await page.locator("h1").innerText()).trim();
 					if (!h1Depois || new URL(page.url()).pathname !== "/") {
 						throw new Error("rever as três semanas saiu da página");
@@ -308,7 +340,7 @@ async function capturar(base, alvos, pasta) {
 						arquivo: "acao-rever-1280.png",
 						h1Depois,
 					});
-					pagina = { ...pagina, h1Depois };
+					pagina = { ...pagina, h1Depois, scrollAntes };
 				}
 				await contexto.close();
 			}
@@ -328,6 +360,9 @@ function testes(pasta) {
 	filho.stdout.pipe(process.stdout);
 	filho.stderr.pipe(process.stderr);
 	return new Promise((resolve) => {
+		filho.on("error", (erro) => {
+			saida.end(() => resolve({ codigo: 1, log: "npm-test.log", erro: erro.message }));
+		});
 		filho.on("close", (codigo) => {
 			saida.end(() => resolve({ codigo: codigo ?? 1, log: "npm-test.log" }));
 		});
@@ -378,35 +413,47 @@ async function main() {
 	}
 	const pasta = pastaDaProva();
 	let laudo = null;
+	let prova = null;
+	let arquivos = [];
+	let alvos = [];
+	let base = null;
+	let pid = null;
+	let erroCaptura = null;
 	try {
 		const subiu = await launch(porta);
+		base = subiu.base;
+		pid = subiu.pid;
 		laudo = subiu.laudo;
 		writeFileSync(join(pasta, "doctor.json"), JSON.stringify(laudo, null, 2));
-		const arquivos = arquivosDoDiff(baseRef);
-		const alvos = alvosDaProva(arquivos);
-		const prova = await capturar(subiu.base, alvos, pasta);
-		const resultadoTestes = await testes(pasta);
-		const noite = noiteSemSuperficie(arquivos, prova.pagina?.fase ?? "");
-		gravar(pasta, {
-			base: subiu.base,
-			pid: subiu.pid,
-			doctor: laudo,
-			alvos,
-			arquivos,
-			...prova,
-			noite: noite ? "nao-exercitada" : null,
-			testes: resultadoTestes,
-		});
-		if (noite) {
-			throw new Error(
-				"o diff mexe na noite e o dev local ainda está em pesquisas. A captura de / não prova ao vivo nem encerrada.",
-			);
-		}
-		if (resultadoTestes.codigo) process.exitCode = resultadoTestes.codigo;
+		arquivos = arquivosDoDiff(baseRef);
+		alvos = alvosDaProva(arquivos);
+		prova = await capturar(subiu.base, alvos, pasta);
+	} catch (erro) {
+		erroCaptura = erro;
 	} finally {
 		await cleanup();
 		rmSync(RUN, { force: true });
 	}
+	const resultadoTestes = await testes(pasta);
+	const noite = prova ? noiteSemSuperficie(arquivos, prova.pagina?.fase ?? "") : false;
+	gravar(pasta, {
+		base,
+		pid,
+		doctor: laudo,
+		alvos,
+		arquivos,
+		...(prova ?? { capturas: [], pagina: null }),
+		noite: noite ? "nao-exercitada" : null,
+		testes: resultadoTestes,
+		erroCaptura: erroCaptura instanceof Error ? erroCaptura.message : null,
+	});
+	if (erroCaptura) throw erroCaptura;
+	if (noite) {
+		throw new Error(
+			"o diff mexe na noite e o dev local ainda está em pesquisas. A captura de / não prova ao vivo nem encerrada.",
+		);
+	}
+	if (resultadoTestes.codigo) process.exitCode = resultadoTestes.codigo;
 }
 
 const executadoDireto =

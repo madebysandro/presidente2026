@@ -19,7 +19,7 @@ Preconditions:
 - O mesmo servidor do doctor está no ar.
 
 - **Ler.** Run `curl -fsS -D - http://127.0.0.1:5173/api/pesquisas -o /tmp/verify-api-pesquisas.json`. O status é `200`, o `content-type` contém `application/json` e o corpo tem `fase`, `hoje` e `media`.
-- **Prova.** Guardar o status e as chaves no relatório da prova. Não substituir esta chamada por um import interno do módulo.
+- **Prova.** Guardar o status e as chaves ao lado das capturas. `provar` e `tudo` não chamam esta URL. A página HTML não substitui o `curl`.
 
 ## Gotchas
 
