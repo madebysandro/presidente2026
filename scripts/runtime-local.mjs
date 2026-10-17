@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { recusarBindings } from "./pre-deploy.mjs";
 
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
@@ -139,11 +140,6 @@ export function conferirProjeto(raiz = RAIZ) {
 			"conferir: void.config.ts worker.limits.cpu_ms ausente (o void deploy lê esse campo)",
 		);
 	}
-	if (/ratelimits\s*:/.test(authored)) {
-		falha(
-			"conferir: void.config.ts declara ratelimits (o Void 1.1.11 não sobe rate limit com pinned secrets; o teto do agente fica no Durable Object até o Void suportar isso)",
-		);
-	}
 
 	const lock = JSON.parse(readFileSync(lockPath, "utf8"));
 	const resolved = lock.resolved;
@@ -153,17 +149,14 @@ export function conferirProjeto(raiz = RAIZ) {
 	if (resolved.account_id !== ACCOUNT) {
 		falha(`conferir: void.lock.json resolved.account_id != ${ACCOUNT}`);
 	}
-	if (
-		lock.source?.ratelimits != null ||
-		resolved.ratelimits != null ||
-		(typeof lock.text === "string" && lock.text.includes('"ratelimits"'))
-	) {
-		falha(
-			"conferir: void.lock.json ainda tem ratelimits (o build materializa o lock a partir do void.config.ts; no Void 1.1.11 o `void prepare` só gera `.void/`)",
-		);
-	}
 
 	const build = acharConfigDoBuild(join(raiz, "dist/ssr"));
+	const recusa = recusarBindings({
+		configText: authored,
+		lock,
+		buildJson: build.json,
+	});
+	if (!recusa.ok) falha(recusa.erros.join("\n"));
 	const builtNotFound = build.json.assets?.not_found_handling;
 	if (builtNotFound !== "none") {
 		falha(
@@ -202,12 +195,6 @@ export function conferirProjeto(raiz = RAIZ) {
 				`conferir: ${nome} obrigatória bloquearia void deploy enquanto o segredo não existir no remoto`,
 			);
 		}
-	}
-	const limites = build.json.ratelimits;
-	if (limites != null && !(Array.isArray(limites) && limites.length === 0)) {
-		falha(
-			`conferir: ratelimits=${JSON.stringify(limites)} (quer ausente; o teto do agente fica no Durable Object até o Void subir rate limit com pinned secrets)`,
-		);
 	}
 	const route = Array.isArray(build.json.routes) ? build.json.routes[0] : undefined;
 	const routeKeys = route && typeof route === "object" ? Object.keys(route).sort() : [];

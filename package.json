@@ -21,7 +21,7 @@
 		"prepare:void": "void prepare",
 		"dev": "vite",
 		"build": "void prepare && tsc --noEmit && vite build",
-		"test": "void prepare && vite build && node scripts/preparar-teste-void.mjs && vitest run && node --test scripts/modo-deploy.test.mjs",
+		"test": "void prepare && vite build && node --test scripts/pre-deploy.test.mjs && node scripts/preparar-teste-void.mjs && vitest run && node --test scripts/modo-deploy.test.mjs",
 		"test:watch": "void prepare && vite build && node scripts/preparar-teste-void.mjs && vitest",
 		"smoke": "node scripts/smoke-vinheta.mjs",
 		"ensaio": "npm run build && node scripts/ensaio-noite.mjs",
