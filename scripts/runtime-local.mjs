@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { recusarBindings } from "./pre-deploy.mjs";
+import { recusarBindings, recusarPreviews } from "./pre-deploy.mjs";
 
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
@@ -151,12 +151,15 @@ export function conferirProjeto(raiz = RAIZ) {
 	}
 
 	const build = acharConfigDoBuild(join(raiz, "dist/ssr"));
-	const recusa = recusarBindings({
+	const entrada = {
 		configText: authored,
 		lock,
 		buildJson: build.json,
-	});
-	if (!recusa.ok) falha(recusa.erros.join("\n"));
+	};
+	const erros = [recusarBindings(entrada), recusarPreviews(entrada)].flatMap(
+		(resultado) => (resultado.ok ? [] : resultado.erros),
+	);
+	if (erros.length > 0) falha(erros.join("\n"));
 	const builtNotFound = build.json.assets?.not_found_handling;
 	if (builtNotFound !== "none") {
 		falha(
