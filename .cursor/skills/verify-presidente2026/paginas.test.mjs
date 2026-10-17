@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LARGURAS, alvosDaProva, paginasDoDiff } from "./paginas.mjs";
+import {
+	LARGURAS,
+	alvosDaProva,
+	htmlDoisTurno,
+	noiteSemSuperficie,
+	paginasDoDiff,
+} from "./paginas.mjs";
 
 test("as larguras da prova são 390 e 1280", () => {
 	assert.deepEqual(LARGURAS, [390, 1280]);
@@ -16,6 +22,20 @@ test("arquivo da página inicial vira só a URL /", () => {
 test("arquivo da imagem OG vira só /og.png", () => {
 	assert.deepEqual(paginasDoDiff(["routes/og.png.ts"]), ["/og.png"]);
 	assert.deepEqual(paginasDoDiff(["src/pagina/previa-png.ts"]), ["/og.png"]);
+	assert.deepEqual(paginasDoDiff(["src/pagina/gerar-base.ts"]), ["/og.png"]);
+});
+
+test("a página do 2º turno exige título, fase e marca", () => {
+	assert.equal(htmlDoisTurno("Presidente 2026 · 2º turno", "pesquisas", true), true);
+	assert.equal(htmlDoisTurno("Presidente 2026 · 2º turno", "", true), false);
+	assert.equal(htmlDoisTurno("outro", "pesquisas", true), false);
+});
+
+test("diff da noite com a fase pesquisas não conta como noite exercitada", () => {
+	assert.equal(noiteSemSuperficie(["src/pagina/ao-vivo.ts"], "pesquisas"), true);
+	assert.equal(noiteSemSuperficie(["src/pagina/encerrada.ts"], "pesquisas"), true);
+	assert.equal(noiteSemSuperficie(["src/pagina/geografia.ts"], "ao_vivo"), false);
+	assert.equal(noiteSemSuperficie(["src/pagina/grafico.ts"], "pesquisas"), false);
 });
 
 test("previa.ts entra na página e na imagem", () => {

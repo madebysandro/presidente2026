@@ -12,9 +12,20 @@ const OG = [
 	"src/pagina/og-codec.ts",
 	"src/pagina/previa-png.ts",
 	"src/pagina/previa-png-media.ts",
+	"src/pagina/gerar-base.ts",
 ];
 
 const AMBAS = ["src/pagina/previa.ts"];
+
+const NOITE = ["src/pagina/ao-vivo.ts", "src/pagina/encerrada.ts", "src/pagina/geografia.ts"];
+
+export function htmlDoisTurno(titulo, fase, temMarca) {
+	return titulo === "Presidente 2026 · 2º turno" && fase.length > 0 && temMarca;
+}
+
+export function noiteSemSuperficie(arquivos, fase) {
+	return fase === "pesquisas" && arquivos.map(normalizar).some((arquivo) => NOITE.includes(arquivo));
+}
 
 function normalizar(arquivo) {
 	return arquivo.replaceAll("\\", "/").replace(/^\.\//, "");

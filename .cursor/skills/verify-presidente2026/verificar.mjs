@@ -6,7 +6,7 @@ import { connect } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
-import { LARGURAS, alvosDaProva } from "./paginas.mjs";
+import { LARGURAS, alvosDaProva, htmlDoisTurno, noiteSemSuperficie } from "./paginas.mjs";
 
 const RAIZ = fileURLToPath(new URL("../../..", import.meta.url));
 const PID = "/tmp/verify-presidente2026.pid";
@@ -16,7 +16,6 @@ const ALTURA = 900;
 
 const args = process.argv.slice(2);
 const comando = args.find((item) => !item.startsWith("--")) || "tudo";
-const semTestes = args.includes("--sem-testes");
 
 function valor(nome, padrao) {
 	const indice = args.indexOf(`--${nome}`);
@@ -96,11 +95,7 @@ export async function doctor(base) {
 	const { resposta, tipo, titulo, fase, corpo } = await lerPagina(base);
 	const marca = corpo.includes("Presidente 2026, 2º turno");
 	const ok =
-		resposta.status === 200 &&
-		tipo.includes("text/html") &&
-		titulo === "Presidente 2026 · 2º turno" &&
-		fase.length > 0 &&
-		marca;
+		resposta.status === 200 && tipo.includes("text/html") && htmlDoisTurno(titulo, fase, marca);
 	return {
 		ok,
 		url: base + "/",
@@ -131,8 +126,11 @@ function esperarPronto(base) {
 						resolve(laudo);
 						return;
 					}
-				} catch {
-					/* a primeira leitura ainda pode estar importando o registro público do TSE */
+				} catch (erro) {
+					if (!(erro instanceof TypeError)) {
+						reject(erro);
+						return;
+					}
 				}
 			}
 			if (Date.now() > limite) {
@@ -176,6 +174,10 @@ async function launch(porta) {
 	}
 }
 
+function processoJaSaiu(erro) {
+	return Boolean(erro && erro.code === "ESRCH");
+}
+
 async function cleanup() {
 	let pid = 0;
 	try {
@@ -186,18 +188,26 @@ async function cleanup() {
 	if (pid > 0) {
 		try {
 			process.kill(-pid, "SIGTERM");
-		} catch {
-			try {
-				process.kill(pid, "SIGTERM");
-			} catch {
-				/* já saiu */
+		} catch (erro) {
+			if (!processoJaSaiu(erro)) {
+				try {
+					process.kill(pid, "SIGTERM");
+				} catch (erroPid) {
+					if (!processoJaSaiu(erroPid)) throw erroPid;
+				}
 			}
 		}
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 		try {
 			process.kill(-pid, "SIGKILL");
-		} catch {
-			/* já saiu */
+		} catch (erro) {
+			if (!processoJaSaiu(erro)) {
+				try {
+					process.kill(pid, "SIGKILL");
+				} catch (erroPid) {
+					if (!processoJaSaiu(erroPid)) throw erroPid;
+				}
+			}
 		}
 	}
 	rmSync(PID, { force: true });
@@ -248,11 +258,11 @@ async function capturar(base, alvos, pasta) {
 						.locator("section.a-cal")
 						.first()
 						.getAttribute("aria-label");
-					const como = await page.locator("#a-calc-titulo").innerText();
+					const comoCalculamos = await page.locator("#a-calc-titulo").innerText();
 					const rever = await page.getByRole("button", { name: "Rever as três semanas" }).count();
 					const graficoVazio = await page.locator(".a-graf-vazio").count();
 					const pesquisas = await page.locator("button.a-pesq").count();
-					if (!h1 || titulo !== "Presidente 2026 · 2º turno" || !fase || !marca.includes("Presidente 2026")) {
+					if (!h1 || !htmlDoisTurno(titulo, fase ?? "", marca.includes("Presidente 2026, 2º turno"))) {
 						throw new Error(`a página ${largura}px não mostrou o 2º turno`);
 					}
 					pagina = {
@@ -261,7 +271,7 @@ async function capturar(base, alvos, pasta) {
 						titulo,
 						marca,
 						calendario,
-						comoCalculamos: como,
+						comoCalculamos,
 						botaoRever: rever > 0,
 						graficoVazio: graficoVazio > 0,
 						pesquisasPublicadas: pesquisas,
@@ -375,7 +385,8 @@ async function main() {
 		const arquivos = arquivosDoDiff(baseRef);
 		const alvos = alvosDaProva(arquivos);
 		const prova = await capturar(subiu.base, alvos, pasta);
-		const resultadoTestes = semTestes ? { codigo: null, log: null } : await testes(pasta);
+		const resultadoTestes = await testes(pasta);
+		const noite = noiteSemSuperficie(arquivos, prova.pagina?.fase ?? "");
 		gravar(pasta, {
 			base: subiu.base,
 			pid: subiu.pid,
@@ -383,8 +394,14 @@ async function main() {
 			alvos,
 			arquivos,
 			...prova,
+			noite: noite ? "nao-exercitada" : null,
 			testes: resultadoTestes,
 		});
+		if (noite) {
+			throw new Error(
+				"o diff mexe na noite e o dev local ainda está em pesquisas. A captura de / não prova ao vivo nem encerrada.",
+			);
+		}
 		if (resultadoTestes.codigo) process.exitCode = resultadoTestes.codigo;
 	} finally {
 		await cleanup();

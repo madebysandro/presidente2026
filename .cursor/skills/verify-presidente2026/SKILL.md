@@ -35,12 +35,7 @@ Só leitura. Confere Node `>= 24.21`, o Chrome em `CHROME_PATH` ou `/usr/bin/goo
 
 O mapa em `features/` é a fonte. Uma prova que só abre um atalho não cobre os outros entry points.
 
-Para o PR, o helper escolhe as URLs pelo diff contra `main` (commits, stage, trabalho sujo e untracked) com `paginas.mjs`:
-
-- `/` quando muda `routes/index.ts`, `src/pagina/` (exceto os arquivos só da imagem), `public/css/`, `public/js/` ou `public/favicon.svg`.
-- `/og.png` quando muda `routes/og.png.ts`, `src/pagina/og-codec.ts`, `src/pagina/previa-png.ts`, `src/pagina/previa-png-media.ts`.
-- `src/pagina/previa.ts` entra nas duas.
-- Diff sem página nenhuma ainda abre `/`, com motivo `sem-pagina-no-diff`.
+Para o PR, o helper escolhe as URLs pelo diff contra `main` (commits, stage, trabalho sujo e untracked). A tabela é `paginasDoDiff` em `paginas.mjs`, coberta por `paginas.test.mjs`. As URLs são `/` e `/og.png`. Diff sem página nenhuma ainda abre `/`, com motivo `sem-pagina-no-diff`.
 
 ```bash
 node .cursor/skills/verify-presidente2026/verificar.mjs provar --base http://127.0.0.1:5173 --base-ref main
@@ -48,7 +43,7 @@ node .cursor/skills/verify-presidente2026/verificar.mjs provar --base http://127
 
 Cada URL sai em 390×900 e 1280×900, página inteira, `prefers-reduced-motion: reduce`, Chrome do sistema. Em `/` o helper exige `h1`, o título, `main.a[data-fase]` e a marca, e clica em `Rever as três semanas` a 1280 px. O clique que não deixa a página em `/` reprova. Não há endpoint de teste: a prova é o HTML que o visitante recebe.
 
-As fases da noite não têm rota própria. Antes das 17h de 25/10/2026 em Brasília o `npm run dev` mostra pesquisas. Se o diff mexe em `src/pagina/ao-vivo.ts`, `encerrada.ts` ou `geografia.ts` e `data-fase` continua `pesquisas`, a noite não foi exercitada. Registrar a falha. Não trocar o relógio por um atalho para fazer a captura passar.
+As fases da noite não têm rota própria. Antes das 17h de 25/10/2026 em Brasília o `npm run dev` mostra pesquisas. Se o diff mexe em `src/pagina/ao-vivo.ts`, `encerrada.ts` ou `geografia.ts` e `data-fase` continua `pesquisas`, `tudo` grava `noite: "nao-exercitada"` e sai com código 1. Não trocar o relógio por um atalho para fazer a captura passar.
 
 ## Evidence
 
