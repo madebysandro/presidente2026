@@ -175,6 +175,12 @@ function bloco(html: string, atributo: string): string {
 	return html.match(re)?.[1] ?? "";
 }
 
+function regra(css: string, seletor: string): string {
+	const i = css.indexOf(seletor);
+	if (i < 0) return "";
+	return css.slice(i, css.indexOf("}", i) + 1);
+}
+
 describe("calendário da reta final (#11)", () => {
 	it("tem 21 quadrados de 5 a 25 de outubro e o dia 25 anuncia a apuração às 17h", () => {
 		const html = pagina();
@@ -298,10 +304,32 @@ describe("calendário da reta final (#11)", () => {
 		const mobile = css.slice(css.indexOf("@media (max-width: 760px)"));
 		expect(mobile).toMatch(/\.a-dia\.vazio[^{]*\{[^}]*display:\s*none/);
 		expect(mobile).toMatch(/\.a-sem-tit[^{]*\{[^}]*display:\s*none/);
-		expect(mobile).toMatch(/\.a-cal[^{]*\{[^}]*minmax\(0,\s*1fr\)/);
+		expect(mobile).toMatch(/\.a-cal[^{]*\{[^}]*flex-direction:\s*column-reverse/);
 		expect(css).toMatch(/overflow-x:\s*clip/);
 		expect(css).toMatch(/\.a-dia\.eleicao[^{]*\{[^}]*background:\s*var\(--tinta\)/);
 		expect(css).toMatch(/\.a-sem[^{]*\{[^}]*color:\s*var\(--suave\)/);
 		expect(css).toMatch(/\.a-vem[^{]*\{[^}]*(dashed|linear-gradient)/);
+	});
+
+	it("no celular a reta final começa pelo dia mais recente e no desktop a grade cronológica fica", async () => {
+		const html = pagina();
+		const datas = [...html.matchAll(/class="a-dia [^"]*" data-d="(2026-10-\d{2})"/g)].map(
+			(achado) => achado[1],
+		);
+		expect(datas).toEqual(diasRetaFinal());
+		expect(datas[0]).toBe("2026-10-05");
+		expect(datas.at(-1)).toBe("2026-10-25");
+
+		const cssRes = await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css");
+		expect(cssRes.status).toBe(200);
+		const css = await cssRes.text();
+		const base = regra(css, ".a-cal {");
+		expect(base).toMatch(/grid-template-columns:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\)/);
+		expect(base).not.toMatch(/column-reverse/);
+
+		const mobile = css.slice(css.indexOf("@media (max-width: 760px)"));
+		const estreita = regra(mobile, ".a-cal {");
+		expect(estreita).toMatch(/flex-direction:\s*column-reverse/);
+		expect(estreita).not.toMatch(/repeat\(7/);
 	});
 });

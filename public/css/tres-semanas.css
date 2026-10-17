@@ -422,7 +422,7 @@ body {
 	.a-cabo-linha { grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 8px; }
 	.a-ponta { width: 34px; height: 34px; }
 	.a-relogio { font-size: 17px; }
-	.a-cal { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+	.a-cal { display: flex; flex-direction: column-reverse; gap: 4px; }
 	.a-sem-tit, .a-dia.vazio { display: none; }
 	.a-dia { grid-template-columns: 64px minmax(0, 1fr); min-height: 0; column-gap: 12px; }
 	.a-dia > :not(.a-n):not(.a-hoje) { grid-column: 2; }
