@@ -111,18 +111,6 @@ export const CICLOS_PRESIDENTE = [
 	"2026-10-04T21-44-49-070Z",
 ] as const;
 
-/** Governador: início → quase fim (fora de alcance / maioria). */
-export const CICLOS_GOVERNADOR = [
-	"2026-10-04T21-36-05-598Z",
-	"2026-10-05T00-01-02-086Z",
-] as const;
-
-/** Troca real de cadeira Dep. Federal: PSB 2→1, PSD 1→2. */
-export const CICLOS_CADEIRAS = [
-	"2026-10-04T21-38-48-884Z",
-	"2026-10-04T21-39-46-908Z",
-] as const;
-
 /** Meio e fim da noite (além do início). */
 export const CICLOS_NOITE = [
 	"2026-10-04T21-36-05-598Z",
@@ -148,77 +136,9 @@ export const SEQUENCIA_PRESIDENTE = CICLOS_PRESIDENTE.map((ciclo) => {
 	};
 });
 
-export const SEQUENCIA_GOVERNADOR = CICLOS_GOVERNADOR.map((ciclo) => {
-	const m = metaObrigatoria("governador", ciclo);
-	return {
-		ciclo,
-		etag: m.etag,
-		cacheControl: m.cacheControl,
-		corpo: m.corpo,
-	};
-});
-
-const PROP_CADEIRAS = CICLOS_CADEIRAS.map((ciclo) => ({
-	ciclo,
-	depfed: (() => {
-		const m = metaObrigatoria("depfed", ciclo);
-		return {
-			etag: m.etag,
-			cacheControl: m.cacheControl,
-			corpo: m.corpo,
-		};
-	})(),
-	depest: (() => {
-		const m = metaObrigatoria("depest", ciclo);
-		return {
-			etag: m.etag,
-			cacheControl: m.cacheControl,
-			corpo: m.corpo,
-		};
-	})(),
-}));
-
-/** Gravação “atual” dos proporcionais = ciclo do início (mesmo instante do primeiro Presidente). */
-const PROP_REAL = {
-	ciclo: CICLOS[0],
-	depfed: (() => {
-		const m = metaObrigatoria("depfed", CICLOS[0]);
-		return {
-			etag: m.etag,
-			cacheControl: m.cacheControl,
-			corpo: m.corpo,
-		};
-	})(),
-	depest: (() => {
-		const m = metaObrigatoria("depest", CICLOS[0]);
-		return {
-			etag: m.etag,
-			cacheControl: m.cacheControl,
-			corpo: m.corpo,
-		};
-	})(),
-};
-
-const SENADOR_INICIO = (() => {
-	const m = metaObrigatoria("senador", CICLOS[0]);
-	return {
-		etag: m.etag,
-		cacheControl: m.cacheControl,
-		corpo: m.corpo,
-	};
-})();
-
 export const URLS_TSE = {
 	presidente:
 		"https://resultados.tse.jus.br/oficial/ele2026/6258/dados/br/br-c0001-e006258-u.json",
-	governador:
-		"https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pa/pa-c0003-e006259-u.json",
-	senador:
-		"https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pa/pa-c0005-e006259-u.json",
-	depfed:
-		"https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pa/pa-c0006-e006259-u.json",
-	depest:
-		"https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pa/pa-c0007-e006259-u.json",
 } as const;
 
 export type PedidoTse = {
@@ -226,16 +146,7 @@ export type PedidoTse = {
 	ifNoneMatch: string | null;
 };
 
-export type ModoProporcionais = "real" | "cadeiras";
-
 export type OpcoesTseFalso = {
-	/** Padrão: "real" (início da noite). "cadeiras" percorre a troca PSD/PSB. */
-	proporcionais?: ModoProporcionais;
-	/**
-	 * Sequência unificada da noite (início → meio → fim).
-	 * Quando true, `avancar()` anda em CICLOS_NOITE e todos os arquivos
-	 * (cargos + UFs) acompanham o mesmo índice.
-	 */
 	sequenciaNoite?: boolean;
 };
 
@@ -251,13 +162,8 @@ export type VarianteSecoes = {
 
 export type TseFalso = {
 	indice: number;
-	indiceProp: number;
-	indiceGov: number;
 	pedidos: PedidoTse[];
 	avancar: () => void;
-	avancarProporcionais: () => void;
-	/** Avança a sequência do Governador (início → quase-fim). */
-	avancarGovernador: () => void;
 	/** Próxima resposta do Presidente será 429 com este Retry-After (segundos). */
 	simular429: (retryAfter: number) => void;
 	/** Próxima resposta do Presidente será erro HTTP genérico. */
@@ -277,8 +183,6 @@ export type TseFalso = {
 	 */
 	definirVarianteSecoes: (variante: VarianteSecoes | null) => void;
 	urlPresidente: string;
-	urlDepfed: string;
-	urlDepest: string;
 	/** Próxima URL que contém este trecho responde com erro HTTP. */
 	simularErroUrl: (trecho: string, status?: number) => void;
 	/** Ciclo vigente para UFs / sequência da noite. */
@@ -324,8 +228,6 @@ type ModoEspecial =
 export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 	const estado = {
 		indice: 0,
-		indiceProp: 0,
-		indiceGov: 0,
 		pedidos: [] as PedidoTse[],
 		modo: null as ModoEspecial,
 		cacheControlOverride: null as string | null,
@@ -338,7 +240,6 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		corposSinteticos: null as object[] | null,
 		erroUrl: null as { trecho: string; status: number } | null,
 	};
-	const modoProp = opcoes.proporcionais ?? "real";
 	const sequenciaNoite = opcoes.sequenciaNoite ?? false;
 
 	const ordemAtiva = (): readonly string[] =>
@@ -357,67 +258,6 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 
 	const resolver = (chave: string) =>
 		resolverArquivo(chave, cicloPresidente(), ordemAtiva());
-
-	const propAtual = () => {
-		if (modoProp === "cadeiras") {
-			return PROP_CADEIRAS[estado.indiceProp] ?? PROP_CADEIRAS.at(-1)!;
-		}
-		if (sequenciaNoite) {
-			const ciclo = cicloPresidente();
-			const depfed = resolver("depfed");
-			const depest = resolver("depest");
-			if (!depfed || !depest) {
-				throw new Error(`proporcionais ausentes @ ${ciclo}`);
-			}
-			return {
-				ciclo,
-				depfed: {
-					etag: depfed.etag,
-					cacheControl: depfed.cacheControl,
-					corpo: depfed.corpo,
-				},
-				depest: {
-					etag: depest.etag,
-					cacheControl: depest.cacheControl,
-					corpo: depest.corpo,
-				},
-			};
-		}
-		return {
-			ciclo: PROP_REAL.ciclo,
-			depfed: PROP_REAL.depfed,
-			depest: PROP_REAL.depest,
-		};
-	};
-
-	const governadorAtual = () => {
-		if (sequenciaNoite) {
-			const m = resolver("governador");
-			if (!m) throw new Error("governador ausente na sequência da noite");
-			return {
-				etag: m.etag,
-				cacheControl: m.cacheControl,
-				corpo: m.corpo,
-			};
-		}
-		return (
-			SEQUENCIA_GOVERNADOR[estado.indiceGov] ??
-			SEQUENCIA_GOVERNADOR.at(-1)!
-		);
-	};
-
-	const senadorAtual = () => {
-		if (sequenciaNoite) {
-			const m = resolver("senador");
-			if (!m) throw new Error("senador ausente na sequência da noite");
-			return {
-				etag: m.etag,
-				cacheControl: m.cacheControl,
-				corpo: m.corpo,
-			};
-		}
-		return SENADOR_INICIO;
-	};
 
 	const presidenteAtual = () => {
 		if (estado.corposSinteticos) {
@@ -519,38 +359,6 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 				"presidente",
 			);
 		}),
-		http.get(URLS_TSE.governador, ({ request }) =>
-			responderArquivo(
-				request.url,
-				request.headers.get("if-none-match"),
-				governadorAtual(),
-				"governador",
-			),
-		),
-		http.get(URLS_TSE.senador, ({ request }) =>
-			responderArquivo(
-				request.url,
-				request.headers.get("if-none-match"),
-				senadorAtual(),
-				"senador",
-			),
-		),
-		http.get(URLS_TSE.depfed, ({ request }) =>
-			responderArquivo(
-				request.url,
-				request.headers.get("if-none-match"),
-				propAtual().depfed,
-				"depfed",
-			),
-		),
-		http.get(URLS_TSE.depest, ({ request }) =>
-			responderArquivo(
-				request.url,
-				request.headers.get("if-none-match"),
-				propAtual().depest,
-				"depest",
-			),
-		),
 		http.get(
 			/https:\/\/resultados\.tse\.jus\.br\/oficial\/ele2026\/6258\/dados\/([a-z]{2})\/\1(\d+)-c0001-e006258-u\.json/,
 			({ request, params }) => {
@@ -626,23 +434,11 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 		get indice() {
 			return estado.indice;
 		},
-		get indiceProp() {
-			return estado.indiceProp;
-		},
-		get indiceGov() {
-			return estado.indiceGov;
-		},
 		get pedidos() {
 			return estado.pedidos;
 		},
 		avancar() {
 			estado.indice += 1;
-		},
-		avancarProporcionais() {
-			estado.indiceProp += 1;
-		},
-		avancarGovernador() {
-			estado.indiceGov += 1;
 		},
 		simular429(retryAfter: number) {
 			estado.modo = { tipo: "429", retryAfter };
@@ -663,8 +459,6 @@ export function instalarTseFalso(opcoes: OpcoesTseFalso = {}): TseFalso {
 			estado.varianteSecoes = variante;
 		},
 		urlPresidente: URLS_TSE.presidente,
-		urlDepfed: URLS_TSE.depfed,
-		urlDepest: URLS_TSE.depest,
 		simularErroUrl(trecho: string, status = 404) {
 			estado.erroUrl = { trecho, status };
 		},
