@@ -1,10 +1,12 @@
 import { http, HttpResponse } from "msw";
+import {
+	URL_ZIP_CONTRATANTE,
+	URL_ZIP_PESQUISA,
+} from "../../src/pesquisas/fontes";
 import { network } from "./rede";
 
-export const URL_PESQUISA_TSE =
-	"https://cdn.tse.jus.br/estatistica/sead/odsele/pesquisa_eleitoral/pesquisa_eleitoral_2026.zip";
-export const URL_CONTRATANTE_TSE =
-	"https://cdn.tse.jus.br/estatistica/sead/odsele/pesquisa_eleitoral/pesquisa_contratante_2026.zip";
+export const URL_PESQUISA_TSE = URL_ZIP_PESQUISA;
+export const URL_CONTRATANTE_TSE = URL_ZIP_CONTRATANTE;
 
 export type PedidoCdn = {
 	url: string;
