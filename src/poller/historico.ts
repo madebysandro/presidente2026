@@ -19,14 +19,6 @@ export function montarLeitura(estado: EstadoApuracao, t = Date.now()): Leitura {
 					[k.votos, r3(k.pct), k.pos] as [number, number, number],
 				]),
 			),
-			...(cargo.agremiacoes && {
-				a: Object.fromEntries(
-					cargo.agremiacoes.map((a) => [
-						a.sigla,
-						[a.votos, a.vagas] as [number, number],
-					]),
-				),
-			}),
 		};
 	}
 	return { t, c };
