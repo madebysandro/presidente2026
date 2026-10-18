@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the repository owner, Sandro Costa ([@madebysandro](https://github.com/madebysandro)),
-via a [private security advisory](https://github.com/madebysandro/apuracao-2026/security/advisories/new)
+via a [private security advisory](https://github.com/madebysandro/presidente2026/security/advisories/new)
 on this repository. Do not open a public issue for a conduct report.
 
 All complaints will be reviewed and investigated promptly and fairly.
