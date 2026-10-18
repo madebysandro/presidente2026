@@ -3,7 +3,7 @@
  * `scheduled` do Worker. O remendo troca o proxy para disparar o cron pelo
  * entrypoint, como em produção.
  *
- * ponytail: ceiling = depende do texto exato do pool; upgrade = remover quando o
+ * limite: ceiling = depende do texto exato do pool; upgrade = remover quando o
  * pool expuser `scheduled` no SELF.
  */
 import fs from "node:fs";
