@@ -15,20 +15,6 @@ export function configTseDeEnv(env: {
 	};
 }
 
-/** Presidente nacional do 2º turno (6258). UFs e colégios entram em `alvosCiclo`. */
-export function metasCargos(cfg: ConfigTse): MetaCargo[] {
-	return [
-		{
-			id: "presidente",
-			titulo: "Presidente",
-			local: "Brasil",
-			ele: cfg.eleicaoFederal,
-			uf: "br",
-			cd: "0001",
-		},
-	];
-}
-
 export function urlArquivoCargo(cfg: ConfigTse, cargo: MetaCargo): string {
 	const ele6 = cargo.ele.padStart(6, "0");
 	return `${cfg.base}/ele2026/${cargo.ele}/dados/${cargo.uf}/${cargo.uf}-c${cargo.cd}-e${ele6}-u.json`;

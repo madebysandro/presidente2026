@@ -33,10 +33,6 @@ export function ocorrencias(texto: string, n: number): number[] {
 	return indices;
 }
 
-export function casaNumero(texto: string, n: number): boolean {
-	return ocorrencias(texto, n).length > 0;
-}
-
 /**
  * A matéria cita este nome no lugar do instituto, só no registro indicado.
  * Não é apelido geral do instituto.

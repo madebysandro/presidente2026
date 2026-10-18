@@ -8,7 +8,6 @@ type CandBruto =
 type ParBruto =
 	DadosBrutosCargo["carg"][number]["agr"][number]["par"][number];
 
-/** Mapeia um candidato bruto do TSE (compartilhado por majoritário e proporcional). */
 export function candidatoDe(
 	cand: CandBruto,
 	par: ParBruto,
