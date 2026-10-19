@@ -1,5 +1,5 @@
 /**
- * `SELF.scheduled` do `@cloudflare/vitest-pool-workers` não chama o handler
+ * `SELF.scheduled` do `@cloudflare/vitest-plugin` não chama o handler
  * `scheduled` do Worker. O remendo troca o proxy para disparar o cron pelo
  * entrypoint, como em produção.
  *
@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SELF_TARGET = path.join(
 	ROOT,
-	"node_modules/@cloudflare/vitest-pool-workers/dist/worker/lib/cloudflare/test-internal.mjs",
+	"node_modules/@cloudflare/vitest-plugin/dist/worker/lib/cloudflare/test-internal.mjs",
 );
 const SELF_MARKER = "async function scheduledViaEntrypoint";
 const SELF_NEEDLE = [

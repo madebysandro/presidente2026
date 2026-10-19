@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest } from "@cloudflare/vitest-plugin";
 import { configDefaults, defineConfig } from "vitest/config";
 
 const miniflare = JSON.parse(readFileSync("./worker.vitest.json", "utf8"));
