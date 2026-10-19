@@ -8,6 +8,6 @@
 - Fidelidade visual (fase pesquisas): branch `prototipo/pesquisas`, commit `b1fe8ea`, direção A · Três semanas. Checklist em `docs/prototipo/README.md`.
 - Guardrail: barra rosa, variantes B/C do protótipo de pesquisas, Three.js, mascotes e confetti ficam de fora.
 - Stack: Void (`void` + Vite). Config em `void.config.ts` / `void.lock.json`. Docs: https://void.cloud. Node `24.21`. Root `/`.
-- Deploy: só o Void no Workers Builds da `main`, modo `atomic`. Sem deploy manual, sem `wrangler deploy` e sem preview. O Void 1.1.11 não desliga o build de branch no `void.config.ts`. O bloco `previews` do Worker fica `{}`, exigido pelo Wrangler 4.151 no preview. Um bloco com chaves continua de fora. O interruptor de publicar o preview é `previews_enabled` no Workers Builds. Build `npm run build`. Plano B e cliques: README → Deploy.
+- Deploy: só o Void no Workers Builds da `main`, modo `atomic`. Sem deploy manual, sem `wrangler deploy` e sem preview. O Void 1.1.11 não desliga o build de branch no `void.config.ts`. Não adicionar bloco `previews`. O interruptor é `previews_enabled` no Workers Builds. Build `npm run build`. Plano B e cliques: README → Deploy.
 - Secrets: só `npx void secret put`. Nunca a CLI `cf` ou `wrangler`, e nunca imprimir valores.
 - Rate limit: não repor bindings enquanto voidzero-dev/void#462 estiver aberta.

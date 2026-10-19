@@ -22,7 +22,7 @@ O que a spec D0 apontava, e como está hoje:
 | --- | --- |
 | Rate limit binding | Fora do `void.config.ts` (#64). O Void 1.1.11 não sobe rate limit com pinned secrets, então `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` ficam de fora. O contador no Durable Object continua sendo o limite global. Os bindings voltam quando o Void suportar rate limit com pinned secrets. |
 | vitest-pool-workers | O pool 0.23 só aceita Vitest 4.1. O 5 quebrou o cache. Fica no 4.1 até o pacote novo (`@cloudflare/vitest-plugin`) entrar com teste verde. |
-| Workers Builds | Produção na `main`. Preview de branch fica desligado em **Branch control** (`previews_enabled`). O `void.config.ts` leva `previews: {}`, que o Wrangler 4.151 exige. Um bloco com chaves continua de fora. Check vermelho é falha real. |
+| Workers Builds | Produção na `main`. Preview de branch fica desligado em **Branch control** (`previews_enabled`). Não adicionar bloco `previews` no `void.config.ts`. Enquanto o campo estiver `true`, o check vermelho no PR é o `wrangler preview` sem esse bloco. Depois do desligamento, check vermelho é falha real. |
 
 Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void deixar de publicar a `main` ou de falar com o Durable Object.
 
@@ -35,7 +35,7 @@ Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void
 | `statusTse` no log do poller | Descartar por agora | O erro do TSE não traz status HTTP. O campo fica de fora até existir esse número. |
 | Voltar ao wrangler | Descartar | A decisão desta nota é permanecer na Void. |
 | Tema escuro, enquete, governadores `6260`, MCP OAuth do Grok | Descartar | Fora de escopo da spec e desta issue. |
-| Check Workers Builds vermelho em todo PR | O bloco `previews: {}` já está no config | O build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou em `npx wrangler preview` por falta do bloco `previews`. O objeto vazio cobre a exigência do Wrangler 4.151. |
+| Check Workers Builds vermelho em todo PR | Desligar `previews_enabled` | O build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou em `npx wrangler preview` por falta do bloco `previews`. Bloco vazio publicaria URL de branch. |
 | Aviso de rename do `vitest-pool-workers` | Fazer depois | Trocar o pacote quando o teste do pool novo passar. Não bloqueia o arquivo. |
 | Plano B do import (`CHAVE_IMPORT`) | Fazer na #22 | Não é atalho de página; é o failover do CSV. |
 

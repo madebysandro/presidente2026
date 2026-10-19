@@ -5,7 +5,6 @@
     "account_id": "aaec42ffcbeebcd4cda5beff4af4c439",
     "workers_dev": false,
     "preview_urls": false,
-    "previews": {},
     "routes": [
       {
         "pattern": "presidente2026.win",
@@ -77,8 +76,7 @@
           "PollerDurableObject"
         ]
       }
-    ],
-    "previews": {}
+    ]
   },
-  "text": "{\n  \"name\": \"presidente2026\",\n  \"account_id\": \"aaec42ffcbeebcd4cda5beff4af4c439\",\n  \"workers_dev\": false,\n  \"preview_urls\": false,\n  \"routes\": [\n    {\n      \"pattern\": \"presidente2026.win\",\n      \"custom_domain\": true\n    }\n  ],\n  \"assets\": {\n    \"directory\": \"./public\",\n    \"binding\": \"ASSETS\",\n    \"run_worker_first\": true\n  },\n  \"cache\": {\n    \"enabled\": true\n  },\n  \"observability\": {\n    \"enabled\": true,\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"PESQUISAS\",\n        \"class_name\": \"PesquisasDurableObject\"\n      },\n      {\n        \"name\": \"POLLER\",\n        \"class_name\": \"PollerDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"void-durable-pesquisas-v1\",\n      \"new_sqlite_classes\": [\n        \"PesquisasDurableObject\"\n      ]\n    },\n    {\n      \"tag\": \"void-durable-poller-v1\",\n      \"new_sqlite_classes\": [\n        \"PollerDurableObject\"\n      ]\n    }\n  ],\n  \"previews\": {}\n}\n"
+  "text": "{\n  \"name\": \"presidente2026\",\n  \"account_id\": \"aaec42ffcbeebcd4cda5beff4af4c439\",\n  \"workers_dev\": false,\n  \"preview_urls\": false,\n  \"routes\": [\n    {\n      \"pattern\": \"presidente2026.win\",\n      \"custom_domain\": true\n    }\n  ],\n  \"assets\": {\n    \"directory\": \"./public\",\n    \"binding\": \"ASSETS\",\n    \"run_worker_first\": true\n  },\n  \"cache\": {\n    \"enabled\": true\n  },\n  \"observability\": {\n    \"enabled\": true,\n    \"traces\": {\n      \"enabled\": true\n    }\n  },\n  \"durable_objects\": {\n    \"bindings\": [\n      {\n        \"name\": \"PESQUISAS\",\n        \"class_name\": \"PesquisasDurableObject\"\n      },\n      {\n        \"name\": \"POLLER\",\n        \"class_name\": \"PollerDurableObject\"\n      }\n    ]\n  },\n  \"migrations\": [\n    {\n      \"tag\": \"void-durable-pesquisas-v1\",\n      \"new_sqlite_classes\": [\n        \"PesquisasDurableObject\"\n      ]\n    },\n    {\n      \"tag\": \"void-durable-poller-v1\",\n      \"new_sqlite_classes\": [\n        \"PollerDurableObject\"\n      ]\n    }\n  ]\n}\n"
 }
