@@ -48,6 +48,13 @@ export default defineConfig({
 		account_id: "aaec42ffcbeebcd4cda5beff4af4c439",
 		workers_dev: false,
 		preview_urls: false,
+		// O `npx wrangler preview` do Workers Builds segue
+		// `.wrangler/deploy/config.json` até `dist/ssr/wrangler.json`. O Void
+		// esconde essa ponte no fim do vite build; sem ela, e com
+		// WRANGLER_CI_OVERRIDE_NAME, o wrangler lê config vazia e pede este
+		// bloco. {} não copia binding de produção. O `npm run build` regrava
+		// a ponte.
+		previews: {},
 		routes: [
 			{
 				pattern: "presidente2026.win",
