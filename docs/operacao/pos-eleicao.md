@@ -21,8 +21,8 @@ O que a spec D0 apontava, e como está hoje:
 | Gap da spec | Hoje |
 | --- | --- |
 | Rate limit binding | Fora do `void.config.ts` (#64). O Void 1.1.11 não sobe rate limit com pinned secrets, então `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` ficam de fora. O contador no Durable Object continua sendo o limite global. Os bindings voltam quando o Void suportar rate limit com pinned secrets. |
-| vitest-pool-workers | O pool 0.23 só aceita Vitest 4.1. O 5 quebrou o cache. Fica no 4.1 até o pacote novo (`@cloudflare/vitest-plugin`) entrar com teste verde. |
-| Workers Builds | Produção na `main`. Preview de branch fica desligado em **Branch control** (`previews_enabled`). Não adicionar bloco `previews` no `void.config.ts`. Enquanto o campo estiver `true`, o check vermelho no PR é o `wrangler preview` sem esse bloco. Depois do desligamento, check vermelho é falha real. |
+| vitest-pool-workers | Trocado pelo `@cloudflare/vitest-plugin` 1.4.5, que aceita Vitest 4.1 e 5. O pool 0.23 avaliava o runner do Vitest 5 dentro do workerd e quebrava com `Unexpected identifier 'file'`. |
+| Workers Builds | Produção na `main` com `npx void deploy`. Preview de branch fica ligado. `cloudflare.previews` é `{}` e o `npm run build` regrava `.wrangler/deploy/config.json`, que o `wrangler preview` segue até `dist/ssr/wrangler.json`. |
 
 Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void deixar de publicar a `main` ou de falar com o Durable Object.
 
@@ -35,8 +35,8 @@ Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void
 | `statusTse` no log do poller | Descartar por agora | O erro do TSE não traz status HTTP. O campo fica de fora até existir esse número. |
 | Voltar ao wrangler | Descartar | A decisão desta nota é permanecer na Void. |
 | Tema escuro, enquete, governadores `6260`, MCP OAuth do Grok | Descartar | Fora de escopo da spec e desta issue. |
-| Check Workers Builds vermelho em todo PR | Desligar `previews_enabled` | O build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou em `npx wrangler preview` por falta do bloco `previews`. Bloco vazio publicaria URL de branch. |
-| Aviso de rename do `vitest-pool-workers` | Fazer depois | Trocar o pacote quando o teste do pool novo passar. Não bloqueia o arquivo. |
+| Check Workers Builds vermelho em todo PR | Repor a ponte do preview | O build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou em `npx wrangler preview` com `missing a previews block`. O Void esconde `.wrangler/deploy/config.json`. Com `WRANGLER_CI_OVERRIDE_NAME`, o Wrangler lê config vazia. `previews: {}` no `void.config.ts` chega no `dist/ssr/wrangler.json`, e o `npm run build` regrava a ponte para o comando achar esse arquivo. |
+| Aviso de rename do `vitest-pool-workers` | Feito | O teste roda no `@cloudflare/vitest-plugin`. O patch de `SELF.scheduled` continua, no arquivo novo. |
 | Plano B do import (`CHAVE_IMPORT`) | Fazer na #22 | Não é atalho de página; é o failover do CSV. |
 
 O que só o Sandro confirma no painel: um evento `import` / `poller` / `agente` visível na Observability depois do próximo cron, e se concorda em apagar `estimativa` do JSON interno.

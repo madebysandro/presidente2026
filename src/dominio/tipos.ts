@@ -23,12 +23,6 @@ export type Candidato = {
 	situacao: string;
 	valido: boolean;
 	foto: string;
-	projetado?: boolean;
-	fila?: boolean;
-	/** Variação de posição desde a leitura anterior (positivo = subiu). */
-	deltaPos?: number | null;
-	/** Evolução do % (minilinha), acumulada no módulo de variações proporcionais. */
-	seriePct?: number[];
 };
 
 export type Agremiacao = {
@@ -39,8 +33,6 @@ export type Agremiacao = {
 	legenda: number;
 	votos: number;
 	vagas: number;
-	/** Variação de cadeiras desde a primeira leitura do acompanhamento. */
-	deltaCadeiras?: number | null;
 };
 
 export type Cargo = {
@@ -235,7 +227,6 @@ export type Leitura = {
 			bra: number;
 			nul: number;
 			c: Record<string, [number, number, number]>;
-			/** Agremiações: [votos, vagas] — usado nas proporcionais. */
 			a?: Record<string, [number, number]>;
 		}
 	>;

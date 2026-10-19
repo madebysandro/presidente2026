@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { acharConfigDoBuild, RAIZ } from "./config-do-build.mjs";
+import { conferirPonte, objetoVazio } from "./ponte-preview.mjs";
 
 export const bindingsRecusados = ["ratelimits"];
 
@@ -14,7 +15,12 @@ const MOTIVO =
 	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput cai no default do switch";
 
 const MOTIVO_PREVIEWS =
-	"um bloco previews, mesmo vazio, faz o wrangler preview publicar URL de branch e outro namespace de Durable Object; o desligamento é previews_enabled no Workers Builds";
+	"o wrangler preview do Workers Builds segue .wrangler/deploy/config.json até dist/ssr/wrangler.json; o bloco tem de ser {} para não copiar binding de produção";
+
+function textoDePreviewsVazio(texto) {
+	const blocos = [...texto.matchAll(/previews\s*:\s*\{([^}]*)\}/g)];
+	return blocos.length > 0 && blocos.every((bloco) => bloco[1].trim() === "");
+}
 
 function propriedadeNoConfig(chave, texto) {
 	const literal = chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -51,21 +57,30 @@ export function recusarBindings({ configText, lock, buildJson }) {
 	return { ok: false, erros };
 }
 
-export function recusarPreviews({ configText, lock, buildJson }) {
+export function exigirPreviews({ configText, lock, buildJson }) {
 	const erros = [];
-	if (typeof configText === "string" && propriedadeNoConfig("previews", configText)) {
-		erros.push(`void.config.ts declara previews (${MOTIVO_PREVIEWS})`);
+	if (typeof configText !== "string" || !textoDePreviewsVazio(configText)) {
+		erros.push(`void.config.ts precisa de previews: {} (${MOTIVO_PREVIEWS})`);
 	}
-	if (
-		lock?.source?.previews != null ||
-		lock?.resolved?.previews != null ||
-		(typeof lock?.text === "string" && lock.text.includes('"previews"'))
-	) {
-		erros.push(`void.lock.json ainda tem previews (${MOTIVO_PREVIEWS})`);
-	}
-	if (buildJson != null && Object.hasOwn(buildJson, "previews")) {
+	if (!objetoVazio(lock?.source?.previews) || !objetoVazio(lock?.resolved?.previews)) {
 		erros.push(
-			`previews=${JSON.stringify(buildJson.previews)} no JSON do Worker (${MOTIVO_PREVIEWS})`,
+			`void.lock.json previews source=${JSON.stringify(lock?.source?.previews)} resolved=${JSON.stringify(lock?.resolved?.previews)} (quer {}; ${MOTIVO_PREVIEWS})`,
+		);
+	}
+	if (typeof lock?.text === "string") {
+		let texto;
+		try {
+			texto = JSON.parse(lock.text);
+		} catch {
+			texto = null;
+		}
+		if (!objetoVazio(texto?.previews)) {
+			erros.push(`void.lock.json text sem previews: {} (${MOTIVO_PREVIEWS})`);
+		}
+	}
+	if (!objetoVazio(buildJson?.previews)) {
+		erros.push(
+			`previews=${JSON.stringify(buildJson?.previews)} no JSON do Worker (quer {}; ${MOTIVO_PREVIEWS})`,
 		);
 	}
 	if (erros.length === 0) return { ok: true };
@@ -102,7 +117,8 @@ function main() {
 	};
 	const erros = [
 		recusarBindings(entrada),
-		recusarPreviews(entrada),
+		exigirPreviews(entrada),
+		conferirPonte(RAIZ),
 		recusarComandoDeploy(pacote.scripts),
 	].flatMap((resultado) => (resultado.ok ? [] : resultado.erros));
 	if (erros.length > 0) {

@@ -7,19 +7,20 @@ import {
 } from "@void/deploy-cloudflare";
 import {
 	bindingsRecusados,
+	exigirPreviews,
 	recusarBindings,
 	recusarComandoDeploy,
-	recusarPreviews,
 } from "./pre-deploy.mjs";
 
 function limpo() {
 	return {
-		configText: 'export default { cloudflare: { account_id: "abc" } };\n',
+		configText: 'export default { cloudflare: { account_id: "abc", previews: {} } };\n',
 		lock: {
-			source: { account_id: "abc" },
-			resolved: { account_id: "abc" },
+			source: { account_id: "abc", previews: {} },
+			resolved: { account_id: "abc", previews: {} },
+			text: '{ "previews": {} }\n',
 		},
-		buildJson: { name: "presidente2026", assets: {}, main: "index.js" },
+		buildJson: { name: "presidente2026", assets: {}, main: "index.js", previews: {} },
 	};
 }
 
@@ -105,14 +106,14 @@ test("build com ratelimits vazio passa", () => {
 	assert.deepEqual(recusarBindings(entrada), { ok: true });
 });
 
-test("config sem bloco previews passa", () => {
-	assert.deepEqual(recusarPreviews(limpo()), { ok: true });
+test("previews vazio passa", () => {
+	assert.deepEqual(exigirPreviews(limpo()), { ok: true });
 });
 
-test("previews vazio no config falha", () => {
+test("config sem bloco previews falha", () => {
 	const entrada = limpo();
-	entrada.configText += "previews: {}\n";
-	const resultado = recusarPreviews(entrada);
+	entrada.configText = 'export default { cloudflare: { account_id: "abc" } };\n';
+	const resultado = exigirPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(
 		resultado.erros.some(
@@ -121,24 +122,46 @@ test("previews vazio no config falha", () => {
 	);
 });
 
-test("previews com espaços antes dos dois pontos falha", () => {
+test("previews com espaços antes dos dois pontos passa", () => {
 	const entrada = limpo();
-	entrada.configText += "previews  : {}\n";
-	const resultado = recusarPreviews(entrada);
+	entrada.configText = 'export default { previews  : {} };\n';
+	assert.deepEqual(exigirPreviews(entrada), { ok: true });
+});
+
+test("previews com binding no config falha", () => {
+	const entrada = limpo();
+	entrada.configText = 'export default { previews: { vars: { A: "1" } } };\n';
+	const resultado = exigirPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(resultado.erros.some((erro) => erro.includes("void.config.ts")));
 });
 
-test("lock source.previews falha", () => {
+test("lock sem source.previews falha", () => {
 	const entrada = limpo();
-	entrada.lock.source.previews = {};
-	const resultado = recusarPreviews(entrada);
+	delete entrada.lock.source.previews;
+	const resultado = exigirPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(
 		resultado.erros.some(
 			(erro) => erro.includes("previews") && erro.includes("void.lock.json"),
 		),
 	);
+});
+
+test("build sem previews falha", () => {
+	const entrada = limpo();
+	delete entrada.buildJson.previews;
+	const resultado = exigirPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(resultado.erros.some((erro) => erro.includes("previews")));
+});
+
+test("lock text sem previews falha", () => {
+	const entrada = limpo();
+	entrada.lock.text = '{ "name": "presidente2026" }\n';
+	const resultado = exigirPreviews(entrada);
+	assert.equal(resultado.ok, false);
+	assert.ok(resultado.erros.some((erro) => erro.includes("text")));
 });
 
 test("o comando de deploy do package.json passa", () => {
@@ -245,16 +268,4 @@ test("contentHash de 64 hex volta no parse e some na regravação de dois argume
 	const lido = parseCloudflareVersionMessage(comHash);
 	assert.equal(lido.contentHash, hash);
 	assert.equal(encodeCloudflareVersionMessage(lido.migrations, lido.triggerConfig), estadoLiteral);
-});
-
-test("build com previews vazio falha", () => {
-	const entrada = limpo();
-	entrada.buildJson.previews = {};
-	const resultado = recusarPreviews(entrada);
-	assert.equal(resultado.ok, false);
-	assert.ok(
-		resultado.erros.some(
-			(erro) => erro.includes("previews") && erro.includes("{}"),
-		),
-	);
 });

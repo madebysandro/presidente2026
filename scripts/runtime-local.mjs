@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { acharConfigDoBuild, RAIZ } from "./config-do-build.mjs";
-import { recusarBindings, recusarPreviews } from "./pre-deploy.mjs";
+import { exigirPreviews, recusarBindings } from "./pre-deploy.mjs";
 
 export { acharConfigDoBuild, RAIZ };
 const ACCOUNT = "aaec42ffcbeebcd4cda5beff4af4c439";
@@ -127,7 +127,7 @@ export function conferirProjeto(raiz = RAIZ) {
 		lock,
 		buildJson: build.json,
 	};
-	const erros = [recusarBindings(entrada), recusarPreviews(entrada)].flatMap(
+	const erros = [recusarBindings(entrada), exigirPreviews(entrada)].flatMap(
 		(resultado) => (resultado.ok ? [] : resultado.erros),
 	);
 	if (erros.length > 0) falha(erros.join("\n"));

@@ -230,7 +230,7 @@ Neste Worker o deploy grava `preserve: true`. O rollback de hoje não restaura t
 
 Não há flag, chave de `void.config.ts` nem variável de ambiente para uma nota humana. `deploy.cloudflare` só aceita `mode`. `WORKERS_CI` no Void só detecta CI. O Workers Builds injeta `WORKERS_CI_COMMIT_SHA` e `WORKERS_CI_BRANCH`. A doc não lista `WORKERS_CI_COMMIT_MESSAGE`. O `cf` 1.0.0-beta.17 que este lock instala só preenche `workers/commit_sha` no upload de preview, e lê `GITHUB_SHA`, `CI_COMMIT_SHA`, `CIRCLE_SHA1` ou `COMMIT_SHA`. O fallback `git log -1 --format=%B` também é só do preview, e só quando ninguém passou `--message`. O Void sempre passa `--message` no deploy. No modo `atomic` o upload manda `annotations` só com `workers/message`.
 
-`workers/tag` cabe 100 bytes. O JSON deste Worker, com as duas migrações e a rota `presidente2026.win`, tem 353 bytes. A versão é imutável. O `scripts/pre-deploy.mjs` recusa `scripts.deploy` diferente de `void deploy --platform cloudflare` e recusa `scripts.predeploy` e `scripts.postdeploy`, porque `npm run deploy` rodaria esses ganchos.
+`workers/tag` cabe 100 bytes. O JSON deste Worker, com as duas migrações e a rota `presidente2026.win`, tem 353 bytes. A versão é imutável. O `scripts/pre-deploy.mjs` recusa `scripts.deploy` diferente de `void deploy --platform cloudflare` e recusa `scripts.predeploy` e `scripts.postdeploy`, porque `npm run deploy` rodaria esses ganchos. O mesmo script continua exigindo `previews: {}` e a ponte `.wrangler/deploy/config.json` que o `npm run build` regrava.
 
 Quando o Void gravar a nota num campo que ele não relê, o formato é `<sha de 7> <primeira linha do assunto> (#N)`. Exemplo: `2481396 Fluxo: limpar o diff e provar no app local (#81)`. Sem PR, `<sha de 7> <assunto>`. A tag opcional repete a string se couber em 100 bytes; senão, só o sha de 7. Uma nota na frente do JSON quebra o parser de hoje. Se o upstream puser a nota nesse campo, tem de omitir a nota quando a soma estourar 1000 bytes.
 
@@ -257,7 +257,7 @@ Para o gate de verify, o código do Void precisa conseguir ler deployments/versi
 | Build command | `npm run build` |
 | Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
 | Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
-| Preview builds | desligar em **Branch control** (`previews_enabled`) |
+| Preview builds | ligados. O bloco é `previews: {}`. A ponte é `.wrangler/deploy/config.json` |
 | API token | token do Builds (Create new token se stale) |
 
 Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci` no Build command.
@@ -270,9 +270,11 @@ Workers Builds instala deps do lockfile antes do build; não precisa de `npm ci`
 4. No log desse build, confirme o verify (`deployments`/`versions`). O readiness corre depois que o tráfego já mudou.
 5. Se o site no ar precisar de uma versão anterior, use **Deployments** (rollback no dashboard) ou `void project rollback`. Só então considere token custom / escopos a partir do stderr (lembre: variável `CLOUDFLARE_API_TOKEN` substitui o token do passo 2).
 
-Sem preview de branch. O Void 1.1.11 não tem chave para desligar o build de branch. A doc de Cloudflare do Void cobre `preview_urls`, e `cloudflare` é repassado para o Wrangler. Não adicionar um bloco `previews` nesse config. O Wrangler 4.151 pede o bloco vazio para rodar `npx wrangler preview`, e esse comando publica uma URL de branch com namespace novo de Durable Object. A API do agente fica sem segundo endereço (`workers_dev: false` e `preview_urls: false`).
+Preview de branch fica ligado. O comando do Workers Builds, fora da `main`, é `npx wrangler preview` (Wrangler 4.151). Esse comando, com `useConfigRedirectIfAvailable`, segue `.wrangler/deploy/config.json` até `dist/ssr/wrangler.json`. O Void 1.1.11 apaga essa ponte no fim do `vite build` e guarda a cópia em `.void/preview-deploy-config.json`. Sem a ponte, o Wrangler não acha `wrangler.json`, `wrangler.jsonc` nem `wrangler.toml` na raiz. O Builds injeta `WRANGLER_CI_OVERRIDE_NAME`, então a checagem de nome passa e o comando para em `missing a previews block`.
 
-O interruptor é o painel. Workers & Pages → `presidente2026` → **Settings** → **Builds** → **Branch control** → desmarcar **Enable Preview Builds**. O mesmo campo na API é `previews_enabled` em `PATCH /accounts/{account_id}/builds/workers/{script_tag}`. Em 17/10/2026 esse campo estava `true`, o deploy de preview era `npx wrangler preview`, e o build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou com `missing a previews block`. A produção continua `npx void deploy --platform cloudflare` na `main`. O token que leu essa config recebeu erro 10000 no PATCH. Quem tem escrita no Builds desmarca o checkbox. Enquanto `previews_enabled` ficar `true`, o check Workers Builds fica vermelho em todo PR por esse motivo. Depois do desligamento, vermelho nesse check é falha real.
+`previews: {}` no `cloudflare` do `void.config.ts` chega em `.void-wrangler.jsonc` e em `dist/ssr/wrangler.json`. O objeto vazio não é descartado. O `wrangler preview` só lê esse arquivo se a ponte existir. O `npm run build` regrava a ponte depois do Vite. Objeto vazio de propósito: o preview não copia binding de produção. Cada preview ganha namespace novo de Durable Object, separado do da `main`. `workers_dev` e `preview_urls` continuam `false`.
+
+A produção da `main` segue `npx void deploy --platform cloudflare`. Esse comando apaga a ponte, refaz o `vite build` com `VOID_CLOUDFLARE_DEPLOY_BUILD=1` e publica o Worker. Não roda `wrangler preview`. O bloco `previews` não entra nos campos de tráfego que o Void trava (`routes`, `workers_dev`, `preview_urls`).
 
 Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
 
