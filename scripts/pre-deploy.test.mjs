@@ -99,9 +99,21 @@ test("config sem bloco previews passa", () => {
 	assert.deepEqual(recusarPreviews(limpo()), { ok: true });
 });
 
-test("previews vazio no config falha", () => {
+test("previews vazio no config passa", () => {
 	const entrada = limpo();
 	entrada.configText += "previews: {}\n";
+	assert.deepEqual(recusarPreviews(entrada), { ok: true });
+});
+
+test("previews vazio com espaços passa", () => {
+	const entrada = limpo();
+	entrada.configText += "previews  : {}\n";
+	assert.deepEqual(recusarPreviews(entrada), { ok: true });
+});
+
+test("previews com chaves no config falha", () => {
+	const entrada = limpo();
+	entrada.configText += "previews: { vars: { ENVIRONMENT: 'preview' } }\n";
 	const resultado = recusarPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(
@@ -111,17 +123,17 @@ test("previews vazio no config falha", () => {
 	);
 });
 
-test("previews com espaços antes dos dois pontos falha", () => {
-	const entrada = limpo();
-	entrada.configText += "previews  : {}\n";
-	const resultado = recusarPreviews(entrada);
-	assert.equal(resultado.ok, false);
-	assert.ok(resultado.erros.some((erro) => erro.includes("void.config.ts")));
-});
-
-test("lock source.previews falha", () => {
+test("lock source.previews vazio passa", () => {
 	const entrada = limpo();
 	entrada.lock.source.previews = {};
+	entrada.lock.resolved.previews = {};
+	entrada.lock.text = '{\n  "account_id": "abc",\n  "previews": {}\n}\n';
+	assert.deepEqual(recusarPreviews(entrada), { ok: true });
+});
+
+test("lock source.previews com chaves falha", () => {
+	const entrada = limpo();
+	entrada.lock.source.previews = { vars: { ENVIRONMENT: "preview" } };
 	const resultado = recusarPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(
@@ -131,14 +143,20 @@ test("lock source.previews falha", () => {
 	);
 });
 
-test("build com previews vazio falha", () => {
+test("build com previews vazio passa", () => {
 	const entrada = limpo();
 	entrada.buildJson.previews = {};
+	assert.deepEqual(recusarPreviews(entrada), { ok: true });
+});
+
+test("build com previews com chaves falha", () => {
+	const entrada = limpo();
+	entrada.buildJson.previews = { vars: { ENVIRONMENT: "preview" } };
 	const resultado = recusarPreviews(entrada);
 	assert.equal(resultado.ok, false);
 	assert.ok(
 		resultado.erros.some(
-			(erro) => erro.includes("previews") && erro.includes("{}"),
+			(erro) => erro.includes("previews") && erro.includes("ENVIRONMENT"),
 		),
 	);
 });

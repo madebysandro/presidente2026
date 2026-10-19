@@ -9,7 +9,24 @@ const MOTIVO =
 	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput cai no default do switch";
 
 const MOTIVO_PREVIEWS =
-	"um bloco previews, mesmo vazio, faz o wrangler preview publicar URL de branch e outro namespace de Durable Object; o desligamento é previews_enabled no Workers Builds";
+	"o Wrangler 4.151 exige previews vazio para o preview; um bloco com chaves aponta recurso de preview e outro namespace de Durable Object";
+
+function objetoVazio(valor) {
+	return (
+		valor != null &&
+		typeof valor === "object" &&
+		!Array.isArray(valor) &&
+		Object.keys(valor).length === 0
+	);
+}
+
+function previewsNaoVazioNoTexto(texto, chave) {
+	const literal = chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	if (!new RegExp(`${literal}\\s*:`).test(texto)) return false;
+	const matches = [...texto.matchAll(new RegExp(`${literal}\\s*:\\s*(\\{[\\s\\S]*?\\})`, "g"))];
+	if (matches.length !== 1) return true;
+	return matches[0][1].replace(/\s/g, "") !== "{}";
+}
 
 function propriedadeNoConfig(chave, texto) {
 	const literal = chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -48,17 +65,23 @@ export function recusarBindings({ configText, lock, buildJson }) {
 
 export function recusarPreviews({ configText, lock, buildJson }) {
 	const erros = [];
-	if (typeof configText === "string" && propriedadeNoConfig("previews", configText)) {
-		erros.push(`void.config.ts declara previews (${MOTIVO_PREVIEWS})`);
+	if (typeof configText === "string" && previewsNaoVazioNoTexto(configText, "previews")) {
+		erros.push(`void.config.ts declara previews com chaves (${MOTIVO_PREVIEWS})`);
+	}
+	const previewsDoLock = [lock?.source?.previews, lock?.resolved?.previews].filter(
+		(valor) => valor != null,
+	);
+	if (
+		previewsDoLock.some((valor) => !objetoVazio(valor)) ||
+		(typeof lock?.text === "string" && previewsNaoVazioNoTexto(lock.text, '"previews"'))
+	) {
+		erros.push(`void.lock.json tem previews com chaves (${MOTIVO_PREVIEWS})`);
 	}
 	if (
-		lock?.source?.previews != null ||
-		lock?.resolved?.previews != null ||
-		(typeof lock?.text === "string" && lock.text.includes('"previews"'))
+		buildJson != null &&
+		Object.hasOwn(buildJson, "previews") &&
+		!objetoVazio(buildJson.previews)
 	) {
-		erros.push(`void.lock.json ainda tem previews (${MOTIVO_PREVIEWS})`);
-	}
-	if (buildJson != null && Object.hasOwn(buildJson, "previews")) {
 		erros.push(
 			`previews=${JSON.stringify(buildJson.previews)} no JSON do Worker (${MOTIVO_PREVIEWS})`,
 		);
