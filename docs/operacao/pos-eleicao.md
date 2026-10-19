@@ -37,6 +37,6 @@ Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void
 | Tema escuro, enquete, governadores `6260`, MCP OAuth do Grok | Descartar | Fora de escopo da spec e desta issue. |
 | Check Workers Builds vermelho em todo PR | Repor a ponte do preview | O build `875ea10b-c06d-42df-9374-282db3774733` passou no `npm run build` e falhou em `npx wrangler preview` com `missing a previews block`. O Void esconde `.wrangler/deploy/config.json`. Com `WRANGLER_CI_OVERRIDE_NAME`, o Wrangler lê config vazia. `previews: {}` no `void.config.ts` chega no `dist/ssr/wrangler.json`, e o `npm run build` regrava a ponte para o comando achar esse arquivo. |
 | Aviso de rename do `vitest-pool-workers` | Fazer depois | Trocar o pacote quando o teste do pool novo passar. Não bloqueia o arquivo. |
-| Plano B do import (`CHAVE_IMPORT`) | Fazer na #22 | Não é atalho de página; é o failover do CSV. |
+| Plano B do import (`CHAVE_IMPORT`) | A Action `.github/workflows/plano-b-import.yml` existe, mas hoje não executa: o `if: ${{ secrets.CHAVE_IMPORT != '' }}` do step (linha 26) usa um contexto que o GitHub não aceita em `steps.if`, então todo push falha em 0s e o cron nunca rodou (correção pendente de decisão do Sandro) | Não é atalho de página; é o failover do CSV. |
 
 O que só o Sandro confirma no painel: um evento `import` / `poller` / `agente` visível na Observability depois do próximo cron, e se concorda em apagar `estimativa` do JSON interno.
