@@ -56,6 +56,7 @@ type ApuracaoApi = {
 			};
 			governador?: unknown;
 		};
+		proporcionais?: Record<string, never>;
 		destaques?: unknown[];
 		viradas?: { de: string; para: string; ap: number }[];
 		momentos?: { tipo: string; n?: string; para?: string; ap?: number }[];
@@ -181,7 +182,8 @@ describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 		expect(dados.analise?.regioes).toHaveLength(5);
 		expect(dados.analise?.majoritarias?.presidente?.primeiroTurno).toBeNull();
 		expect(dados.analise?.majoritarias?.governador).toBeUndefined();
-		expect(dados.analise?.destaques ?? []).toEqual([]);
+		expect(dados.analise?.proporcionais).toEqual({});
+		expect(dados.analise?.destaques).toEqual([]);
 		expect(JSON.stringify(dados)).not.toMatch(/vencer no 1/i);
 		expect(dados.analise?.comparacao?.primeiro.flavio).toBeCloseTo(
 			(56_104_503 / 158_745_502) * 100,

@@ -22,10 +22,7 @@ export type PrimeiroTurnoAnalise = {
 	status: "ok" | "maioria" | "fora";
 };
 
-/**
- * Análise de um cargo majoritário (calculada no servidor).
- * No Senado, defensor/perseguidor são o 2º e o 3º (disputa pela 2ª vaga).
- */
+/** Análise de um cargo majoritário (calculada no servidor). */
 export type AnaliseMajoritaria = {
 	defensor: RefCandidatoAnalise;
 	perseguidor: RefCandidatoAnalise;
@@ -37,7 +34,6 @@ export type AnaliseMajoritaria = {
 	/** Margem em p.p. sobre o que falta; >100 → fora de alcance. */
 	margemParaVirarPp: number | null;
 	foraDeAlcance: boolean;
-	/** null no Senado (sem 1º turno). */
 	primeiroTurno: PrimeiroTurnoAnalise | null;
 	tendencias: TendenciaCandidato[];
 };
@@ -88,10 +84,9 @@ export function analiseMajoritaria(
 	cargo: Cargo,
 	hist: Leitura[],
 ): AnaliseMajoritaria | null {
-	const [a, b, d3] = cargo.candidatos;
-	const duas = cargo.vagas === 2;
-	const def = refDe(duas ? b : a);
-	const per = refDe(duas ? d3 : b);
+	const [a, b] = cargo.candidatos;
+	const def = refDe(a);
+	const per = refDe(b);
 	if (!def || !per) return null;
 
 	const vantagemVotos = def.votos - per.votos;
@@ -114,19 +109,17 @@ export function analiseMajoritaria(
 	}
 
 	let primeiroTurno: PrimeiroTurnoAnalise | null = null;
-	if (!duas) {
-		if (R != null && R > 0 && a) {
-			const fatiaPct =
-				((0.5 * (cargo.totais.validos + R) - a.votos) / R) * 100;
-			const status: PrimeiroTurnoAnalise["status"] =
-				fatiaPct <= 0 ? "maioria" : fatiaPct > 100 ? "fora" : "ok";
-			primeiroTurno = { fatiaPct, status };
-		} else {
-			primeiroTurno = { fatiaPct: null, status: "ok" };
-		}
+	if (R != null && R > 0 && a) {
+		const fatiaPct =
+			((0.5 * (cargo.totais.validos + R) - a.votos) / R) * 100;
+		const status: PrimeiroTurnoAnalise["status"] =
+			fatiaPct <= 0 ? "maioria" : fatiaPct > 100 ? "fora" : "ok";
+		primeiroTurno = { fatiaPct, status };
+	} else {
+		primeiroTurno = { fatiaPct: null, status: "ok" };
 	}
 
-	const candidatosTend = cargo.candidatos.slice(0, duas ? 4 : 2);
+	const candidatosTend = cargo.candidatos.slice(0, 2);
 	const tendencias: TendenciaCandidato[] = [];
 	for (const cand of candidatosTend) {
 		const pp = tendenciaCand(hist, cargo.id, cand.n);
@@ -149,17 +142,15 @@ export function analiseMajoritaria(
 	};
 }
 
-/** Monta o mapa de análises majoritárias para os cargos presentes. */
+/** Análise majoritária do Presidente, quando o cargo está no estado. */
 export function analisarMajoritarias(
 	cargos: Record<string, Cargo>,
 	hist: Leitura[],
 ): Record<string, AnaliseMajoritaria> {
 	const out: Record<string, AnaliseMajoritaria> = {};
-	for (const id of ["presidente", "governador", "senador"] as const) {
-		const cargo = cargos[id];
-		if (!cargo) continue;
-		const a = analiseMajoritaria(cargo, hist);
-		if (a) out[id] = a;
-	}
+	const cargo = cargos.presidente;
+	if (!cargo) return out;
+	const a = analiseMajoritaria(cargo, hist);
+	if (a) out.presidente = a;
 	return out;
 }
