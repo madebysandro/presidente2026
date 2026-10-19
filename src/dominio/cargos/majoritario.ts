@@ -44,7 +44,6 @@ export function totaisDe(dados: DadosBrutosCargo): TotaisCargo {
 	};
 }
 
-/** Normalização do cargo majoritário. */
 export function normalizarMajoritario(
 	meta: MetaCargo,
 	dados: DadosBrutosCargo,

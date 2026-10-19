@@ -22,7 +22,6 @@ export type PrimeiroTurnoAnalise = {
 	status: "ok" | "maioria" | "fora";
 };
 
-/** Análise de um cargo majoritário (calculada no servidor). */
 export type AnaliseMajoritaria = {
 	defensor: RefCandidatoAnalise;
 	perseguidor: RefCandidatoAnalise;
@@ -142,7 +141,6 @@ export function analiseMajoritaria(
 	};
 }
 
-/** Análise majoritária do Presidente, quando o cargo está no estado. */
 export function analisarMajoritarias(
 	cargos: Record<string, Cargo>,
 	hist: Leitura[],
