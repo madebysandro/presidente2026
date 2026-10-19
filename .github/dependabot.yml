@@ -1,7 +1,8 @@
 version: 2
 # package.json overrides pin undici 7.30.0 and sharp 0.35.5.
-# Ceiling: @cloudflare/vitest-pool-workers@0.23.0 vendors miniflare with
-# undici 7.29.0 and sharp 0.35.2. Drop the overrides when the pool ships patches.
+# Ceiling: @cloudflare/vitest-plugin@1.4.5 vendors miniflare 5.20261019.0-beta
+# with undici 7.29.1. sharp there is already 0.35.5. Drop the undici override
+# when that miniflare ships 7.30.0.
 updates:
   - package-ecosystem: npm
     directory: "/"

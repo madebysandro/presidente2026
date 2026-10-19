@@ -4,7 +4,7 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"lib": ["ES2022"],
-		"types": ["@cloudflare/vitest-pool-workers/types", "vite/client", "void/env"],
+		"types": ["@cloudflare/vitest-plugin/types", "vite/client", "void/env"],
 		"strict": true,
 		"noEmit": true,
 		"skipLibCheck": true,
