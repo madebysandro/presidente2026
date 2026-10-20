@@ -61,3 +61,32 @@ describe("apelido Futura na confirmação da fonte", () => {
 		).toBe(false);
 	});
 });
+
+const validosFranca = { flavio: 50.8, lula: 49.2 };
+const soFranca = "<p>França: Flávio 50,8% contra 49,2% de Lula em votos válidos.</p>";
+
+describe("apelido França na confirmação da fonte", () => {
+	it("BR-07896/2026 confirma quando a página cita só França", () => {
+		expect(
+			confirmarHtml(soFranca, "BR-07896/2026", "Instituto Franca", { flavio: 0, lula: 0 }, validosFranca),
+		).toBe(true);
+	});
+
+	it("BR-07896/2026 confirma quando a página cita só Franca sem acento", () => {
+		const semAcento = "<p>Franca: Flávio 50,8% e Lula 49,2%.</p>";
+		expect(
+			confirmarHtml(semAcento, "BR-07896/2026", "Instituto Franca", { flavio: 0, lula: 0 }, validosFranca),
+		).toBe(true);
+	});
+
+	it("outro registro recusa página que cita só França", () => {
+		expect(confirmarHtml(soFranca, "BR-00650/2026", "100% Cidades", totais, null)).toBe(false);
+	});
+
+	it("página que cita Instituto Franca continua confirmando", () => {
+		const instituto = "<p>Instituto Franca: Flávio 50,8%, Lula 49,2%.</p>";
+		expect(
+			confirmarHtml(instituto, "BR-07896/2026", "Instituto Franca", { flavio: 0, lula: 0 }, validosFranca),
+		).toBe(true);
+	});
+});
