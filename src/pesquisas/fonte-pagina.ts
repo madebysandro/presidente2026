@@ -40,6 +40,7 @@ export function ocorrencias(texto: string, n: number): number[] {
 export const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly string[]>> = {
 	"BR-00650/2026": ["Futura"],
 	"BR-03764/2026": ["Futura"],
+	"BR-07896/2026": ["França", "Franca"],
 };
 
 /** Os dois números ocupam trechos diferentes. 50% e 50% exigem duas ocorrências. */
