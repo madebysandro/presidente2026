@@ -88,7 +88,7 @@ ${htmlMiolo(vista)}
 </main>
 <script src="/js/relogio.js" defer></script>
 <script src="/js/calendario.js" defer></script>
-<script src="/js/grafico.js" defer></script>
+<script type="module" src="/js/grafico.js"></script>
 <script src="/js/movimento.js" defer></script>
 <script src="/js/ao-vivo.js" defer></script>
 </body>

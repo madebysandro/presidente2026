@@ -1,6 +1,6 @@
 /**
- * Aceite #12: gráfico da vantagem a partir do JSON (série + filtros).
- * Seam: htmlVantagem e o documento da página, sem olhar geometria interna.
+ * Gráfico de duas linhas de intenção a partir das pesquisas publicadas.
+ * Seam: htmlVantagem e o documento da página.
  */
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
@@ -117,98 +117,100 @@ function attr(tag: string, nome: string): string {
 	return tag.match(new RegExp(`\\s${nome}="([^"]*)"`))?.[1] ?? "";
 }
 
-describe("gráfico da vantagem a partir do JSON (#12)", () => {
-	it("mostra a linha da média e um ponto por pesquisa na cor do líder daquela pesquisa", () => {
+describe("gráfico de duas linhas de intenção", () => {
+	it("mostra um ponto de cada candidato e a média dia a dia até hoje", () => {
 		const html = pagina();
-		const lista = pontos(html);
-		expect(lista).toHaveLength(3);
+		expect(html).toContain("Lula × Flávio, pesquisa a pesquisa");
+		expect(html).toContain("faixa = margem de erro média");
+		expect(html).toContain(">hoje<");
+		expect(html).toContain('class="t-cinq"');
+		expect(html).toContain("Toque num ponto para ver os números.");
 
-		const porRegistro = new Map(lista.map((tag) => [attr(tag, "data-registro"), tag]));
-		expect([...porRegistro.keys()].sort()).toEqual([
+		const lista = pontos(html);
+		expect(lista).toHaveLength(6);
+		const flavio = lista.filter((tag) => tag.includes("lado-f"));
+		const lula = lista.filter((tag) => tag.includes("lado-l"));
+		expect(flavio).toHaveLength(3);
+		expect(lula).toHaveLength(3);
+		expect(flavio.map((tag) => attr(tag, "data-registro")).sort()).toEqual([
 			"BR-02949/2026",
 			"BR-03663/2026",
 			"BR-04000/2026",
 		]);
-		expect(porRegistro.get("BR-02949/2026")).toContain("lado-f");
-		expect(porRegistro.get("BR-04000/2026")).toContain("lado-f");
-		expect(porRegistro.get("BR-03663/2026")).toContain("lado-l");
-		expect(porRegistro.get("BR-03663/2026")).not.toContain("lado-f");
 
-		const media = html.match(/<path class="t-media"[^>]*>/)?.[0] ?? "";
-		expect(media).toContain('stroke-width="3"');
-		expect(media).toContain('data-datas="2026-10-08 2026-10-12"');
-		expect(html).toContain("média Flávio +3,4");
-		expect(html).toContain("Flávio +");
-		expect(html).toContain(">empate<");
-		expect(html).toContain("Lula +");
-		expect(html).toContain(">hoje<");
+		const mediaF = html.match(/<polyline class="t-media t-media-f"[^>]*>/)?.[0] ?? "";
+		const mediaL = html.match(/<polyline class="t-media t-media-l"[^>]*>/)?.[0] ?? "";
+		expect(mediaF).toContain('stroke-width="3.5"');
+		expect(mediaF).toContain(
+			'data-vf="52.13 49.5 49.5 49.5 48.44 48.44 48.44 48.44"',
+		);
+		expect(mediaL).toContain(
+			'data-vl="47.87 50.5 50.5 50.5 51.56 51.56 51.56 51.56"',
+		);
+		expect(html).toContain("Flávio 48,4%");
+		expect(html).toContain("Lula 51,6%");
+		expect(html).toContain('class="t-faixa t-faixa-f"');
+		expect(html).toContain('class="t-faixa t-faixa-l"');
 		expect(html).not.toContain("BR-08729/2026");
+		expect(html).not.toContain("BR-09623/2026");
 		expect(html).not.toMatch(/undefined|NaN/);
 
-		const flavio = porRegistro.get("BR-02949/2026") ?? "";
-		const lula = porRegistro.get("BR-03663/2026") ?? "";
-		expect(Number(attr(flavio, "data-y"))).toBeLessThan(Number(attr(lula, "data-y")));
-		expect(Number(attr(flavio, "data-x"))).toBeLessThan(
-			Number(attr(porRegistro.get("BR-04000/2026") ?? "", "data-x")),
-		);
+		const datafolhaF = flavio.find((tag) => attr(tag, "data-registro") === "BR-02949/2026") ?? "";
+		const datafolhaL = lula.find((tag) => attr(tag, "data-registro") === "BR-02949/2026") ?? "";
+		expect(attr(datafolhaF, "data-x")).toBe(attr(datafolhaL, "data-x"));
+		expect(Number(attr(datafolhaF, "data-y"))).toBeLessThan(Number(attr(datafolhaL, "data-y")));
+		expect(html).toContain(">06/10<");
+		expect(html).toContain('class="t-dia t-dia-miudo"');
+		expect(html).toContain('style="left:81.82%">hoje');
 	});
 
-	it("desligar um instituto esconde só os pontos e a linha dele, sem apagar o resto", () => {
+	it("desligar um instituto tira os pontos dele e recalcula a média", () => {
 		const base = payload({
 			publicadas: [ATLAS, DATAFOLHA, DATAFOLHA_2],
 			serieMedia: SERIE,
 		});
 		const html = htmlVantagem(base, new Set([DATAFOLHA.cnpj]));
 		const lista = pontos(html);
-		expect(lista).toHaveLength(3);
+		expect(lista).toHaveLength(2);
+		expect(lista.every((tag) => attr(tag, "data-cnpj") === ATLAS.cnpj)).toBe(true);
+		expect(html).toContain("BR-02949/2026");
+		expect(html).toContain("BR-04000/2026");
 
-		const doInstituto = lista.filter((tag) => attr(tag, "data-cnpj") === DATAFOLHA.cnpj);
-		const outros = lista.filter((tag) => attr(tag, "data-cnpj") !== DATAFOLHA.cnpj);
-		expect(doInstituto).toHaveLength(2);
-		expect(outros).toHaveLength(1);
-		for (const tag of doInstituto) expect(tag).toContain(" off");
-		expect(outros[0]).not.toContain(" off");
-
-		const linha = html.match(/<path class="t-inst[^"]*"[^>]*>/)?.[0] ?? "";
-		expect(linha).toContain(`data-cnpj="${DATAFOLHA.cnpj}"`);
-		expect(linha).toContain(" off");
-		expect(html.match(/<path class="t-inst/g)).toHaveLength(1);
-		expect(html.match(/<path class="t-media"[^>]*>/)?.[0] ?? "").not.toContain(" off");
-
+		const mediaF = html.match(/<polyline class="t-media t-media-f"[^>]*>/)?.[0] ?? "";
+		expect(mediaF).toContain('data-vf="46.88 46.88 46.88 46.88 46.88 46.88 46.88"');
+		expect(html).toContain("Flávio 46,9%");
+		expect(html).toContain("Lula 53,1%");
 		expect(html).toContain(`data-cnpj="${DATAFOLHA.cnpj}" aria-pressed="false"`);
 		expect(html).toContain(`data-cnpj="${ATLAS.cnpj}" aria-pressed="true"`);
 		expect(html).toContain("Datafolha");
 		expect(html).toContain("AtlasIntel");
 	});
 
-	it("o ponto traz os números e a ficha no title", () => {
+	it("o ponto traz instituto, data, os dois percentuais e a margem", () => {
 		const html = pagina();
 		const datafolha = pontos(html).find((tag) => attr(tag, "data-registro") === "BR-02949/2026") ?? "";
-		const title = attr(datafolha, "title");
-		expect(title).toContain("campo até 08/10");
-		expect(title).toContain("Flávio 52,1%");
-		expect(title).toContain("Lula 47,9%");
-		expect(title).toContain("Datafolha ouviu 2.520 eleitores de 06/10 a 08/10");
-		expect(title).toContain("margem de erro de 2 pontos");
-		expect(title).toContain("confiança de 95%");
-		expect(title).toContain("Contratada por Folha de S.Paulo e TV Globo");
-		expect(title).toContain("Registro no TSE BR-02949/2026");
+		const rotulo = attr(datafolha, "aria-label");
+		expect(rotulo).toContain("Datafolha, 08/10");
+		expect(rotulo).toContain("Flávio 52,1%");
+		expect(rotulo).toContain("Lula 47,9%");
+		expect(rotulo).toContain("Margem ±2,0");
+		expect(attr(datafolha, "data-instituto")).toBe("Datafolha");
+		expect(attr(datafolha, "data-quando")).toBe("08/10");
 
 		const atlas = pontos(html).find((tag) => attr(tag, "data-registro") === "BR-03663/2026") ?? "";
-		const titleAtlas = attr(atlas, "title");
-		expect(titleAtlas).toContain("1 ponto");
-		expect(titleAtlas).not.toContain("1 pontos");
-		expect(titleAtlas).toContain("Feita com recursos próprios");
-		expect(titleAtlas).toContain("Flávio 46,9%");
-		expect(titleAtlas).toContain("Lula 53,1%");
+		expect(attr(atlas, "aria-label")).toContain("Margem ±1,0");
+		expect(attr(atlas, "aria-label")).toContain("Flávio 46,9%");
+		expect(attr(atlas, "aria-label")).toContain("Lula 53,1%");
 	});
 
-	it("registro ausente do JSON não vira ponto nem data da série", () => {
+	it("registro ausente das publicadas não entra no gráfico nem no JSON do recálculo", () => {
 		const html = pagina();
 		const grafico = html.slice(html.indexOf('class="a-tend"'), html.indexOf('class="a-calc"'));
 		expect(grafico).not.toContain("BR-08729/2026");
-		expect(grafico).not.toContain("2026-10-13");
-		expect(grafico).toContain('data-datas="2026-10-08 2026-10-12"');
+		expect(grafico).toContain('id="a-intencao-dados"');
+		expect(grafico).toContain("BR-02949/2026");
+		expect(grafico).toContain('"flavio":49');
+		expect(grafico).toContain("2026-10-13");
 	});
 
 	it("sem pesquisas publicadas não desenha ponto nem NaN", () => {
@@ -253,13 +255,15 @@ describe("gráfico da vantagem a partir do JSON (#12)", () => {
 		expect(cssRes.status).toBe(200);
 		const css = await cssRes.text();
 		expect(css).toMatch(/overflow-x:\s*clip/);
-		expect(css).toMatch(/\.a-graf[^{]*\{[^}]*minmax\(0,\s*1fr\)/);
+		expect(css).toMatch(/\.a-plot[^{]*\{[^}]*minmax\(0,\s*1fr\)/);
 		expect(css).toMatch(/\.a-chips[^{]*\{[^}]*flex-wrap:\s*wrap/);
-		expect(css).toMatch(/\.a-plot svg[^{]*\{[^}]*width:\s*100%/);
-		expect(css).toMatch(/\.t-pt\.lado-f[^{]*\{[^}]*background:\s*var\(--f\)/);
-		expect(css).toMatch(/\.t-pt\.lado-l[^{]*\{[^}]*background:\s*var\(--l\)/);
-		expect(css).toMatch(/opacity\s*350ms/);
-		expect(css).toMatch(/\.t-media[^{]*\{[^}]*stroke:\s*var\(--tinta\)/);
+		expect(css).toMatch(/\.a-area svg[^{]*\{[^}]*width:\s*100%/);
+		expect(css).toMatch(/\.t-pt\.lado-f[^{]*\{[^}]*var\(--f\)/);
+		expect(css).toMatch(/\.t-pt\.lado-l[^{]*\{[^}]*var\(--l\)/);
+		expect(css).toMatch(/\.t-media-f[^{]*\{[^}]*stroke:\s*var\(--f\)/);
+		expect(css).toMatch(/\.t-media-l[^{]*\{[^}]*stroke:\s*var\(--l\)/);
+		expect(css).toMatch(/\.t-dia-miudo[^{]*\{[^}]*display:\s*none/);
+		expect(css).toMatch(/\.t-cinq[^{]*\{[^}]*dashed/);
 
 		const jsRes = await env.ASSETS.fetch("https://presidente2026.test/js/grafico.js");
 		expect(jsRes.status).toBe(200);
@@ -269,8 +273,8 @@ describe("gráfico da vantagem a partir do JSON (#12)", () => {
 		expect(js).toContain("localStorage.setItem");
 		expect(js).toMatch(/try\s*\{/);
 		expect(js).toContain("catch");
-		expect(js).toContain('classList.toggle("off"');
+		expect(js).toContain("serieIntencao");
 		expect(js).not.toContain("innerHTML");
-		expect(js).not.toContain("grafico.innerHTML");
+		expect(pagina()).toContain('type="module" src="/js/grafico.js"');
 	});
 });

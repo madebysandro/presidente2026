@@ -1,6 +1,14 @@
 import { arred1, arred2 } from "./validos";
 import type { MediaPublica, PesquisaPublicada, PontoSerieMedia } from "./tipos";
 
+export type PontoSerieIntencao = {
+	data: string;
+	vf: number;
+	vl: number;
+	margem: number;
+	n: number;
+};
+
 /** Média final, congelada na abertura da apuração. */
 export const DATA_MEDIA_FINAL = "2026-10-25";
 
@@ -71,6 +79,31 @@ export function serieMediaDe(
 		const media = mediaEm(publicadas, data);
 		if (!media) continue;
 		pontos.push({ data: media.data, vf: media.vf, v: media.v, n: media.n });
+	}
+	return pontos;
+}
+
+export function serieIntencaoDe(
+	publicadas: readonly PesquisaPublicada[],
+	dataRef: string,
+): PontoSerieIntencao[] {
+	if (!publicadas.length) return [];
+	let inicio = publicadas[0]!.campoFim;
+	for (const pesquisa of publicadas) {
+		if (pesquisa.campoFim < inicio) inicio = pesquisa.campoFim;
+	}
+	if (inicio > dataRef) return [];
+	const pontos: PontoSerieIntencao[] = [];
+	for (let data = inicio; data <= dataRef; data = somarDiasIso(data, 1)) {
+		const media = mediaEm(publicadas, data);
+		if (!media) continue;
+		pontos.push({
+			data: media.data,
+			vf: media.vf,
+			vl: media.vl,
+			margem: media.margem,
+			n: media.n,
+		});
 	}
 	return pontos;
 }

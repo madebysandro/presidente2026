@@ -30,6 +30,6 @@ Este diretório é a fonte do comportamento que o visitante vê. Ler o índice a
 
 - [Página de pesquisas](./pagina-pesquisas.md) é a superfície `/` enquanto `data-fase` é `pesquisas`.
 - [Calendário](./calendario.md) é a seção de dias na mesma página.
-- [Gráfico da vantagem](./grafico-vantagem.md) é a seção da média e dos institutos.
+- [Gráfico da intenção](./grafico-vantagem.md) é a seção das duas linhas e dos institutos.
 - [API de pesquisas](./api-pesquisas.md) é o `GET /api/pesquisas`.
 - [API de apuração](./api-apuracao.md) é o `GET /api/apuracao`.
