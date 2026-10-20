@@ -6,7 +6,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { documentoPesquisas } from "../src/pagina/documento";
 import { htmlVantagem } from "../src/pagina/grafico";
-import type { PayloadPesquisas, PesquisaPublicada, PontoSerieMedia } from "../src/pesquisas/tipos";
+import type { PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
 
 const AGORA = new Date("2026-10-15T18:00:00-03:00");
 
@@ -94,16 +94,10 @@ const ATLAS = publicada({
 	fonte: "https://www.poder360.com.br/atlas",
 });
 
-const SERIE: PontoSerieMedia[] = [
-	{ data: "2026-10-08", vf: 52.13, v: 4.26, n: 1 },
-	{ data: "2026-10-12", vf: 51.7, v: 3.4, n: 2 },
-];
-
 function pagina(): string {
 	return documentoPesquisas(
 		payload({
 			publicadas: [ATLAS, DATAFOLHA, DATAFOLHA_2],
-			serieMedia: SERIE,
 		}),
 		AGORA,
 	);
@@ -167,7 +161,6 @@ describe("gráfico de duas linhas de intenção", () => {
 	it("desligar um instituto tira os pontos dele e recalcula a média", () => {
 		const base = payload({
 			publicadas: [ATLAS, DATAFOLHA, DATAFOLHA_2],
-			serieMedia: SERIE,
 		});
 		const html = htmlVantagem(base, new Set([DATAFOLHA.cnpj]));
 		const lista = pontos(html);
@@ -184,6 +177,29 @@ describe("gráfico de duas linhas de intenção", () => {
 		expect(html).toContain(`data-cnpj="${ATLAS.cnpj}" aria-pressed="true"`);
 		expect(html).toContain("Datafolha");
 		expect(html).toContain("AtlasIntel");
+	});
+
+	it("o rótulo acompanha o fim da linha quando a média para antes de hoje", () => {
+		const html = htmlVantagem(
+			payload({
+				hoje: "2026-10-20",
+				publicadas: [
+					publicada({
+						registro: "BR-00001/2026",
+						cnpj: "11111111000111",
+						instituto: "Alfa",
+						campoInicio: "2026-10-01",
+						campoFim: "2026-10-01",
+						totais: { flavio: 60, lula: 40, brancoNulo: null, naoSabe: null, brancoNuloNaoSabe: null },
+						vf: 60,
+						vl: 40,
+						v: 20,
+					}),
+				],
+			}),
+		);
+		expect(html).toContain('class="t-rot t-rot-f" style="left:65.22%');
+		expect(html).toContain('style="left:91.30%">hoje');
 	});
 
 	it("o ponto traz instituto, data, os dois percentuais e a margem", () => {

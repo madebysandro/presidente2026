@@ -222,7 +222,7 @@ function desenhar(dados, desligados) {
 		]) {
 			const rotulo = document.createElement("span");
 			rotulo.className = classe;
-			rotulo.style.left = `${xHoje}%`;
+			rotulo.style.left = `${n2(px(ultimo.data))}%`;
 			rotulo.style.top = `${n2(topo)}%`;
 			rotulo.textContent = texto;
 			area.append(rotulo);

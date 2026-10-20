@@ -183,7 +183,8 @@ export function htmlVantagem(
 			topoF = meio - sinal * (FOLGA_ROTULO / 2);
 			topoL = meio + sinal * (FOLGA_ROTULO / 2);
 		}
-		rotulos = `<span class="t-rot t-rot-f" style="left:${xHoje}%;top:${n2(topoF)}%">Flávio ${p1.format(ultimo.vf)}%</span><span class="t-rot t-rot-l" style="left:${xHoje}%;top:${n2(topoL)}%">Lula ${p1.format(ultimo.vl)}%</span>`;
+		const xFim = n2(px(ultimo.data));
+		rotulos = `<span class="t-rot t-rot-f" style="left:${xFim}%;top:${n2(topoF)}%">Flávio ${p1.format(ultimo.vf)}%</span><span class="t-rot t-rot-l" style="left:${xFim}%;top:${n2(topoL)}%">Lula ${p1.format(ultimo.vl)}%</span>`;
 	}
 
 	const datasEixo: string[] = [];
