@@ -1,8 +1,10 @@
 import { escHtml, nf } from "../dominio/texto";
-import type { PayloadPesquisas, PesquisaPublicada, PontoSerieMedia } from "../pesquisas/tipos";
+import { serieIntencaoDe, type PontoSerieIntencao } from "../pesquisas/media";
+import type { PayloadPesquisas, PesquisaPublicada } from "../pesquisas/tipos";
 
-const PAD_X = 6;
-const PAD_Y = 10;
+const Y_LO = 44;
+const Y_HI = 56;
+const FOLGA_ROTULO = 7.2;
 
 const p1 = new Intl.NumberFormat("pt-BR", {
 	minimumFractionDigits: 1,
@@ -24,6 +26,10 @@ function diaNumero(iso: string): number {
 
 function isoDe(dia: number): string {
 	return new Date(dia * 86_400_000).toISOString().slice(0, 10);
+}
+
+function somarDias(iso: string, dias: number): string {
+	return isoDe(diaNumero(iso) + dias);
 }
 
 function ddmm(iso: string): string {
@@ -54,13 +60,41 @@ export function textoFicha(pesquisa: PesquisaPublicada): string {
 	return `${pesquisa.instituto} ouviu ${nf.format(pesquisa.entrevistas)} eleitores de ${ddmm(pesquisa.campoInicio)} a ${ddmm(pesquisa.campoFim)}; margem de erro de ${textoPontos(pesquisa.margem)}, confiança de ${n1.format(pesquisa.confianca)}%. ${textoContratantes(pesquisa.contratantes)}. Registro no TSE ${pesquisa.registro}.`;
 }
 
-function tituloPonto(pesquisa: PesquisaPublicada): string {
-	return `${pesquisa.instituto}, campo até ${ddmm(pesquisa.campoFim)}: Flávio ${p1.format(pesquisa.vf)}%, Lula ${p1.format(pesquisa.vl)}%. ${textoFicha(pesquisa)}`;
+function textoPonto(pesquisa: PesquisaPublicada): string {
+	return `${pesquisa.instituto}, ${ddmm(pesquisa.campoFim)}. Flávio ${p1.format(pesquisa.vf)}%. Lula ${p1.format(pesquisa.vl)}%. Margem ±${p1.format(pesquisa.margem)}.`;
 }
 
-function rotuloMedia(ponto: PontoSerieMedia): string {
-	const lider = ponto.v >= 0 ? "Flávio" : "Lula";
-	return `média ${lider} +${p1.format(Math.abs(ponto.v))}`;
+type JanelaY = { y0: number; y1: number; ticks: number[] };
+
+function janelaY(valores: readonly number[]): JanelaY {
+	let lo = Y_LO;
+	let hi = Y_HI;
+	for (const valor of valores) {
+		if (!Number.isFinite(valor)) continue;
+		while (valor < lo - 1) lo -= 2;
+		while (valor > hi + 1) hi += 2;
+	}
+	const ticks: number[] = [];
+	for (let marca = lo; marca <= hi; marca += 2) ticks.push(marca);
+	return { y0: lo - 1, y1: hi + 1, ticks };
+}
+
+function extremos(pesquisas: readonly PesquisaPublicada[], serie: readonly PontoSerieIntencao[]): number[] {
+	const valores: number[] = [];
+	for (const pesquisa of pesquisas) valores.push(pesquisa.vf, pesquisa.vl);
+	for (const ponto of serie) {
+		valores.push(
+			ponto.vf + ponto.margem,
+			ponto.vf - ponto.margem,
+			ponto.vl + ponto.margem,
+			ponto.vl - ponto.margem,
+		);
+	}
+	return valores;
+}
+
+function jsonSeguro(valor: unknown): string {
+	return JSON.stringify(valor).replaceAll("<", "\\u003c");
 }
 
 export function htmlVantagem(
@@ -68,91 +102,123 @@ export function htmlVantagem(
 	desligados: ReadonlySet<string> = new Set(),
 ): string {
 	const ordenadas = porCampo(payload.publicadas);
-	const desligado = (cnpj: string) => (desligados.has(cnpj) ? " off" : "");
-	const intro = `<section class="a-tend" aria-labelledby="a-tend-titulo"><h2 id="a-tend-titulo">A vantagem, dia a dia</h2><p>Pontos são pesquisas; a linha é a média. Toque num instituto para tirá-lo do gráfico.</p>`;
+	const intro = `<section class="a-tend" aria-labelledby="a-tend-titulo"><h2 id="a-tend-titulo">Lula × Flávio, pesquisa a pesquisa</h2><p>% dos votos válidos. Ponto = pesquisa; linha = média (última pesquisa de cada instituto nos últimos 14 dias); faixa = margem de erro média.</p>`;
 	if (!ordenadas.length) {
 		return `${intro}<p class="a-graf-vazio">Ainda não há pesquisas publicadas neste gráfico.</p></section>`;
 	}
 
-	const serie = [...payload.serieMedia].sort((a, b) => a.data.localeCompare(b.data));
-	const dias = [...ordenadas.map((p) => p.campoFim), ...serie.map((s) => s.data), payload.hoje];
-	const minIso = dias.reduce((a, b) => (a < b ? a : b));
-	const maxIso = dias.reduce((a, b) => (a > b ? a : b));
-	const x0 = diaNumero(minIso) - 1;
-	const x1 = diaNumero(maxIso) + 1;
-	const pico = Math.max(
-		6,
-		...ordenadas.map((p) => Math.abs(p.v)),
-		...serie.map((s) => Math.abs(s.v)),
-	);
-	const lim = Math.ceil(pico / 2) * 2;
-	const px = (iso: string) =>
-		PAD_X + ((diaNumero(iso) - x0) / (x1 - x0)) * (100 - 2 * PAD_X);
-	const py = (v: number) => PAD_Y + (1 - (v + lim) / (2 * lim)) * (100 - 2 * PAD_Y);
+	const visiveis = ordenadas.filter((pesquisa) => !desligados.has(pesquisa.cnpj));
+	const serie = serieIntencaoDe(visiveis, payload.hoje);
+	const primeira = ordenadas[0]!.campoFim;
+	const x0 = somarDias(primeira, -2);
+	const x1 = somarDias(payload.hoje, 2);
+	const janela = janelaY(extremos(visiveis, serie));
+	const span = diaNumero(x1) - diaNumero(x0);
+	const px = (iso: string) => ((diaNumero(iso) - diaNumero(x0)) / span) * 100;
+	const py = (valor: number) => ((janela.y1 - valor) / (janela.y1 - janela.y0)) * 100;
 
 	const nomes = new Map<string, string>();
-	const porInst = new Map<string, PesquisaPublicada[]>();
 	for (const pesquisa of ordenadas) {
 		if (!nomes.has(pesquisa.cnpj)) nomes.set(pesquisa.cnpj, pesquisa.instituto);
-		const grupo = porInst.get(pesquisa.cnpj) ?? [];
-		grupo.push(pesquisa);
-		porInst.set(pesquisa.cnpj, grupo);
 	}
-
-	const linhas = [...porInst.values()]
-		.filter((grupo) => grupo.length > 1)
-		.map((grupo) => {
-			const d = grupo
-				.map((pesquisa, i) => {
-					const cmd = i === 0 ? "M" : "L";
-					return `${cmd}${n2(px(pesquisa.campoFim))},${n2(py(pesquisa.v))}`;
-				})
-				.join("");
-			const cnpj = grupo[0]!.cnpj;
-			return `<path class="t-inst${desligado(cnpj)}" data-cnpj="${escHtml(cnpj)}" d="${d}" fill="none" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
-		})
-		.join("");
-
-	const dMedia = serie
-		.map((ponto, i) => `${i === 0 ? "M" : "L"}${n2(px(ponto.data))},${n2(py(ponto.v))}`)
-		.join("");
-	const media = serie.length
-		? `<path class="t-media" data-datas="${escHtml(serie.map((ponto) => ponto.data).join(" "))}" d="${dMedia}" fill="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`
-		: "";
-	const ultimo = serie.at(-1);
-	const rotulo = ultimo
-		? `<span class="t-rot" style="left:${n2(px(ultimo.data))}%;top:${n2(py(ultimo.v))}%;transform:${px(ultimo.data) > 50 ? "translate(calc(-100% - 8px), -100%)" : "translate(8px, -100%)"}">${escHtml(rotuloMedia(ultimo))}</span>`
-		: "";
-
-	const passo = Math.max(1, Math.ceil((x1 - x0) / 4));
-	const eixoX: string[] = [];
-	for (let dia = x0 + 1; dia <= x1; dia += passo) {
-		const iso = isoDe(dia);
-		eixoX.push(`<span style="left:${n2(px(iso))}%">${ddmm(iso)}</span>`);
-	}
-
-	const pontos = ordenadas
-		.map((pesquisa, ordem) => {
-			const lado = pesquisa.v >= 0 ? "lado-f" : "lado-l";
-			const x = n2(px(pesquisa.campoFim));
-			const y = n2(py(pesquisa.v));
-			return `<span class="t-pt ${lado}${desligado(pesquisa.cnpj)}" data-registro="${escHtml(pesquisa.registro)}" data-cnpj="${escHtml(pesquisa.cnpj)}" data-ordem="${ordem}" data-x="${x}" data-y="${y}" style="left:${x}%;top:${y}%" title="${escHtml(tituloPonto(pesquisa))}"></span>`;
-		})
-		.join("");
-
-	const chips = [...nomes]
+	const chips = [...nomes.entries()]
+		.sort((a, b) => a[1].localeCompare(b[1], "pt-BR"))
 		.map(
 			([cnpj, nome]) =>
 				`<button type="button" data-cnpj="${escHtml(cnpj)}" aria-pressed="${desligados.has(cnpj) ? "false" : "true"}">${escHtml(nome)}</button>`,
 		)
 		.join("");
 
-	const yZero = n2(py(0));
-	const yTopo = n2(py(lim));
-	const yBase = n2(py(-lim));
-	const xHoje = n2(px(payload.hoje));
+	const grades = janela.ticks
+		.map((marca) => {
+			const classe = marca === 50 ? "t-cinq" : "t-grade";
+			return `<span class="${classe}" style="top:${n2(py(marca))}%"></span>`;
+		})
+		.join("");
 
-	return `${intro}<div class="a-chips" role="group" aria-label="Institutos no gráfico">${chips}</div><div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula nas pesquisas, em pontos dos votos válidos"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line class="t-zero" x1="0" x2="100" y1="${yZero}" y2="${yZero}" vector-effect="non-scaling-stroke"/><line class="t-hoje-linha" x1="${xHoje}" x2="${xHoje}" y1="0" y2="100" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>${linhas}${media}</svg><span class="t-hoje" style="left:${xHoje}%">hoje</span>${pontos}${rotulo}</div><div class="a-eixo-y" aria-hidden="true"><span class="a-eixo-medida">Flávio +${lim}</span><span style="top:${yTopo}%">Flávio +${lim}</span><span style="top:${yZero}%">empate</span><span style="top:${yBase}%">Lula +${lim}</span></div><div class="a-eixo-x" aria-hidden="true">${eixoX.join("")}</div></div></section>`;
+	const faixa = (chave: "vf" | "vl", lado: "f" | "l") => {
+		if (!serie.length) return "";
+		const cima = serie.map(
+			(ponto) => `${n2(px(ponto.data))},${n2(py(ponto[chave] + ponto.margem))}`,
+		);
+		const baixo = [...serie]
+			.reverse()
+			.map((ponto) => `${n2(px(ponto.data))},${n2(py(ponto[chave] - ponto.margem))}`);
+		return `<polygon class="t-faixa t-faixa-${lado}" points="${cima.concat(baixo).join(" ")}"/>`;
+	};
+
+	const linha = (chave: "vf" | "vl", lado: "f" | "l") => {
+		if (!serie.length) return "";
+		const pontos = serie.map((ponto) => `${n2(px(ponto.data))},${n2(py(ponto[chave]))}`).join(" ");
+		const datas = serie.map((ponto) => ponto.data).join(" ");
+		const valores = serie.map((ponto) => ponto[chave]).join(" ");
+		return `<polyline class="t-media t-media-${lado}" data-datas="${escHtml(datas)}" data-${chave}="${escHtml(valores)}" points="${pontos}" fill="none" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+	};
+
+	const xHoje = n2(px(payload.hoje));
+	const pontos = visiveis
+		.map((pesquisa, ordem) => {
+			const x = n2(px(pesquisa.campoFim));
+			const quando = ddmm(pesquisa.campoFim);
+			const rotulo = escHtml(textoPonto(pesquisa));
+			const comum = `data-registro="${escHtml(pesquisa.registro)}" data-cnpj="${escHtml(pesquisa.cnpj)}" data-instituto="${escHtml(pesquisa.instituto)}" data-quando="${quando}" data-vf="${pesquisa.vf}" data-vl="${pesquisa.vl}" data-margem="${pesquisa.margem}" data-ordem="${ordem}"`;
+			return (["f", "l"] as const)
+				.map((lado) => {
+					const valor = lado === "f" ? pesquisa.vf : pesquisa.vl;
+					const y = n2(py(valor));
+					return `<span class="t-pt lado-${lado}" ${comum} data-x="${x}" data-y="${y}" style="left:${x}%;top:${y}%" role="button" tabindex="0" aria-label="${rotulo}"></span>`;
+				})
+				.join("");
+		})
+		.join("");
+
+	const ultimo = serie.at(-1);
+	let rotulos = "";
+	if (ultimo) {
+		let topoF = py(ultimo.vf);
+		let topoL = py(ultimo.vl);
+		if (Math.abs(topoL - topoF) < FOLGA_ROTULO) {
+			const meio = (topoF + topoL) / 2;
+			const sinal = topoL >= topoF ? 1 : -1;
+			topoF = meio - sinal * (FOLGA_ROTULO / 2);
+			topoL = meio + sinal * (FOLGA_ROTULO / 2);
+		}
+		const xFim = n2(px(ultimo.data));
+		rotulos = `<span class="t-rot t-rot-f" style="left:${xFim}%;top:${n2(topoF)}%">Flávio ${p1.format(ultimo.vf)}%</span><span class="t-rot t-rot-l" style="left:${xFim}%;top:${n2(topoL)}%">Lula ${p1.format(ultimo.vl)}%</span>`;
+	}
+
+	const datasEixo: string[] = [];
+	for (let dia = diaNumero(x0), i = 0; dia <= diaNumero(x1); dia += 2, i++) {
+		const miudo = i % 2 === 1 ? " t-dia-miudo" : "";
+		datasEixo.push(
+			`<span class="t-dia${miudo}" style="left:${n2(px(isoDe(dia)))}%">${ddmm(isoDe(dia))}</span>`,
+		);
+	}
+
+	const eixoY = janela.ticks
+		.map((marca) => `<span style="top:${n2(py(marca))}%">${marca}%</span>`)
+		.join("");
+
+	const aria = ultimo
+		? `Intenção de voto em votos válidos. Flávio ${p1.format(ultimo.vf)}%, Lula ${p1.format(ultimo.vl)}%.`
+		: "Intenção de voto em votos válidos.";
+
+	const dados = jsonSeguro({
+		hoje: payload.hoje,
+		pesquisas: ordenadas.map((pesquisa) => ({
+			registro: pesquisa.registro,
+			cnpj: pesquisa.cnpj,
+			instituto: pesquisa.instituto,
+			campoFim: pesquisa.campoFim,
+			margem: pesquisa.margem,
+			flavio: pesquisa.totais.flavio,
+			lula: pesquisa.totais.lula,
+			vf: pesquisa.vf,
+			vl: pesquisa.vl,
+		})),
+	});
+
+	return `${intro}<div class="a-chips" role="group" aria-label="Institutos no gráfico">${chips}</div><div class="a-caixa"><div class="a-graf"><div class="a-plot"><div class="a-eixo-y" aria-hidden="true">${eixoY}</div><div class="a-escala"><div class="a-area" role="img" aria-label="${escHtml(aria)}"><div class="t-grades" aria-hidden="true">${grades}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${faixa("vf", "f")}${faixa("vl", "l")}<line class="t-hoje-linha" x1="${xHoje}" x2="${xHoje}" y1="0" y2="100" vector-effect="non-scaling-stroke"/>${linha("vf", "f")}${linha("vl", "l")}</svg><span class="t-hoje" style="left:${xHoje}%">hoje</span>${pontos}${rotulos}</div><div class="a-eixo-x" aria-hidden="true">${datasEixo.join("")}</div></div></div></div><p class="a-graf-leg">Toque num ponto para ver os números. Toque num instituto para tirá-lo do gráfico.</p><p class="t-tip" hidden></p></div><script type="application/json" id="a-intencao-dados">${dados}</script></section>`;
 }
 
 export function htmlComoCalculamos(): string {
