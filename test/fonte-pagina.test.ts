@@ -90,3 +90,21 @@ describe("apelido França na confirmação da fonte", () => {
 		).toBe(true);
 	});
 });
+
+const totaisIdeia = { flavio: 46, lula: 41 };
+const soMeioIdeia = "<p>Meio/Ideia: Flávio 46%, Lula 41%.</p>";
+const institutoBoasIdeias = "Boas Ideias, Estrategia E Inteligencia Digital.";
+
+describe("apelido Ideia na confirmação da fonte", () => {
+	it("BR-08251/2026 confirma quando a página cita só Meio/Ideia", () => {
+		expect(
+			confirmarHtml(soMeioIdeia, "BR-08251/2026", institutoBoasIdeias, totaisIdeia, null),
+		).toBe(true);
+	});
+
+	it("outro registro recusa página que cita só Meio/Ideia", () => {
+		expect(
+			confirmarHtml(soMeioIdeia, "BR-00650/2026", institutoBoasIdeias, totaisIdeia, null),
+		).toBe(false);
+	});
+});
