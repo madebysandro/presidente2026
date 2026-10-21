@@ -53,7 +53,10 @@ async function lerFluxo(
 		if (done) break;
 		if (value.byteLength === 0) continue;
 		total += value.byteLength;
-		if (total > limite) return { ok: false, status: 413 };
+		if (total > limite) {
+			await reader.cancel();
+			return { ok: false, status: 413 };
+		}
 		partes.push(value.slice());
 	}
 	return { ok: true, texto: new TextDecoder().decode(juntar(partes, total)) };
