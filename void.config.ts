@@ -25,7 +25,7 @@ export default defineConfig({
 		notFound: "none",
 		headers: {
 			"/*": [
-				"Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://resultados.tse.jus.br; media-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+				"Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://resultados.tse.jus.br; media-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'",
 				"X-Frame-Options: DENY",
 				"X-Content-Type-Options: nosniff",
 			],

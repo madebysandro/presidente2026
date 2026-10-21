@@ -14,12 +14,12 @@ const RAIZ = new URL("..", import.meta.url).pathname;
 const PUBLICO = join(RAIZ, "public");
 const CSP = [
 	"default-src 'self'",
-	"script-src 'self'",
+	"script-src 'self' https://static.cloudflareinsights.com",
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' https://resultados.tse.jus.br",
 	"media-src 'self'",
 	"font-src 'self'",
-	"connect-src 'self'",
+	"connect-src 'self' https://cloudflareinsights.com",
 	"frame-ancestors 'none'",
 ].join("; ");
 
