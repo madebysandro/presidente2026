@@ -91,6 +91,7 @@ ${htmlMiolo(vista)}
 <script type="module" src="/js/grafico.js"></script>
 <script src="/js/movimento.js" defer></script>
 <script src="/js/ao-vivo.js" defer></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "aef83da97b4846a5ae996d5d11524a11"}'></script>
 </body>
 </html>`;
 }
