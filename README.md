@@ -46,7 +46,7 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 | Chave válida | 30 a cada 60 s | contador no Durable Object |
 | IP sem chave válida | 5 a cada 60 s | contador no Durable Object |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do DO é o teto global e fica no mesmo lock da auditoria. `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` voltam ao `void.config.ts` quando o Void suportar rate limit com pinned secrets (#64). No Void 1.1.11 esse upload falha, então o config fica sem esses bindings. `bindingDeixaPassar` trata o binding como opcional: sem ele, o DO decide. Toda rota em `/api/agente/*` passa por esse portão.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do DO é o teto global e fica no mesmo lock da auditoria. `POST /api/import` debita o mesmo balde de IP (5 a cada 60 s). `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` voltam ao `void.config.ts` quando o Void suportar rate limit com pinned secrets (#64). No Void 1.1.11 esse upload falha, então o config fica sem esses bindings. `bindingDeixaPassar` trata o binding como opcional: sem ele, o DO decide. Toda rota em `/api/agente/*` passa por esse portão. A chave é conferida antes do lock. No `401` e no `429` a auditoria guarda o motivo e o IP, não o corpo.
 
 | Rota | Autenticação | Resposta |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do 
 | `DELETE /api/agente/suspensoes/{registro}` | `Bearer` | corpo `{"motivo"}`. `200 {"status":"reativada"}` |
 | `GET /api/agente/auditoria?desde=&depois=&limite=` | `Bearer` | `200 {"entradas":[…],"proximo":"/api/agente/auditoria?…" \| null}`. Máximo 500. `entradas`: `id`, `em`, `rota`, `metodo`, `ip`, `chaveValida`, `registro`, `corpo`, `status`, `motivos` |
 
-Sem chave (ou chave errada) nas rotas que exigem `Bearer`: `401 {"erro":"nao_autorizado"}`, com linha na auditoria. `429` é `{"erro":"limite"}` e `retry-after: 60`. Cabeçalho das rotas do agente: `cache-control: no-store`.
+Sem chave (ou chave errada) nas rotas que exigem `Bearer`: `401 {"erro":"nao_autorizado"}`, com linha na auditoria. `429` é `{"erro":"limite"}` e `retry-after: 60`. `POST /api/agente/resultados`, `POST /api/agente/suspensoes` e `DELETE /api/agente/suspensoes/{registro}` exigem `Content-Length`. Sem o cabeçalho: `411 {"erro":"content_length"}`. Acima de 32 KiB, ou com corpo maior do que o cabeçalho declarou: `413 {"erro":"tamanho"}`. O mesmo vale para `POST /api/import`, com teto de 1_000_000 bytes. Cabeçalho das rotas do agente: `cache-control: no-store`.
 
 `GET /api/apuracao` usa `cache-control: public, max-age=0, s-maxage=5, must-revalidate`. `GET /api/historico` fica `no-store`.
 
@@ -181,7 +181,7 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 
 Nenhum evento carrega bearer, `CHAVE_AGENTE`, IP, query nem corpo do pedido.
 
-A auditoria (import e agente) não tem `DELETE`: fica legível até 31/12/2026. O export é o `GET /api/agente/auditoria` paginado. A nota inteira (Void, retenção, dívida triada) está em [docs/operacao/pos-eleicao.md](docs/operacao/pos-eleicao.md).
+A auditoria do import não tem `DELETE`: fica legível até 31/12/2026. A do agente apaga linha com mais de 90 dias e o que passar de 2_000 linhas, na escrita e no alarme do objeto. O export é o `GET /api/agente/auditoria` paginado. A nota inteira (Void, retenção, dívida triada) está em [docs/operacao/pos-eleicao.md](docs/operacao/pos-eleicao.md).
 
 ## Desenvolvimento
 

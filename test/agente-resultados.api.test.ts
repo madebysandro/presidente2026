@@ -366,31 +366,16 @@ describe("POST /api/agente/resultados (#9)", () => {
 		expect(antesDaLiberacao(registro, new Date("2026-10-25T17:00:00-03:00"))).toBe(false);
 	});
 
-	it("corpo grande sem chave responde 401, audita e na 6ª tentativa devolve 429", async () => {
-		const grande = "x".repeat(32_769);
-		const ip = "203.0.113.77";
-		for (let i = 0; i < 5; i++) {
-			const res = await post(grande, { chave: null, ip });
-			expect(res.status).toBe(401);
-			expect(await res.json()).toEqual({ erro: "nao_autorizado" });
-		}
-		const sexta = await post(grande, { chave: null, ip });
-		expect(sexta.status).toBe(429);
-		expect(sexta.headers.get("retry-after")).toBe("60");
-		const auditoria = await stub().listarAuditoriaAgente();
-		expect(auditoria.filter((a) => a.status === 401)).toHaveLength(5);
-		expect(auditoria.some((a) => a.status === 429)).toBe(true);
-		expect(auditoria.every((a) => a.corpo.length <= 32_768)).toBe(true);
-	});
-
-	it("corpo grande com chave não publica", async () => {
+	it("corpo acima do teto responde 413 e não entra na auditoria", async () => {
 		await importar();
-		const grande = `${JSON.stringify(corpoBase())}${" ".repeat(32_769)}`;
-		const res = await post(grande, { ip: "203.0.113.78" });
-		expect(res.status).toBe(422);
-		expect(await codigos(res)).toContain("numeros_invalidos");
+		const grande = "x".repeat(32_769);
+		const semChave = await post(grande, { chave: null, ip: "203.0.113.77" });
+		expect(semChave.status).toBe(413);
+		await expect(semChave.json()).resolves.toEqual({ erro: "tamanho" });
+		const comChave = await post(grande, { ip: "203.0.113.78" });
+		expect(comChave.status).toBe(413);
 		const auditoria = await stub().listarAuditoriaAgente();
-		expect(auditoria.at(-1)).toMatchObject({ status: 422, chaveValida: true });
+		expect(auditoria.filter((entrada) => entrada.ip === "203.0.113.77" || entrada.ip === "203.0.113.78")).toHaveLength(0);
 		const lista = await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"));
 		const corpo = (await lista.json()) as PayloadPesquisas;
 		expect(corpo.publicadas.some((p) => p.registro === DATAFOLHA)).toBe(false);

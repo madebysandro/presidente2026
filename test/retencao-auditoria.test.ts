@@ -1,5 +1,4 @@
 /**
- * Aceite #23: a auditoria do agente não tem prazo de apagar antes de 31/12/2026.
  * Seam: fimRetencaoAuditoria — a data que o código e a nota de operação usam.
  */
 import { describe, expect, it } from "vitest";

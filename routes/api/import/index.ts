@@ -1,23 +1,40 @@
 import { defineHandler } from "void";
 import { Pesquisas } from "../../../durable-objects/pesquisas";
+import {
+	classificarContentLength,
+	corpoRecusado,
+	lerCorpoSeAutorizado,
+	TETO_CORPO_IMPORT,
+} from "../../../src/pesquisas/corpo-pedido";
 import { NOME_INSTANCIA } from "../../../src/pesquisas/fontes";
+import { pedidoAgente } from "../../../src/pesquisas/pedido-agente";
 
-const TETO_CORPO = 1_000_000;
-
-export const POST = defineHandler(async (c) => {
-	const autorizacao = c.req.header("authorization") ?? "";
-	const bearer = autorizacao.startsWith("Bearer ") ? autorizacao.slice("Bearer ".length) : null;
-	const declarado = Number(c.req.header("content-length"));
-	const corpo =
-		Number.isFinite(declarado) && declarado > TETO_CORPO ? "" : await c.req.text();
-	const pesquisas = Pesquisas.get(NOME_INSTANCIA);
-	const resposta = await pesquisas.receberPlanoB({
-		bearer,
-		corpo: corpo.length > TETO_CORPO ? "" : corpo,
-		agora: new Date(),
-	});
-	return c.json(resposta.corpo, {
-		status: resposta.status,
+function recusarImport(
+	c: { json: (corpo: unknown, init?: { status?: number; headers?: Record<string, string> }) => Response },
+	status: 411 | 413,
+): Response {
+	const recusa = corpoRecusado(status);
+	return c.json(recusa.corpo, {
+		status: recusa.status,
 		headers: { "cache-control": "no-store" },
 	});
+}
+
+export const POST = defineHandler(async (c) => {
+	const classe = classificarContentLength(c.req.header("content-length"), TETO_CORPO_IMPORT);
+	if (classe !== "ok") return recusarImport(c, classe);
+	const { bearer, ip } = pedidoAgente(c.req.header("authorization"), c.req.header("cf-connecting-ip"));
+	const pesquisas = Pesquisas.get(NOME_INSTANCIA);
+	const autorizado = await pesquisas.importAutorizado(bearer);
+	const lido = await lerCorpoSeAutorizado(c.req.raw, TETO_CORPO_IMPORT, autorizado);
+	if (!lido.ok) return recusarImport(c, lido.status);
+	const resposta = await pesquisas.receberPlanoB({
+		bearer,
+		ip,
+		corpo: lido.texto,
+		agora: new Date(),
+	});
+	const headers: Record<string, string> = { "cache-control": "no-store" };
+	if (resposta.status === 429) headers["retry-after"] = "60";
+	return c.json(resposta.corpo, { status: resposta.status, headers });
 });

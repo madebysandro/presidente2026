@@ -8,7 +8,7 @@ Import, poller e agente emitem um JSON por unidade de trabalho (`src/log.ts`, `r
 
 ## Auditoria até 31/12/2026
 
-As tabelas `auditoria` (import) e `auditoria_agente` só recebem `INSERT`. Não há `DELETE` nem job de rotação. A data limite no código é `fimRetencaoAuditoria()` em `src/pesquisas/retencao.ts`: 31/12/2026, 23:59:59.999 em Brasília.
+A tabela `auditoria` (import) só recebe `INSERT`. A data limite no código é `fimRetencaoAuditoria()` em `src/pesquisas/retencao.ts`: 31/12/2026, 23:59:59.999 em Brasília. `auditoria_agente` apaga, dentro do objeto, linha mais velha que `IDADE_AUDITORIA_AGENTE_MS` (90 dias) e o que passar de `TETO_LINHAS_AUDITORIA_AGENTE` (2_000). A poda roda na escrita e no alarme.
 
 Export, se o Durable Object precisar ser lido fora do site: `GET /api/agente/auditoria` com a chave do agente, paginando por `proximo` até `null`. A chave não vai no corpo. Rotação da chave do agente continua o comando já descrito no README; a chave antiga passa a levar `401`.
 

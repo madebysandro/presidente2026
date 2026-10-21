@@ -294,7 +294,6 @@ describe("GET /api/agente/pendentes (#14)", () => {
 			bearer: CHAVE,
 			ip: "203.0.113.25",
 			corpo: JSON.stringify(corpoResultado({ registro: "BR-DIA25/2026", fonte: FONTE })),
-			corpoExcedeu: false,
 			agora: new Date("2026-10-25T16:59:00-03:00"),
 		});
 		expect(recusa.status).toBe(422);
