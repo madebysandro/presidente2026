@@ -88,4 +88,4 @@ Reativar: `DELETE /api/agente/suspensoes/BR-02949/2026` com corpo `{"motivo":"de
 | `desde_invalido` | `desde` tem de ser uma data ISO. |
 | `depois_invalido` | `depois` tem de ser o número do cursor. |
 
-`401` é `{"erro":"nao_autorizado"}`. `429` é `{"erro":"limite"}` com `retry-after: 60`. Espere o minuto. Não há rota para apagar registro, mudar o TSE, ampliar domínios ou trocar a chave.
+`401` é `{"erro":"nao_autorizado"}`. `429` é `{"erro":"limite"}` com `retry-after: 60`. Espere o minuto. `POST /api/agente/resultados`, `POST /api/agente/suspensoes` e `DELETE /api/agente/suspensoes/{registro}` exigem `Content-Length`. Sem o cabeçalho: `411 {"erro":"content_length"}`. Acima de 32 KiB, ou com corpo maior do que o cabeçalho declarou: `413 {"erro":"tamanho"}`. Não há rota para apagar registro, mudar o TSE, ampliar domínios ou trocar a chave.
