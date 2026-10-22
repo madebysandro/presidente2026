@@ -86,7 +86,7 @@ describe("imagem da prévia (#66)", () => {
 					"cf-connecting-ip": "203.0.113.70",
 				},
 				body: JSON.stringify({
-					registro: "BR-02949/2026",
+					registro: "BR-00466/2026",
 					totais: { flavio: 49, lula: 45, brancoNulo: 5, naoSabe: 1 },
 					validosPublicados: { flavio: 52, lula: 48 },
 					fonte: "https://www.metropoles.com/brasil/datafolha-08",
