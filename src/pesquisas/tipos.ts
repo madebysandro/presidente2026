@@ -65,6 +65,9 @@ export type Changeset =
 			auditoria: AuditoriaEntrada[];
 	  };
 
+/** O poller encerrou a apuração: o import não baixa nem aplica (#86). */
+export type ImportCongelado = { kind: "congelado" };
+
 export type FichaPublica = {
 	registro: RegistroId;
 	instituto: string;

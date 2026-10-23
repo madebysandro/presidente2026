@@ -161,6 +161,8 @@ No GitHub: Settings → Secrets and variables → Actions → `CHAVE_IMPORT`. Se
 
 A chave do agente leva `401` em `POST /api/import`. `CHAVE_IMPORT` leva `401` em `/api/agente/*`. O corpo é `{ "registros": [ … ] }`, só nacionais. Estadual e ambígua que já estavam no DO ficam. Nacional que sumiu do recorte fica `removido do TSE`.
 
+Depois que o poller marca a apuração como encerrada, o arquivo do 2º turno congela (#86). O cron e o primeiro acesso não baixam o ZIP (log `resultado=congelado`). `POST /api/import` responde `409 {"erro":"apuracao_encerrada"}` e a Action do plano B fica vermelha. As escritas do agente respondem o mesmo `409` e entram na auditoria. As leituras públicas não mudam.
+
 Dry-run local, sem rede e sem chave:
 
 ```bash
@@ -174,7 +176,7 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 | Campo | Valores |
 | --- | --- |
 | `evento` | `import`, `poller`, `agente` |
-| `resultado` | import: `aplicado`, `nao_modificado`, `erro`; poller: `ok`, `erro` (os de `erro` saem em nível error) |
+| `resultado` | import: `aplicado`, `nao_modificado`, `congelado`, `erro`; poller: `ok`, `erro` (os de `erro` saem em nível error) |
 | `motivo` | import: `cron`, `primeiro_acesso`, `plano_b` |
 | `rota` | agente: caminho do template, sem ids nem query (ex. `/api/agente/suspensoes/:registro`) |
 | `status` | agente: status HTTP da resposta |

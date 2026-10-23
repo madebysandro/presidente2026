@@ -7,7 +7,7 @@ export type EventoLog =
 	| {
 			evento: "import";
 			motivo: string;
-			resultado: "aplicado" | "nao_modificado" | "erro";
+			resultado: "aplicado" | "nao_modificado" | "congelado" | "erro";
 			upserts?: number;
 			removidos?: number;
 			auditoria?: number;

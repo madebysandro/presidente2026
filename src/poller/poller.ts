@@ -106,6 +106,11 @@ export class PollerApuracao extends DurableObject<Env> {
 		return faseDe(await this.agora(), estado.encerrada);
 	}
 
+	/** O DO de pesquisas congela as escritas a partir daqui (#86). */
+	async apuracaoEncerrada(): Promise<boolean> {
+		return Boolean((await this.lerEstado()).encerrada);
+	}
+
 	async obterEstado(): Promise<EstadoApuracao> {
 		await this.garantirAlarme();
 		const estado = await this.lerEstado();

@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { env } from "void/env";
 import { withRuntimeEnv } from "void/_env";
+import { nomePoller } from "../config/poller-nome";
 import { urlsRegistroTse } from "./fontes";
 import { parseCsvTse } from "./csv";
 import {
@@ -27,6 +28,7 @@ import type {
 	Changeset,
 	Classificacao,
 	ContagensImport,
+	ImportCongelado,
 	MetaImport,
 	MotivoImport,
 	OrigemZip,
@@ -53,6 +55,8 @@ const LIMITE_POR_CHAVE = 30;
 const LIMITE_POR_IP = 5;
 
 const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste", "plano_b"]);
+
+const CONGELADO: ImportCongelado = { kind: "congelado" };
 
 type LinhaRegistro = {
 	registro: string;
@@ -143,9 +147,10 @@ export class Pesquisas extends DurableObject<Env> {
 		return { pronto: true, registros: this.contarRegistros() };
 	}
 
-	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
+	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset | ImportCongelado> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		return medirImport(opts.motivo, async () => {
+			if (await this.apuracaoEncerrada()) return CONGELADO;
 			this.garantirEsquema();
 			const metaBase = this.lerMeta();
 			const lote = await this.prepararLote(metaBase);
@@ -176,6 +181,7 @@ export class Pesquisas extends DurableObject<Env> {
 		| { status: 401; corpo: { erro: "nao_autorizado" } }
 		| { status: 429; corpo: { erro: "limite" } }
 		| { status: 422; corpo: { erro: "recorte_invalido" } }
+		| RespostaEncerrada
 	> {
 		const autorizado = await this.importAutorizado(input.bearer);
 		const ip = input.ip.trim() || "desconhecido";
@@ -197,6 +203,7 @@ export class Pesquisas extends DurableObject<Env> {
 		const changeset = await medirImport("plano_b", async () => {
 			this.garantirEsquema();
 			return this.ctx.blockConcurrencyWhile(async () => {
+				if (await this.apuracaoEncerrada()) return CONGELADO;
 				const aplicar = montarAplicar({
 					anteriores: this.lerRegistros(),
 					lidos: lido.registros,
@@ -215,6 +222,7 @@ export class Pesquisas extends DurableObject<Env> {
 				return aplicar;
 			});
 		});
+		if (changeset.kind === "congelado") return respostaEncerrada();
 		if (changeset.kind !== "aplicar") throw new Error("plano B não devolve 304");
 		return {
 			status: 200,
@@ -230,6 +238,7 @@ export class Pesquisas extends DurableObject<Env> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
 		await medirImport("primeiro_acesso", async () => {
+			if (await this.apuracaoEncerrada()) return CONGELADO;
 			const lote = await this.prepararLote(null);
 			if (lote === null) throw new Error("304 sem import anterior");
 			return this.ctx.blockConcurrencyWhile(async () => {
@@ -288,7 +297,9 @@ export class Pesquisas extends DurableObject<Env> {
 		};
 	}
 
-	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset {
+	/** Chame dentro do lock. O poller pode ter encerrado durante o download. */
+	private async aplicarLote(motivo: MotivoImport, lote: LoteImport): Promise<Changeset | ImportCongelado> {
+		if (await this.apuracaoEncerrada()) return CONGELADO;
 		this.garantirEsquema();
 		const metaAtual = this.lerMeta();
 		if (!metaAindaEhBase(lote.metaBase, metaAtual)) {
@@ -407,6 +418,9 @@ export class Pesquisas extends DurableObject<Env> {
 				exigeChave: true,
 			});
 			if (portao !== "segue") return portao;
+			if (await this.apuracaoEncerrada()) {
+				return await this.recusarEncerrada(agora, input.ip, registroDoCorpo(input.corpo), input.corpo, "/api/agente/suspensoes", "POST");
+			}
 			const lido = lerJson(input.corpo);
 			const corpo = lerCorpoSuspensao(lido);
 			if ("motivos" in corpo) {
@@ -462,6 +476,9 @@ export class Pesquisas extends DurableObject<Env> {
 				exigeChave: true,
 			});
 			if (portao !== "segue") return portao;
+			if (await this.apuracaoEncerrada()) {
+				return await this.recusarEncerrada(agora, input.ip, input.registro, input.corpo, "/api/agente/suspensoes", "DELETE");
+			}
 			if (!input.registro) {
 				return await this.recusarSuspensao(agora, input.ip, null, input.corpo, "DELETE", [
 					{ codigo: "registro_desconhecido", detalhe: "registro ausente na URL" },
@@ -572,8 +589,12 @@ export class Pesquisas extends DurableObject<Env> {
 				metodo: "POST",
 				exigeChave: true,
 			});
-			if (portao === "segue") return { kind: "segue" as const };
-			return { kind: "fim" as const, resposta: portao };
+			if (portao !== "segue") return { kind: "fim" as const, resposta: portao };
+			if (await this.apuracaoEncerrada()) {
+				const resposta = await this.recusarEncerrada(agora, input.ip, registroDoCorpo(input.corpo), input.corpo, "/api/agente/resultados", "POST");
+				return { kind: "fim" as const, resposta };
+			}
+			return { kind: "segue" as const };
 		});
 		if (passagem.kind === "fim") return passagem.resposta;
 
@@ -600,6 +621,9 @@ export class Pesquisas extends DurableObject<Env> {
 			}
 		}
 		return this.ctx.blockConcurrencyWhile(async () => {
+			if (await this.apuracaoEncerrada()) {
+				return await this.recusarEncerrada(agora, input.ip, lido.registro, input.corpo, "/api/agente/resultados", "POST");
+			}
 			this.garantirEsquema();
 			const deNovo = this.contextoRegistro(lido.registro);
 			const finais = [...lido.motivos];
@@ -748,6 +772,33 @@ export class Pesquisas extends DurableObject<Env> {
 			metodo,
 		});
 		return { status: 422, corpo: { motivos } };
+	}
+
+	private async apuracaoEncerrada(): Promise<boolean> {
+		const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
+		return poller.apuracaoEncerrada();
+	}
+
+	private async recusarEncerrada(
+		agora: Date,
+		ip: string,
+		registro: string | null,
+		corpo: string,
+		rota: "/api/agente/resultados" | "/api/agente/suspensoes",
+		metodo: "POST" | "DELETE",
+	): Promise<RespostaEncerrada> {
+		await this.gravarAuditoriaAgente({
+			em: agora.toISOString(),
+			ip: ip || "desconhecido",
+			chaveValida: true,
+			registro,
+			corpo,
+			status: 409,
+			motivos: ["apuracao_encerrada"],
+			rota,
+			metodo,
+		});
+		return respostaEncerrada();
 	}
 
 	private registroAtivo(registro: string): RegistroPesquisas | null {
@@ -1310,7 +1361,7 @@ export class Pesquisas extends DurableObject<Env> {
 }
 
 /** Um evento por import. `null` = nada foi feito, nada a registrar. */
-async function medirImport<T extends Changeset | null>(
+async function medirImport<T extends Changeset | ImportCongelado | null>(
 	motivo: MotivoImport,
 	importar: () => Promise<T>,
 ): Promise<T> {
@@ -1409,12 +1460,19 @@ function numeroOuNulo(valor: number | null): number | null {
 	return Number(valor);
 }
 
+/** Depois do encerramento, o arquivo do 2º turno não muda mais (#86). */
+type RespostaEncerrada = {
+	status: 409;
+	corpo: { erro: "apuracao_encerrada"; detalhe: string };
+};
+
 export type RespostaResultado =
 	| { status: 201; corpo: { status: "publicado" } }
 	| { status: 200; corpo: { status: "substituido" } }
 	| { status: 401; corpo: { erro: "nao_autorizado" } }
 	| { status: 429; corpo: { erro: "limite" } }
-	| { status: 422; corpo: { motivos: MotivoRecusa[] } };
+	| { status: 422; corpo: { motivos: MotivoRecusa[] } }
+	| RespostaEncerrada;
 
 type PedidoAgente = {
 	bearer: string | null;
@@ -1430,12 +1488,14 @@ type RespostaSuspensao =
 	| { status: 201; corpo: { status: "suspensa" } }
 	| { status: 200; corpo: { status: "suspensa" } }
 	| RespostaNegacao
-	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } }
+	| RespostaEncerrada;
 
 type RespostaReativacao =
 	| { status: 200; corpo: { status: "reativada" } }
 	| RespostaNegacao
-	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } }
+	| RespostaEncerrada;
 
 type PedidoAuditoria = PedidoAgente & {
 	desde: string | null;
@@ -1505,6 +1565,16 @@ function caminhoProximo(desde: string | null, depois: number, limite: number): s
 	q.set("depois", String(depois));
 	if (limite !== 500) q.set("limite", String(limite));
 	return `/api/agente/auditoria?${q.toString()}`;
+}
+
+function respostaEncerrada(): RespostaEncerrada {
+	return {
+		status: 409,
+		corpo: {
+			erro: "apuracao_encerrada",
+			detalhe: "a apuração do 2º turno foi encerrada; pesquisas e resultados estão congelados",
+		},
+	};
 }
 
 function resposta401(): RespostaNegacao {

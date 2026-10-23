@@ -1,7 +1,7 @@
 import type { EventoLog } from "../log";
-import type { Changeset, MotivoImport } from "./tipos";
+import type { Changeset, ImportCongelado, MotivoImport } from "./tipos";
 
-export type DesfechoImport = Changeset | { kind: "erro"; erro: unknown };
+export type DesfechoImport = Changeset | ImportCongelado | { kind: "erro"; erro: unknown };
 
 export function eventoImport(
 	motivo: MotivoImport,
@@ -12,6 +12,7 @@ export function eventoImport(
 		const erro = desfecho.erro instanceof Error ? desfecho.erro.message : String(desfecho.erro);
 		return { evento: "import", motivo, resultado: "erro", erro, ms };
 	}
+	if (desfecho.kind === "congelado") return { evento: "import", motivo, resultado: "congelado", ms };
 	const etags = {
 		etagPesquisa: desfecho.meta.etagPesquisa,
 		etagContratante: desfecho.meta.etagContratante,
