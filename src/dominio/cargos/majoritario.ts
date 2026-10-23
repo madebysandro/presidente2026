@@ -44,9 +44,6 @@ export function totaisDe(dados: DadosBrutosCargo): TotaisCargo {
 	};
 }
 
-/**
- * Normalização compartilhada dos cargos majoritários (Presidente, Governador, Senado).
- */
 export function normalizarMajoritario(
 	meta: MetaCargo,
 	dados: DadosBrutosCargo,

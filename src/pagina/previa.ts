@@ -38,10 +38,6 @@ export function versaoDaPrevia(payload: PayloadPesquisas, dias: number): string 
 	return `${quando}${vf}${vl}${media.n}-d${dias}`;
 }
 
-export function textoDias(dias: number): string {
-	return `${dias} ${dias === 1 ? "DIA" : "DIAS"} ATÉ 25/10`;
-}
-
 function meta(atributo: "property" | "name", nome: string, content: string): string {
 	return `<meta ${atributo}="${nome}" content="${escHtml(content)}">`;
 }

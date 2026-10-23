@@ -25,16 +25,6 @@ export type Candidato = {
 	foto: string;
 };
 
-export type Agremiacao = {
-	sigla: string;
-	nome: string;
-	federacao: boolean;
-	nominais: number;
-	legenda: number;
-	votos: number;
-	vagas: number;
-};
-
 export type Cargo = {
 	id: string;
 	titulo: string;
@@ -45,18 +35,6 @@ export type Cargo = {
 	qe: number | null;
 	totais: TotaisCargo;
 	candidatos: Candidato[];
-	agremiacoes?: Agremiacao[];
-};
-
-export type DisputaInterna = {
-	sigla: string;
-	ultimo: { n: string; nome: string; votos: number };
-	proximo: { n: string; nome: string; votos: number };
-	diferenca: number;
-};
-
-export type AnaliseProporcional = {
-	disputaInterna: DisputaInterna[];
 };
 
 export type CandidatoUf = {
@@ -183,7 +161,7 @@ import type { AnaliseMajoritaria } from "./majoritarias/analise";
 
 export type AnaliseApuracao = {
 	majoritarias?: Record<string, AnaliseMajoritaria>;
-	proporcionais?: Record<string, AnaliseProporcional>;
+	proporcionais?: Record<string, never>;
 	/** Fora do 2º turno nacional. Permanece vazio. */
 	destaques?: string[];
 	viradas?: ViradaNoite[];
@@ -227,7 +205,6 @@ export type Leitura = {
 			bra: number;
 			nul: number;
 			c: Record<string, [number, number, number]>;
-			a?: Record<string, [number, number]>;
 		}
 	>;
 };
