@@ -183,6 +183,14 @@ if [ "$1" = "issue" ] && [ "$2" = "list" ]; then
   exit 0
 fi
 if [ "$1" = "issue" ] && [ "$2" = "create" ]; then
+  case " $* " in
+    *" --assignee "*)
+      if [ "$GH_ASSIGNEE_FAIL" = "1" ]; then
+        echo "could not assign user" >&2
+        exit 1
+      fi
+      ;;
+  esac
   if [ "$GH_WRITE_FAIL" = "1" ]; then
     echo "create falhou" >&2
     exit 1
@@ -217,6 +225,7 @@ function rodarCli({ check, env = {} }) {
 		GH_API_FAIL: "",
 		GH_WRITE_FAIL: "",
 		GH_EDIT_FAIL: "",
+		GH_ASSIGNEE_FAIL: "",
 		...env,
 	};
 	if (!Object.prototype.hasOwnProperty.call(env, "CHECK_RUN_PATH")) {
@@ -358,4 +367,15 @@ test("cli sai 1 quando nao consegue por o dono na issue aberta", async () => {
 	assert.equal(resultado.status, 1);
 	assert.match(resultado.log, /issue comment 70/);
 	assert.match(resultado.stderr, /edit falhou/);
+});
+
+test("cli abre sem responsavel quando o gh recusa o dono, e a mencao fica", async () => {
+	const resultado = await rodarCli({ check: checkMain(), env: { GH_ASSIGNEE_FAIL: "1" } });
+	assert.equal(resultado.status, 0);
+	assert.match(resultado.stderr, /could not assign user/);
+	const criacoes = resultado.log.split("\n").filter((linha) => linha.startsWith("issue create"));
+	assert.equal(criacoes.length, 2);
+	assert.match(criacoes[0], /--assignee madebysandro/);
+	assert.doesNotMatch(criacoes[1], /--assignee/);
+	assert.match(resultado.log, /@madebysandro/);
 });

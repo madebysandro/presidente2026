@@ -204,12 +204,12 @@ function atribuir(repo, numero, dono) {
 }
 
 function aplicar(repo, decisao) {
-	const responsavel = decisao.dono ? ["--assignee", decisao.dono] : [];
 	if (decisao.acao === "abrir") {
-		return emitir(
-			["issue", "create", "--repo", repo, "--title", decisao.titulo, ...responsavel],
-			decisao.corpo,
-		);
+		const criar = ["issue", "create", "--repo", repo, "--title", decisao.titulo];
+		if (decisao.dono && emitir([...criar, "--assignee", decisao.dono], decisao.corpo)) {
+			return true;
+		}
+		return emitir(criar, decisao.corpo);
 	}
 	if (decisao.acao === "comentar") {
 		const comentou = emitir(
