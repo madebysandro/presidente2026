@@ -161,7 +161,7 @@ No GitHub: Settings → Secrets and variables → Actions → `CHAVE_IMPORT`. Se
 
 A chave do agente leva `401` em `POST /api/import`. `CHAVE_IMPORT` leva `401` em `/api/agente/*`. O corpo é `{ "registros": [ … ] }`, só nacionais. Estadual e ambígua que já estavam no DO ficam. Nacional que sumiu do recorte fica `removido do TSE`.
 
-Depois que o poller marca a apuração como encerrada, o arquivo do 2º turno congela (#86). O cron e o primeiro acesso não baixam o ZIP (log `resultado=congelado`). `POST /api/import` responde `409 {"erro":"apuracao_encerrada"}` e a Action do plano B fica vermelha. As escritas do agente respondem o mesmo `409` e entram na auditoria. As leituras públicas não mudam.
+Depois que o poller marca a apuração como encerrada, o arquivo do 2º turno congela (#86). O cron e o primeiro acesso não baixam o ZIP (log `resultado=congelado`). `POST /api/import` responde `409 {"erro":"apuracao_encerrada"}`. O `scripts/plano-b.mjs` trata esse `409` como fim esperado: loga `apuração encerrada` e sai `0`, e a Action do plano B fica verde. Outro `409` ou erro continua vermelho. As escritas do agente respondem o mesmo `409` e entram na auditoria. As leituras públicas não mudam.
 
 Dry-run local, sem rede e sem chave:
 
