@@ -149,7 +149,7 @@ O passe no aparelho, em https://presidente2026.win, é manual e só depois do de
 
 Ligue só se o cron in-Worker falhar: conta Free (o CSV não cabe nos 10 ms) ou `cdn.tse.jus.br` bloqueando o IP da Cloudflare. O sinal está no log `evento=import` com `resultado=erro`, ou no cron que deixa de atualizar `registroTse` em `GET /api/pesquisas`.
 
-A Action `.github/workflows/plano-b-import.yml` roda todo dia às 09:00 UTC. Sem o segredo, ela só confere a fixture (33 nacionais) e não envia nada. Com `CHAVE_IMPORT` no repositório, baixa os dois ZIP do TSE e faz `POST /api/import`.
+A Action `.github/workflows/plano-b-import.yml` roda todo dia às 09:00 UTC. Sem o segredo, ela só confere a fixture (33 nacionais) e não envia nada. Com `CHAVE_IMPORT` no repositório, baixa os dois ZIP do TSE e faz `POST /api/import`. O step do envio testa `env.TEM_CHAVE`, porque o GitHub rejeita `secrets` em `if:`.
 
 A chave é outra, distinta da do agente, e não vai para o Grok Bot. Grave as duas pontas com o mesmo valor:
 
@@ -204,6 +204,8 @@ npm run dev
 | `npm run dev` | `vite` com `voidPlugin` (dev local da Void, Miniflare) |
 | `npm run prepare:void` | `void prepare` — tipos em `.void/` sem subir o dev server |
 | `npm run deploy` | `void deploy --platform cloudflare` (modo `atomic`: o tráfego muda antes do readiness) |
+
+O job `ci` roda o `actionlint` 1.7.12 antes do `npm ci`: workflow inválido barra o PR. Localmente, `actionlint` na raiz.
 
 ## Vars
 

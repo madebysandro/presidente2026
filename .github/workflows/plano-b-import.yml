@@ -11,6 +11,8 @@ permissions:
 jobs:
   importar:
     runs-on: ubuntu-latest
+    env:
+      TEM_CHAVE: ${{ secrets.CHAVE_IMPORT != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -23,7 +25,7 @@ jobs:
           node scripts/plano-b.mjs --fixture > /tmp/recorte.json
           node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/recorte.json','utf8')); if (j.registros.length !== 33) { console.error(j.registros.length); process.exit(1) }"
       - name: baixar o ZIP do TSE e enviar
-        if: ${{ secrets.CHAVE_IMPORT != '' }}
+        if: env.TEM_CHAVE == 'true'
         env:
           CHAVE_IMPORT: ${{ secrets.CHAVE_IMPORT }}
           PLANO_B_URL: https://presidente2026.win/api/import
