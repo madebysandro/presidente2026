@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { decidirAlerta, TITULO } from "./alerta-workers-builds.mjs";
+import { decidirAlerta, donoDoRepo, TITULO } from "./alerta-workers-builds.mjs";
 
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 const HTML = "https://github.com/madebysandro/presidente2026/runs/4242";
@@ -109,6 +109,45 @@ test("omite output.text vazio e anotacoes que nao sao lista", () => {
 	assert.equal(decisao.corpo.includes("mensagem-fora-da-lista"), false);
 });
 
+test("dono vem da ultima regra * do CODEOWNERS", () => {
+	const texto = [
+		"# dono padrão",
+		"* @antigo",
+		"docs/ @time/docs",
+		"*   @org/time @madebysandro @outra",
+		"",
+	].join("\n");
+	assert.equal(donoDoRepo(texto, "madebysandro/presidente2026"), "madebysandro");
+});
+
+test("sem regra * de usuario, o dono e o dono do repo", () => {
+	assert.equal(donoDoRepo("docs/ @alguem\n* @org/time\n", "dono/repo"), "dono");
+	assert.equal(donoDoRepo(null, "dono/repo"), "dono");
+	assert.equal(donoDoRepo("", ""), null);
+});
+
+test("issue nova e comentario levam o dono e a mencao", () => {
+	const nova = decidirAlerta(checkMain(), [], "madebysandro");
+	assert.equal(nova.acao, "abrir");
+	assert.equal(nova.dono, "madebysandro");
+	assert.ok(nova.corpo.includes("@madebysandro"));
+
+	const comentario = decidirAlerta(
+		checkMain(),
+		[{ number: 70, title: TITULO, state: "OPEN" }],
+		"madebysandro",
+	);
+	assert.equal(comentario.acao, "comentar");
+	assert.equal(comentario.dono, "madebysandro");
+	assert.ok(comentario.corpo.includes("@madebysandro"));
+});
+
+test("sem dono o corpo nao menciona ninguem", () => {
+	const decisao = decidirAlerta(checkMain(), []);
+	assert.equal(decisao.dono, undefined);
+	assert.doesNotMatch(decisao.corpo, /(^|\s)@\w/);
+});
+
 function prepararGh(script) {
 	const dir = mkdtempSync(join(tmpdir(), "alerta-gh-"));
 	const bin = join(dir, "bin");
@@ -144,6 +183,14 @@ if [ "$1" = "issue" ] && [ "$2" = "list" ]; then
   exit 0
 fi
 if [ "$1" = "issue" ] && [ "$2" = "create" ]; then
+  case " $* " in
+    *" --assignee "*)
+      if [ "$GH_ASSIGNEE_FAIL" = "1" ]; then
+        echo "could not assign user" >&2
+        exit 1
+      fi
+      ;;
+  esac
   if [ "$GH_WRITE_FAIL" = "1" ]; then
     echo "create falhou" >&2
     exit 1
@@ -153,6 +200,14 @@ if [ "$1" = "issue" ] && [ "$2" = "create" ]; then
 fi
 if [ "$1" = "issue" ] && [ "$2" = "comment" ]; then
   echo "https://github.com/madebysandro/presidente2026/issues/70#issuecomment-1"
+  exit 0
+fi
+if [ "$1" = "issue" ] && [ "$2" = "edit" ]; then
+  if [ "$GH_EDIT_FAIL" = "1" ]; then
+    echo "edit falhou" >&2
+    exit 1
+  fi
+  echo "https://github.com/madebysandro/presidente2026/issues/70"
   exit 0
 fi
 echo "comando inesperado: $*" >&2
@@ -169,6 +224,8 @@ function rodarCli({ check, env = {} }) {
 		GH_ISSUES: "[]",
 		GH_API_FAIL: "",
 		GH_WRITE_FAIL: "",
+		GH_EDIT_FAIL: "",
+		GH_ASSIGNEE_FAIL: "",
 		...env,
 	};
 	if (!Object.prototype.hasOwnProperty.call(env, "CHECK_RUN_PATH")) {
@@ -268,4 +325,57 @@ test("cli ignora success e branch de pull request sem escrever issue", async () 
 	assert.match(pr.stdout, /^ignorar\n/);
 	assert.doesNotMatch(pr.log, /issue create/);
 	assert.doesNotMatch(pr.log, /issue comment/);
+});
+
+test("cli abre a issue com o dono do CODEOWNERS como responsavel", async () => {
+	const resultado = await rodarCli({ check: checkMain() });
+	assert.equal(resultado.status, 0);
+	assert.match(resultado.log, /issue create --repo madebysandro\/presidente2026 --title Workers Builds falhou na main --assignee madebysandro --body-file/);
+	assert.match(resultado.log, /@madebysandro/);
+});
+
+test("cli usa o dono do repo quando o CODEOWNERS nao existe", async () => {
+	const resultado = await rodarCli({
+		check: checkMain(),
+		env: { CODEOWNERS_PATH: "/nao/existe/CODEOWNERS", GITHUB_REPOSITORY: "outra/presidente2026" },
+	});
+	assert.equal(resultado.status, 0);
+	assert.match(resultado.log, /issue create --repo outra\/presidente2026 .*--assignee outra/);
+});
+
+test("cli comenta e poe o dono como responsavel na issue aberta", async () => {
+	const resultado = await rodarCli({
+		check: checkMain(),
+		env: {
+			GH_ISSUES: JSON.stringify([{ number: 70, title: TITULO, state: "OPEN" }]),
+		},
+	});
+	assert.equal(resultado.status, 0);
+	assert.match(resultado.log, /issue comment 70 --repo madebysandro\/presidente2026 --body-file/);
+	assert.match(resultado.log, /issue edit 70 --repo madebysandro\/presidente2026 --add-assignee madebysandro/);
+	assert.match(resultado.log, /@madebysandro/);
+});
+
+test("cli sai 1 quando nao consegue por o dono na issue aberta", async () => {
+	const resultado = await rodarCli({
+		check: checkMain(),
+		env: {
+			GH_ISSUES: JSON.stringify([{ number: 70, title: TITULO, state: "OPEN" }]),
+			GH_EDIT_FAIL: "1",
+		},
+	});
+	assert.equal(resultado.status, 1);
+	assert.match(resultado.log, /issue comment 70/);
+	assert.match(resultado.stderr, /edit falhou/);
+});
+
+test("cli abre sem responsavel quando o gh recusa o dono, e a mencao fica", async () => {
+	const resultado = await rodarCli({ check: checkMain(), env: { GH_ASSIGNEE_FAIL: "1" } });
+	assert.equal(resultado.status, 0);
+	assert.match(resultado.stderr, /could not assign user/);
+	const criacoes = resultado.log.split("\n").filter((linha) => linha.startsWith("issue create"));
+	assert.equal(criacoes.length, 2);
+	assert.match(criacoes[0], /--assignee madebysandro/);
+	assert.doesNotMatch(criacoes[1], /--assignee/);
+	assert.match(resultado.log, /@madebysandro/);
 });

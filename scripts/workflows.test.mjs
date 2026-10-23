@@ -32,3 +32,10 @@ test("o job ci roda o actionlint fixado antes do npm ci", () => {
 	assert.notEqual(lint, -1);
 	assert.ok(lint < yml.indexOf("- run: npm ci"));
 });
+
+test("o job ci roda o contrato do void depois do build", () => {
+	const yml = ler("ci.yml");
+	const contrato = yml.search(/- run: node --test .*scripts\/void-contrato\.test\.mjs/);
+	assert.notEqual(contrato, -1);
+	assert.ok(yml.indexOf("- run: npm run build") < contrato);
+});

@@ -222,6 +222,14 @@ Produção só na `main`, via **Cloudflare Workers Builds** (repo conectado no p
 
 O modo em `void.config.ts` é `atomic`, temporário enquanto o Cloudflare APIError 100405 não tiver correção. A mensagem é `All versions in a multi-version deployment must declare identical exports`, issue voidzero-dev/void#460. O tráfego muda antes do readiness. O modo não reescreve as migrações de Durable Object em `void.lock.json`. Uma migração de classe pendente passa. O rollback ainda não cruza a fronteira dessa migração. Rollback de banco também não desfaz migração.
 
+### Build vermelho e bump do void
+
+Um merge por vez na `main`: o próximo espera o Workers Builds do anterior terminar. Dois merges com 7 s de diferença abriram dois `void deploy` do mesmo Worker, e um deles falhou (#83, triagem em [docs/operacao/workers-builds-83.md](docs/operacao/workers-builds-83.md)).
+
+Quando o `Workers Builds: presidente2026` da `main` falha, o workflow `Alerta Workers Builds` abre a issue `Workers Builds falhou na main` (ou comenta na aberta), atribui ao dono da regra `*` do [CODEOWNERS](.github/CODEOWNERS) e menciona esse dono no corpo. Feche a issue com a causa registrada.
+
+Bump do `void` (Dependabot): `@dependabot rebase` na `main` atual e merge só com o `ci` e o `Workers Builds: presidente2026` do PR verdes. O check do PR é o preview do branch: prova o `npm run build` e o upload do `wrangler preview`, sem URL (`preview_urls: false`) e sem rodar o `void deploy`. O `ci` roda `scripts/void-contrato.test.mjs`: o `@void/deploy-cloudflare` instalado relê a mensagem schema 2 que o 1.1.11 gravou na versão no ar ([fixture](fixtures/void/mensagem-versao-1.1.11.txt)) e grava a do próximo deploy no mesmo formato, abaixo de 1000 bytes. O `void deploy` de verdade só roda no Workers Builds da `main` depois do merge.
+
 ### Mensagem da versão
 
 No painel, cada versão criada por `npx void deploy` mostra `void:{"schema":2,...}`. No Void 1.1.11 esse texto é a anotação `workers/message`. `encodeCloudflareVersionMessage` grava `void:` mais JSON. Com trigger, o schema é 2: `migrations`, `triggerConfig` (`settingsHash`, `preserve`, rotas, `workers_dev`, `preview_urls`, crons, filas, workflows) e, se o terceiro argumento for um sha256 em hex, `contentHash`. O deploy deste repo chama a função com dois argumentos, então a versão sobe sem `contentHash`.
