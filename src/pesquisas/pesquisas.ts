@@ -57,6 +57,7 @@ const LIMITE_POR_IP = 5;
 const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste", "plano_b"]);
 
 const CONGELADO: ImportCongelado = { kind: "congelado" };
+const CHAVE_ENCERRADA = "apuracao_encerrada";
 
 type LinhaRegistro = {
 	registro: string;
@@ -409,18 +410,16 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		return this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/suspensoes",
 				metodo: "POST",
-				exigeChave: true,
+				registro: registroDoCorpo(input.corpo),
+				corpo: input.corpo,
 			});
 			if (portao !== "segue") return portao;
-			if (await this.apuracaoEncerrada()) {
-				return await this.recusarEncerrada(agora, input.ip, registroDoCorpo(input.corpo), input.corpo, "/api/agente/suspensoes", "POST");
-			}
 			const lido = lerJson(input.corpo);
 			const corpo = lerCorpoSuspensao(lido);
 			if ("motivos" in corpo) {
@@ -467,18 +466,16 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		return this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/suspensoes",
 				metodo: "DELETE",
-				exigeChave: true,
+				registro: input.registro,
+				corpo: input.corpo,
 			});
 			if (portao !== "segue") return portao;
-			if (await this.apuracaoEncerrada()) {
-				return await this.recusarEncerrada(agora, input.ip, input.registro, input.corpo, "/api/agente/suspensoes", "DELETE");
-			}
 			if (!input.registro) {
 				return await this.recusarSuspensao(agora, input.ip, null, input.corpo, "DELETE", [
 					{ codigo: "registro_desconhecido", detalhe: "registro ausente na URL" },
@@ -581,20 +578,17 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		const passagem = await this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/resultados",
 				metodo: "POST",
-				exigeChave: true,
+				registro: registroDoCorpo(input.corpo),
+				corpo: input.corpo,
 			});
-			if (portao !== "segue") return { kind: "fim" as const, resposta: portao };
-			if (await this.apuracaoEncerrada()) {
-				const resposta = await this.recusarEncerrada(agora, input.ip, registroDoCorpo(input.corpo), input.corpo, "/api/agente/resultados", "POST");
-				return { kind: "fim" as const, resposta };
-			}
-			return { kind: "segue" as const };
+			if (portao === "segue") return { kind: "segue" as const };
+			return { kind: "fim" as const, resposta: portao };
 		});
 		if (passagem.kind === "fim") return passagem.resposta;
 
@@ -621,9 +615,15 @@ export class Pesquisas extends DurableObject<Env> {
 			}
 		}
 		return this.ctx.blockConcurrencyWhile(async () => {
-			if (await this.apuracaoEncerrada()) {
-				return await this.recusarEncerrada(agora, input.ip, lido.registro, input.corpo, "/api/agente/resultados", "POST");
-			}
+			const encerrada = await this.recusarSeEncerrada({
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/resultados",
+				metodo: "POST",
+				registro: lido.registro,
+				corpo: input.corpo,
+			});
+			if (encerrada !== "segue") return encerrada;
 			this.garantirEsquema();
 			const deNovo = this.contextoRegistro(lido.registro);
 			const finais = [...lido.motivos];
@@ -774,29 +774,37 @@ export class Pesquisas extends DurableObject<Env> {
 		return { status: 422, corpo: { motivos } };
 	}
 
+	/** O encerramento não volta atrás: depois do primeiro `true`, não pergunta mais ao poller. */
 	private async apuracaoEncerrada(): Promise<boolean> {
+		if (this.ctx.storage.kv.get(CHAVE_ENCERRADA) === true) return true;
 		const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
-		return poller.apuracaoEncerrada();
+		if (!(await poller.apuracaoEncerrada())) return false;
+		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		return true;
 	}
 
-	private async recusarEncerrada(
-		agora: Date,
-		ip: string,
-		registro: string | null,
-		corpo: string,
-		rota: "/api/agente/resultados" | "/api/agente/suspensoes",
-		metodo: "POST" | "DELETE",
-	): Promise<RespostaEncerrada> {
+	/** Chame dentro do lock. Portão das escritas do agente: com a apuração encerrada, 409 na auditoria. */
+	private async aplicarPortaoEscrita(
+		input: EscritaAgente & { chaveValida: boolean },
+	): Promise<"segue" | RespostaNegacao | RespostaEncerrada> {
+		const portao = await this.aplicarPortao({ ...input, exigeChave: true });
+		if (portao !== "segue") return portao;
+		return this.recusarSeEncerrada(input);
+	}
+
+	/** Chame dentro do lock. */
+	private async recusarSeEncerrada(input: EscritaAgente): Promise<"segue" | RespostaEncerrada> {
+		if (!(await this.apuracaoEncerrada())) return "segue";
 		await this.gravarAuditoriaAgente({
-			em: agora.toISOString(),
-			ip: ip || "desconhecido",
+			em: input.em,
+			ip: input.ip || "desconhecido",
 			chaveValida: true,
-			registro,
-			corpo,
+			registro: input.registro,
+			corpo: input.corpo,
 			status: 409,
 			motivos: ["apuracao_encerrada"],
-			rota,
-			metodo,
+			rota: input.rota,
+			metodo: input.metodo,
 		});
 		return respostaEncerrada();
 	}
@@ -1459,6 +1467,15 @@ function numeroOuNulo(valor: number | null): number | null {
 	if (valor == null) return null;
 	return Number(valor);
 }
+
+type EscritaAgente = {
+	ip: string;
+	em: string;
+	rota: "/api/agente/resultados" | "/api/agente/suspensoes";
+	metodo: "POST" | "DELETE";
+	registro: string | null;
+	corpo: string;
+};
 
 /** Depois do encerramento, o arquivo do 2º turno não muda mais (#86). */
 type RespostaEncerrada = {

@@ -12,7 +12,7 @@ import dia1ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia1_contratan
 import dia1PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia1_pesquisa.zip?inline";
 import { recorteNacionalDeZips } from "../src/pesquisas/plano-b";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
-import { bytesDeDataUrl, instalarCdnPesquisas, pedidosCdn } from "./helpers/cdn-pesquisas";
+import { bytesDeDataUrl, instalarCdnPesquisas, pedidosCdn, URL_CONTRATANTE_TSE } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
 import { forcarConsulta, limparPoller } from "./helpers/poller";
 import { network } from "./helpers/rede";
@@ -263,6 +263,75 @@ describe("pesquisas congeladas com a apuração encerrada (#86)", () => {
 		expect(await tabelas()).toEqual(antes);
 		expect(await lerPublico("/api/pesquisas")).toBe(pesquisasAntes);
 		expect(await lerPublico("/api/apuracao")).toBe(apuracaoAntes);
+	});
+
+	it("depois de ver o encerramento, fica congelada sem depender do poller", async () => {
+		await prepararArquivo();
+		await encerrarApuracao();
+		const antes = await tabelas();
+		expect((await pedido("POST", "/api/agente/resultados", corpoResultado({ substituir: true }))).status).toBe(409);
+
+		await limparPoller();
+		instalarDia1();
+
+		await expect(stub().importarDoTse({ motivo: "teste" })).resolves.toEqual({ kind: "congelado" });
+		const suspensa = await pedido("POST", "/api/agente/suspensoes", {
+			registro: DATAFOLHA,
+			decisaoUrl: DECISAO,
+			motivo: "liminar",
+		});
+		expect(suspensa.status).toBe(409);
+		expect(pedidosCdn).toEqual([]);
+		expect(await tabelas()).toEqual(antes);
+	});
+
+	it("o import não aplica se o poller encerrar durante o download", async () => {
+		const tse = instalarTseFalso();
+		tse.definirVarianteSecoes({ padrao: "99,99", tf: "s" });
+		await forcarConsulta();
+		await prepararArquivo();
+		const antes = await tabelas();
+		instalarDia1();
+		network.use(
+			http.get(URL_CONTRATANTE_TSE, async () => {
+				tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
+				await forcarConsulta();
+				return new HttpResponse(dia1Contratante.slice(), {
+					headers: { etag: '"dia1-contratante"', "content-type": "application/zip" },
+				});
+			}),
+		);
+
+		await expect(stub().importarDoTse({ motivo: "teste" })).resolves.toEqual({ kind: "congelado" });
+
+		expect(await tabelas()).toEqual(antes);
+	});
+
+	it("o agente não grava se o poller encerrar durante a leitura da fonte", async () => {
+		const tse = instalarTseFalso();
+		tse.definirVarianteSecoes({ padrao: "99,99", tf: "s" });
+		await forcarConsulta();
+		await prepararArquivo();
+		const antes = await tabelas();
+		const auditoriaAntes = (await stub().listarAuditoriaAgente()).length;
+		const fonte = "https://www.poder360.com.br/quaest";
+		network.use(
+			http.get(fonte, async () => {
+				tse.definirVarianteSecoes({ padrao: "100,00", tf: "s" });
+				await forcarConsulta();
+				return HttpResponse.html("<p>Quaest: Flávio 49% e Lula 45%.</p>");
+			}),
+		);
+
+		const resposta = await pedido("POST", "/api/agente/resultados", corpoResultado({ registro: QUAEST, fonte }));
+
+		expect(resposta.status).toBe(409);
+		expect(await resposta.json()).toEqual(ENCERRADA);
+		const auditoria = (await stub().listarAuditoriaAgente()).slice(auditoriaAntes);
+		expect(auditoria.map(({ registro, status, motivos }) => ({ registro, status, motivos }))).toEqual([
+			{ registro: QUAEST, status: 409, motivos: ["apuracao_encerrada"] },
+		]);
+		expect(await tabelas()).toEqual(antes);
 	});
 
 	it("sem chave, a recusa continua 401", async () => {
