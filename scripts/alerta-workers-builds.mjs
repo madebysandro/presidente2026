@@ -2,19 +2,34 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const TITULO = "Workers Builds falhou na main";
 
 const NOME_CHECK = "Workers Builds: presidente2026";
 
-export function decidirAlerta(check, issuesAbertas) {
+const CODEOWNERS = join(dirname(fileURLToPath(import.meta.url)), "..", ".github", "CODEOWNERS");
+
+export function decidirAlerta(check, issuesAbertas, dono) {
 	if (!falhaNaMain(check)) return { acao: "ignorar" };
-	const corpo = montarCorpo(check);
+	const corpo = montarCorpo(check, dono);
 	const aberta = escolherIssueAberta(issuesAbertas);
-	if (aberta) return { acao: "comentar", numero: aberta.number, corpo };
-	return { acao: "abrir", titulo: TITULO, corpo };
+	if (aberta) return { acao: "comentar", numero: aberta.number, corpo, dono };
+	return { acao: "abrir", titulo: TITULO, corpo, dono };
+}
+
+export function donoDoRepo(codeowners, repo) {
+	let dono = null;
+	for (const linha of String(codeowners ?? "").split("\n")) {
+		const [padrao, ...donos] = linha.replace(/#.*/, "").trim().split(/\s+/);
+		if (padrao !== "*") continue;
+		const usuario = donos.find((item) => /^@[^/]+$/.test(item));
+		if (usuario) dono = usuario.slice(1);
+	}
+	if (dono) return dono;
+	const doRepo = String(repo ?? "").split("/")[0];
+	return doRepo || null;
 }
 
 function falhaNaMain(check) {
@@ -36,11 +51,13 @@ function escolherIssueAberta(issuesAbertas) {
 	return abertas[0];
 }
 
-function montarCorpo(check) {
+function montarCorpo(check, dono) {
 	const sha = check.head_sha ?? check.check_suite?.head_sha ?? "";
-	const linhas = [
-		`${TITULO}.`,
-		"",
+	const linhas = [`${TITULO}.`, ""];
+	if (dono) {
+		linhas.push(`@${dono}, a issue é sua até a triagem. Registre a causa ao fechar.`, "");
+	}
+	linhas.push(
 		`conclusion: ${check.conclusion ?? ""}`,
 		`head_sha: ${sha}`,
 		`html_url: ${check.html_url ?? ""}`,
@@ -48,7 +65,7 @@ function montarCorpo(check) {
 		"",
 		"output.summary:",
 		valorTexto(check.output?.summary),
-	];
+	);
 	const texto = check.output?.text;
 	if (typeof texto === "string" && texto.length > 0) {
 		linhas.push("", "output.text:", texto);
@@ -169,20 +186,48 @@ function emitir(args, corpo) {
 	}
 }
 
+function atribuir(repo, numero, dono) {
+	const resultado = executarGh([
+		"issue",
+		"edit",
+		String(numero),
+		"--repo",
+		repo,
+		"--add-assignee",
+		dono,
+	]);
+	if (resultado.status !== 0) {
+		despejarErro(resultado);
+		return false;
+	}
+	return true;
+}
+
 function aplicar(repo, decisao) {
+	const responsavel = decisao.dono ? ["--assignee", decisao.dono] : [];
 	if (decisao.acao === "abrir") {
 		return emitir(
-			["issue", "create", "--repo", repo, "--title", decisao.titulo],
+			["issue", "create", "--repo", repo, "--title", decisao.titulo, ...responsavel],
 			decisao.corpo,
 		);
 	}
 	if (decisao.acao === "comentar") {
-		return emitir(
+		const comentou = emitir(
 			["issue", "comment", String(decisao.numero), "--repo", repo],
 			decisao.corpo,
 		);
+		if (!comentou) return false;
+		return decisao.dono ? atribuir(repo, decisao.numero, decisao.dono) : true;
 	}
 	return true;
+}
+
+function lerCodeowners(caminho) {
+	try {
+		return readFileSync(caminho, "utf8");
+	} catch {
+		return null;
+	}
 }
 
 function lerCheck(caminho) {
@@ -222,7 +267,8 @@ function main() {
 	const issues = listarIssues(repo);
 	if (!issues) process.exit(1);
 	check.anotacoes = buscarAnotacoes(repo, check.id);
-	const decisao = decidirAlerta(check, issues);
+	const dono = donoDoRepo(lerCodeowners(process.env.CODEOWNERS_PATH || CODEOWNERS), repo);
+	const decisao = decidirAlerta(check, issues, dono);
 	console.log(decisao.acao);
 	if (decisao.acao === "ignorar") process.exit(0);
 	if (!aplicar(repo, decisao)) process.exit(1);

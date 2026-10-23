@@ -20,6 +20,7 @@ export default defineConfig({
 			"scripts/modo-deploy.test.mjs",
 			"scripts/pre-deploy.test.mjs",
 			"scripts/ponte-preview.test.mjs",
+			"scripts/void-contrato.test.mjs",
 			"scripts/alerta-workers-builds.test.mjs",
 			"scripts/workflows.test.mjs",
 			".cursor/skills/verify-presidente2026/paginas.test.mjs",
