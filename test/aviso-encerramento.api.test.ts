@@ -199,6 +199,20 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		expect((await suspender()).status).toBe(409);
 	});
 
+	it("o encerramento grava o alarme de guarda antes do aviso: um crash antes do ack não perde a reentrega", async () => {
+		restaurar = await trocarNoPrototipo(stubPoller(), "entregarAviso", async () => {});
+		await encerrarApuracao();
+		expect(await lerAlarme()).not.toBeNull();
+		expect(await travaGravada()).toBe(false);
+		restaurar();
+		restaurar = null;
+
+		expect(await runDurableObjectAlarm(stubPoller())).toBe(true);
+
+		expect(await travaGravada()).toBe(true);
+		expect(await lerAlarme()).toBeNull();
+	});
+
 	it("o GET /api/apuracao reagenda a reentrega quando o alarme se perdeu", async () => {
 		await derrubarCongelar();
 		await encerrarApuracao();

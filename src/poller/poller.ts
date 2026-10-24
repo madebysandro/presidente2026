@@ -377,7 +377,8 @@ export class PollerApuracao extends DurableObject<Env> {
 		if (estado.encerrada) {
 			estado.proximaConsulta = null;
 			await this.ctx.storage.put(CHAVE_ESTADO, estado);
-			await this.ctx.storage.deleteAlarm();
+			// Write-ahead: o alarme de guarda sai no mesmo commit do encerramento; o ack o apaga.
+			await this.ctx.storage.setAlarm(Date.now() + ESCADA_AVISO[0] * 1000);
 			await this.ctx.storage.delete(CHAVE_ESCADA);
 			registrarCiclo(null);
 			await this.entregarAviso();

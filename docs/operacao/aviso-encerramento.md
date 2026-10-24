@@ -34,7 +34,7 @@ Com a trava, a escrita do agente responde `409 {"erro":"apuracao_encerrada"}` e 
 
 ## Envio
 
-No ciclo `consultar()` em que `estado.encerrada` vira `true`, o poller grava o estado (`CHAVE_ESTADO`), apaga o alarme de consulta e chama `entregarAviso()`.
+No ciclo `consultar()` em que `estado.encerrada` vira `true`, o poller grava o estado (`CHAVE_ESTADO`) e, no mesmo commit, troca o alarme de consulta por um alarme de guarda em `Date.now() + 30 s` (`ESCADA_AVISO[0]`). Logo depois chama `entregarAviso()`. Se o DO cair entre o commit e o ack, o alarme de guarda reentrega. No ack, `entregarAviso()` apaga esse alarme. Como o alarme existe enquanto o aviso está pendente, o `garantirAlarme()` de um `GET /api/apuracao` durante a RPC não agenda uma segunda entrega.
 
 `entregarAviso()` chama `env.PESQUISAS.getByName(NOME_INSTANCIA).congelar()` dentro de try/catch. Nunca lança para fora.
 
