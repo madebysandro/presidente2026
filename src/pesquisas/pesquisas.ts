@@ -308,7 +308,7 @@ export class Pesquisas extends DurableObject<Env> {
 	}
 
 	/** Chame dentro do lock. O poller pode ter encerrado durante o download. */
-	private async aplicarLote(motivo: MotivoImport, lote: LoteImport): Promise<Changeset | ImportCongelado> {
+	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset | ImportCongelado {
 		if (this.encerrada()) return CONGELADO;
 		this.garantirEsquema();
 		const metaAtual = this.lerMeta();
