@@ -8,15 +8,18 @@ import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratante.zip?inline";
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
+import { recorteNacionalDeZips } from "../src/pesquisas/plano-b";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
 import { bytesDeDataUrl, instalarCdnPesquisas, pedidosCdn } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
 import { cancelarAlarme, forcarConsulta, lerAlarme, limparPoller, stubPoller } from "./helpers/poller";
 import { network } from "./helpers/rede";
+import { selfComScheduled } from "./helpers/self-scheduled";
 import { instalarTseFalso } from "./helpers/tse-falso";
 import { trocarNoPrototipo } from "./helpers/troca-prototipo";
 
 const CHAVE = "teste-chave-agente";
+const CHAVE_IMPORT = "teste-chave-import";
 const DATAFOLHA = "BR-02949/2026";
 const FONTE = "https://www.metropoles.com/brasil/datafolha-2o-turno-flavio-tem-52-e-lula-48";
 const DECISAO = "https://www.tse.jus.br/decisao/liminar-14";
@@ -219,5 +222,120 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		await fetchWorker(new Request("http://presidente2026.test/api/apuracao"));
 
 		expect(await lerAlarme()).toBeNull();
+	});
+});
+
+/** O poller cai no meio da apuração: `apuracaoEncerrada()` lança até `restaurar()`. */
+async function derrubarPoller(): Promise<void> {
+	restaurar = await trocarNoPrototipo(stubPoller(), "apuracaoEncerrada", () => {
+		throw new Error("poller fora do ar");
+	});
+}
+
+const MARCA = "__semReinicio86";
+
+async function zerarPesquisas(): Promise<void> {
+	await runInDurableObject(stub(), async (_inst, state) => {
+		await state.storage.deleteAll();
+	});
+}
+
+function planoBCom(recorte: unknown[]): Promise<Response> {
+	return fetchWorker(
+		new Request("http://presidente2026.test/api/import", {
+			method: "POST",
+			headers: { "content-type": "application/json", authorization: `Bearer ${CHAVE_IMPORT}` },
+			body: JSON.stringify({ registros: recorte }),
+		}),
+	);
+}
+
+function marcarInstancia(): Promise<void> {
+	return runInDurableObject(stub(), (inst) => {
+		(inst as unknown as Record<string, boolean>)[MARCA] = true;
+	});
+}
+
+function instanciaMarcada(): Promise<boolean> {
+	return runInDurableObject(stub(), (inst) => (inst as unknown as Record<string, boolean>)[MARCA] === true);
+}
+
+describe("as escritas não dependem do poller (#86)", () => {
+	it("com o poller falhando, o agente publica e suspende sem 500 e o DO não reinicia", async () => {
+		instalarDia0();
+		await stub().importarDoTse({ motivo: "teste" });
+		await marcarInstancia();
+		await derrubarPoller();
+
+		expect((await publicar()).status).toBe(201);
+		expect((await suspender()).status).toBe(201);
+		expect(await instanciaMarcada()).toBe(true);
+	});
+
+	it("com o poller falhando, o cron, o primeiro acesso e o plano B aplicam sem 500", async () => {
+		await marcarInstancia();
+		await derrubarPoller();
+		instalarDia0();
+
+		const cron = await selfComScheduled().scheduled({
+			cron: "0 9 * * *",
+			scheduledTime: new Date("2026-10-25T21:00:00Z"),
+		});
+		expect(cron.outcome).toBe("ok");
+		expect((await stub().obterEstado()).registros).toBe(57);
+
+		await zerarPesquisas();
+		const pesquisas = await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"));
+		expect(pesquisas.status).toBe(200);
+		expect((await stub().obterEstado()).registros).toBe(57);
+
+		await zerarPesquisas();
+		const recorte = await recorteNacionalDeZips(dia0Pesquisa, dia0Contratante);
+		const planoB = await planoBCom(recorte);
+		expect(planoB.status).toBe(200);
+		expect(await planoB.json()).toEqual({ status: "aplicado", upserts: recorte.length, removidos: 0 });
+		expect((await stub().obterEstado()).registros).toBe(recorte.length);
+		expect(await instanciaMarcada()).toBe(true);
+	});
+
+	it("com o aviso perdido, o cron pergunta ao poller e congela; o agente não pergunta", async () => {
+		instalarDia0();
+		await stub().importarDoTse({ motivo: "teste" });
+		await derrubarCongelar();
+		await encerrarApuracao();
+		await cancelarAlarme();
+		expect(await travaGravada()).toBe(false);
+
+		expect((await publicar()).status).toBe(201);
+		expect(await travaGravada()).toBe(false);
+
+		instalarDia0();
+		const cron = await selfComScheduled().scheduled({
+			cron: "0 9 * * *",
+			scheduledTime: new Date("2026-10-26T09:00:00Z"),
+		});
+		expect(cron.outcome).toBe("ok");
+		expect(pedidosCdn).toEqual([]);
+		expect(await travaGravada()).toBe(true);
+		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
+		expect((await suspender()).status).toBe(409);
+	});
+
+	it("com o aviso perdido, o primeiro acesso e o plano B também congelam", async () => {
+		await derrubarCongelar();
+		await encerrarApuracao();
+		await cancelarAlarme();
+		instalarDia0();
+
+		expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
+		expect(pedidosCdn).toEqual([]);
+		expect((await stub().obterEstado()).registros).toBe(0);
+		expect(await travaGravada()).toBe(true);
+
+		await zerarPesquisas();
+		const planoB = await planoBCom(await recorteNacionalDeZips(dia0Pesquisa, dia0Contratante));
+		expect(planoB.status).toBe(409);
+		expect((await stub().obterEstado()).registros).toBe(0);
+		expect(await travaGravada()).toBe(true);
 	});
 });

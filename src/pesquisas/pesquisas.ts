@@ -157,7 +157,8 @@ export class Pesquisas extends DurableObject<Env> {
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset | ImportCongelado> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		return medirImport(opts.motivo, async () => {
-			if (await this.apuracaoEncerrada()) return CONGELADO;
+			await this.reconciliarComPoller();
+			if (this.encerrada()) return CONGELADO;
 			this.garantirEsquema();
 			const metaBase = this.lerMeta();
 			const lote = await this.prepararLote(metaBase);
@@ -207,10 +208,11 @@ export class Pesquisas extends DurableObject<Env> {
 		if (portao !== "segue") return portao;
 		const lido = lerRecorte(input.corpo);
 		if ("erro" in lido) return { status: 422, corpo: { erro: "recorte_invalido" } };
+		await this.reconciliarComPoller();
 		const changeset = await medirImport("plano_b", async () => {
 			this.garantirEsquema();
 			return this.ctx.blockConcurrencyWhile(async () => {
-				if (await this.apuracaoEncerrada()) return CONGELADO;
+				if (this.encerrada()) return CONGELADO;
 				const aplicar = montarAplicar({
 					anteriores: this.lerRegistros(),
 					lidos: lido.registros,
@@ -245,7 +247,8 @@ export class Pesquisas extends DurableObject<Env> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
 		await medirImport("primeiro_acesso", async () => {
-			if (await this.apuracaoEncerrada()) return CONGELADO;
+			await this.reconciliarComPoller();
+			if (this.encerrada()) return CONGELADO;
 			const lote = await this.prepararLote(null);
 			if (lote === null) throw new Error("304 sem import anterior");
 			return this.ctx.blockConcurrencyWhile(async () => {
@@ -306,7 +309,7 @@ export class Pesquisas extends DurableObject<Env> {
 
 	/** Chame dentro do lock. O poller pode ter encerrado durante o download. */
 	private async aplicarLote(motivo: MotivoImport, lote: LoteImport): Promise<Changeset | ImportCongelado> {
-		if (await this.apuracaoEncerrada()) return CONGELADO;
+		if (this.encerrada()) return CONGELADO;
 		this.garantirEsquema();
 		const metaAtual = this.lerMeta();
 		if (!metaAindaEhBase(lote.metaBase, metaAtual)) {
@@ -780,13 +783,23 @@ export class Pesquisas extends DurableObject<Env> {
 		return { status: 422, corpo: { motivos } };
 	}
 
-	/** O encerramento não volta atrás: depois do primeiro `true`, não pergunta mais ao poller. */
-	private async apuracaoEncerrada(): Promise<boolean> {
-		if (this.ctx.storage.kv.get(CHAVE_ENCERRADA) === true) return true;
-		const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
-		if (!(await poller.apuracaoEncerrada())) return false;
-		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
-		return true;
+	/** Trava local, gravada pelo aviso do poller. Leitura síncrona: escrita nenhuma depende do poller no ar. */
+	private encerrada(): boolean {
+		return this.ctx.storage.kv.get(CHAVE_ENCERRADA) === true;
+	}
+
+	/**
+	 * Pull dos imports, fora do lock: cobre o aviso perdido. Poller fora não
+	 * derruba o import; segue sem trava. Nunca nas rotas do agente.
+	 */
+	private async reconciliarComPoller(): Promise<void> {
+		if (this.encerrada()) return;
+		try {
+			const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
+			if (await poller.apuracaoEncerrada()) this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		} catch {
+			// O aviso empurrado ou o próximo import reconciliam.
+		}
 	}
 
 	/** Chame dentro do lock. Portão das escritas do agente: com a apuração encerrada, 409 na auditoria. */
@@ -800,7 +813,7 @@ export class Pesquisas extends DurableObject<Env> {
 
 	/** Chame dentro do lock. */
 	private async recusarSeEncerrada(input: EscritaAgente): Promise<"segue" | RespostaEncerrada> {
-		if (!(await this.apuracaoEncerrada())) return "segue";
+		if (!this.encerrada()) return "segue";
 		await this.gravarAuditoriaAgente({
 			em: input.em,
 			ip: input.ip || "desconhecido",
