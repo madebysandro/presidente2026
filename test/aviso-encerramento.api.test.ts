@@ -16,15 +16,13 @@ import { cancelarAlarme, forcarConsulta, lerAlarme, limparPoller, stubPoller } f
 import { network } from "./helpers/rede";
 import { selfComScheduled } from "./helpers/self-scheduled";
 import { instalarTseFalso } from "./helpers/tse-falso";
-import { trocarNoPrototipo } from "./helpers/troca-prototipo";
+import { restaurarPrototipos, trocarNoPrototipo, trocarTodosNoPrototipo } from "./helpers/troca-prototipo";
 
 const CHAVE = "teste-chave-agente";
 const CHAVE_IMPORT = "teste-chave-import";
 const DATAFOLHA = "BR-02949/2026";
 const FONTE = "https://www.metropoles.com/brasil/datafolha-2o-turno-flavio-tem-52-e-lula-48";
 const DECISAO = "https://www.tse.jus.br/decisao/liminar-14";
-
-let restaurar: (() => void) | null = null;
 
 const dia0Pesquisa = bytesDeDataUrl(dia0PesquisaUrl);
 const dia0Contratante = bytesDeDataUrl(dia0ContratanteUrl);
@@ -66,6 +64,19 @@ function publicar(): Promise<Response> {
 	});
 }
 
+function substituir(): Promise<Response> {
+	network.use(http.get(FONTE, () => HttpResponse.html("<p>Datafolha: Flávio 48% e Lula 46%.</p>")));
+	return pedido("POST", "/api/agente/resultados", {
+		registro: DATAFOLHA,
+		totais: { flavio: 48, lula: 46, brancoNulo: 5, naoSabe: 1 },
+		validosPublicados: { flavio: 51, lula: 49 },
+		fonte: FONTE,
+		margem: null,
+		confianca: null,
+		substituir: true,
+	});
+}
+
 function suspender(): Promise<Response> {
 	return pedido("POST", "/api/agente/suspensoes", { registro: DATAFOLHA, decisaoUrl: DECISAO, motivo: "liminar" });
 }
@@ -80,9 +91,9 @@ function travaGravada(): Promise<boolean> {
 	return runInDurableObject(stub(), (_inst, state) => state.storage.kv.get("apuracao_encerrada") === true);
 }
 
-/** Pesquisas fora do ar para o aviso: `congelar()` lança até `restaurar()`. */
-async function derrubarCongelar(): Promise<void> {
-	restaurar = await trocarNoPrototipo(stub(), "congelar", () => {
+/** Pesquisas fora do ar para o aviso: `congelar()` lança até o restaurador devolvido. */
+function derrubarCongelar(): Promise<() => void> {
+	return trocarNoPrototipo(stub(), "congelar", () => {
 		throw new Error("pesquisas fora do ar");
 	});
 }
@@ -94,16 +105,8 @@ async function esperaDoAlarme(acao: () => Promise<unknown>): Promise<{ min: numb
 	return { min: antes, max: depois, alarme: await lerAlarme() };
 }
 
-function eventosAviso(espiao: { mock: { calls: unknown[][] } }): unknown[] {
-	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "aviso");
-}
-
-function eventosTrava(espiao: { mock: { calls: unknown[][] } }): unknown[] {
-	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "trava");
-}
-
-function eventosImport(espiao: { mock: { calls: unknown[][] } }): unknown[] {
-	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "import");
+function eventos(espiao: { mock: { calls: unknown[][] } }, evento: "aviso" | "trava" | "import"): unknown[] {
+	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === evento);
 }
 
 beforeEach(async () => {
@@ -113,8 +116,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-	restaurar?.();
-	restaurar = null;
+	restaurarPrototipos();
 	vi.restoreAllMocks();
 	await limparPoller();
 });
@@ -142,7 +144,7 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 
 		expect(await travaGravada()).toBe(true);
 		expect(await lerAlarme()).toBeNull();
-		expect(eventosAviso(log)).toEqual([
+		expect(eventos(log, "aviso")).toEqual([
 			{ evento: "aviso", resultado: "entregue", tentativa: 1, proximaMs: null },
 		]);
 		await limparPoller();
@@ -175,7 +177,7 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		const log = vi.spyOn(console, "log");
 		const erro = vi.spyOn(console, "error");
 		const tse = instalarTseFalso();
-		await derrubarCongelar();
+		const religar = await derrubarCongelar();
 
 		const primeira = await esperaDoAlarme(() => encerrarApuracao(tse));
 		expect(await travaGravada()).toBe(false);
@@ -187,19 +189,18 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		expect(segunda.alarme).toBeGreaterThanOrEqual(segunda.min + 60_000);
 		expect(segunda.alarme).toBeLessThanOrEqual(segunda.max + 60_000);
 		expect(tse.pedidos.length).toBe(pedidosTse);
-		expect(eventosAviso(erro)).toEqual([
+		expect(eventos(erro, "aviso")).toEqual([
 			{ evento: "aviso", resultado: "erro", tentativa: 1, proximaMs: 30_000, erro: "pesquisas fora do ar" },
 			{ evento: "aviso", resultado: "erro", tentativa: 2, proximaMs: 60_000, erro: "pesquisas fora do ar" },
 		]);
 
-		restaurar!();
-		restaurar = null;
+		religar();
 		expect(await runDurableObjectAlarm(stubPoller())).toBe(true);
 
 		expect(await travaGravada()).toBe(true);
 		expect(await lerAlarme()).toBeNull();
 		expect(tse.pedidos.length).toBe(pedidosTse);
-		expect(eventosAviso(log)).toEqual([
+		expect(eventos(log, "aviso")).toEqual([
 			{ evento: "aviso", resultado: "entregue", tentativa: 3, proximaMs: null },
 		]);
 		await limparPoller();
@@ -207,13 +208,25 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		expect((await suspender()).status).toBe(409);
 	});
 
+	it("a escada da reentrega sobe até 10 min e fica no teto", async () => {
+		const erro = vi.spyOn(console, "error");
+		await derrubarCongelar();
+		await encerrarApuracao();
+
+		for (let i = 0; i < 5; i++) await runDurableObjectAlarm(stubPoller());
+
+		expect(eventos(erro, "aviso").map((e) => (e as { proximaMs: number }).proximaMs)).toEqual([
+			30_000, 60_000, 120_000, 300_000, 600_000, 600_000,
+		]);
+		expect(await travaGravada()).toBe(false);
+	});
+
 	it("o encerramento grava o alarme de guarda antes do aviso: um crash antes do ack não perde a reentrega", async () => {
-		restaurar = await trocarNoPrototipo(stubPoller(), "entregarAviso", async () => {});
+		const religar = await trocarNoPrototipo(stubPoller(), "entregarAviso", async () => {});
 		await encerrarApuracao();
 		expect(await lerAlarme()).not.toBeNull();
 		expect(await travaGravada()).toBe(false);
-		restaurar();
-		restaurar = null;
+		religar();
 
 		expect(await runDurableObjectAlarm(stubPoller())).toBe(true);
 
@@ -227,15 +240,14 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 		await stub().congelar();
 		await stub().congelar();
 
-		expect(eventosTrava(log)).toEqual([{ evento: "trava", resultado: "gravada", origem: "aviso" }]);
+		expect(eventos(log, "trava")).toEqual([{ evento: "trava", resultado: "gravada", origem: "aviso" }]);
 	});
 
 	it("o GET /api/apuracao reagenda a reentrega quando o alarme se perdeu", async () => {
-		await derrubarCongelar();
+		const religar = await derrubarCongelar();
 		await encerrarApuracao();
 		await cancelarAlarme();
-		restaurar!();
-		restaurar = null;
+		religar();
 		expect(await travaGravada()).toBe(false);
 
 		const resposta = await fetchWorker(new Request("http://presidente2026.test/api/apuracao"));
@@ -256,9 +268,16 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 	});
 });
 
-/** O poller cai no meio da apuração: `apuracaoEncerrada()` lança até `restaurar()`. */
+/** O poller cai no meio da apuração: `apuracaoEncerrada()` lança até o `afterEach`. */
 async function derrubarPoller(): Promise<void> {
-	restaurar = await trocarNoPrototipo(stubPoller(), "apuracaoEncerrada", () => {
+	await trocarNoPrototipo(stubPoller(), "apuracaoEncerrada", () => {
+		throw new Error("poller fora do ar");
+	});
+}
+
+/** Todo método do poller lança, não só o que as pesquisas usam hoje. */
+async function derrubarPollerInteiro(): Promise<void> {
+	await trocarTodosNoPrototipo(stubPoller(), () => {
 		throw new Error("poller fora do ar");
 	});
 }
@@ -292,14 +311,17 @@ function instanciaMarcada(): Promise<boolean> {
 }
 
 describe("as escritas não dependem do poller (#86)", () => {
-	it("com o poller falhando, o agente publica e suspende sem 500 e o DO não reinicia", async () => {
+	it("com o poller inteiro falhando, o agente publica, substitui, suspende e reativa sem 500 e o DO não reinicia", async () => {
 		instalarDia0();
 		await stub().importarDoTse({ motivo: "teste" });
 		await marcarInstancia();
-		await derrubarPoller();
+		await derrubarPollerInteiro();
+		await expect(stubPoller().apuracaoEncerrada()).rejects.toThrow("poller fora do ar");
 
 		expect((await publicar()).status).toBe(201);
+		expect((await substituir()).status).toBe(200);
 		expect((await suspender()).status).toBe(201);
+		expect((await pedido("DELETE", `/api/agente/suspensoes/${DATAFOLHA}`, { motivo: "decisão revogada" })).status).toBe(200);
 		expect(await instanciaMarcada()).toBe(true);
 	});
 
@@ -354,17 +376,16 @@ describe("as escritas não dependem do poller (#86)", () => {
 
 	it("o pull que acha a apuração encerrada registra a trava pela reconciliação", async () => {
 		const log = vi.spyOn(console, "log");
-		await derrubarCongelar();
+		const religar = await derrubarCongelar();
 		await encerrarApuracao();
 		await cancelarAlarme();
-		restaurar!();
-		restaurar = null;
+		religar();
 		instalarDia0();
 
 		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
 		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
 
-		expect(eventosTrava(log)).toEqual([{ evento: "trava", resultado: "gravada", origem: "reconciliacao" }]);
+		expect(eventos(log, "trava")).toEqual([{ evento: "trava", resultado: "gravada", origem: "reconciliacao" }]);
 	});
 
 	it("com o poller lançando no pull, o import loga o erro da reconciliação e segue", async () => {
@@ -376,7 +397,7 @@ describe("as escritas não dependem do poller (#86)", () => {
 
 		expect(changeset.kind).toBe("aplicar");
 		expect(await travaGravada()).toBe(false);
-		expect(eventosTrava(erro)).toEqual([
+		expect(eventos(erro, "trava")).toEqual([
 			{ evento: "trava", resultado: "erro", origem: "reconciliacao", erro: "poller fora do ar" },
 		]);
 	});
@@ -391,7 +412,7 @@ describe("as escritas não dependem do poller (#86)", () => {
 		}
 
 		expect(pedidosCdn).toEqual([]);
-		expect(eventosImport(log)).toEqual([]);
+		expect(eventos(log, "import")).toEqual([]);
 	});
 
 	it("com o aviso perdido, o primeiro acesso e o plano B também congelam", async () => {
@@ -403,7 +424,7 @@ describe("as escritas não dependem do poller (#86)", () => {
 
 		expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
 		expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
-		expect(eventosImport(log)).toEqual([
+		expect(eventos(log, "import")).toEqual([
 			expect.objectContaining({ evento: "import", motivo: "primeiro_acesso", resultado: "congelado" }),
 		]);
 		expect(pedidosCdn).toEqual([]);
