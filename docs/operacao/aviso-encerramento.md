@@ -62,7 +62,7 @@ Com a apuração encerrada, o `alarm()` do poller não consulta o TSE. Se o avis
 Dois lados, para o caso de o aviso se perder.
 
 - Poller. `garantirAlarme()` roda em `obterEstado()`, ou seja, em todo `GET /api/apuracao`. Com a apuração encerrada, aviso pendente e nenhum alarme, agenda `setAlarm(Date.now())`. Cobre o alarme perdido.
-- Pesquisas (pull). Nos três imports (`importarDoTse` no cron, `garantirImportInicial` no primeiro acesso, `receberPlanoB` no plano B), antes do download e fora de `blockConcurrencyWhile`, se não há trava: pergunta `POLLER.apuracaoEncerrada()`. Se `true`, grava a trava. Se o poller lança, segue sem trava. Nunca `500` por isso. As rotas do agente não fazem esse pull.
+- Pesquisas (pull). Nos três imports (`importarDoTse` no cron, `garantirImportInicial` no primeiro acesso, `receberPlanoB` no plano B), antes do download e fora de `blockConcurrencyWhile`, se não há trava: pergunta `POLLER.apuracaoEncerrada()`. Se `true`, grava a trava. Se o poller lança, loga `trava` com `resultado=erro` e segue sem trava. Nunca `500` por isso. As rotas do agente não fazem esse pull.
 
 ## Janela conhecida
 
@@ -83,5 +83,13 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Filtre `e
 | `erro` | mensagem da falha, só no `erro` |
 
 Esperado num encerramento normal: um `poller` com `encerrada=true` e, logo depois, um `aviso` com `resultado=entregue` e `tentativa=1`.
+
+O DO de pesquisas registra a trava com `evento = trava`:
+
+| Campo | Valor |
+| --- | --- |
+| `resultado` | `gravada` na primeira gravação (repetir não loga) ou `erro` (nível error) quando o pull ao poller falha |
+| `origem` | `aviso` (veio do `congelar()`) ou `reconciliacao` (veio do pull de um import) |
+| `erro` | mensagem da falha do pull, só no `erro`; o import segue sem trava |
 
 Um `aviso` com `resultado=erro` diz quando vem a próxima tentativa (`proximaMs`). O caso fecha no primeiro `entregue`. Sem log, a prova da trava é a próxima escrita do agente responder `409`.

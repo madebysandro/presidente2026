@@ -136,7 +136,7 @@ export class Pesquisas extends DurableObject<Env> {
 
 	/** Aviso do poller (#86). Só abre → encerra; o ack sai depois da escrita, então ack = trava durável. */
 	async congelar(): Promise<{ congelada: true }> {
-		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		this.travar("aviso");
 		return { congelada: true };
 	}
 
@@ -157,8 +157,7 @@ export class Pesquisas extends DurableObject<Env> {
 	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset | ImportCongelado> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		return medirImport(opts.motivo, async () => {
-			await this.reconciliarComPoller();
-			if (this.encerrada()) return CONGELADO;
+			if (await this.encerradaReconciliando()) return CONGELADO;
 			this.garantirEsquema();
 			const metaBase = this.lerMeta();
 			const lote = await this.prepararLote(metaBase);
@@ -208,7 +207,7 @@ export class Pesquisas extends DurableObject<Env> {
 		if (portao !== "segue") return portao;
 		const lido = lerRecorte(input.corpo);
 		if ("erro" in lido) return { status: 422, corpo: { erro: "recorte_invalido" } };
-		await this.reconciliarComPoller();
+		await this.encerradaReconciliando();
 		const changeset = await medirImport("plano_b", async () => {
 			this.garantirEsquema();
 			return this.ctx.blockConcurrencyWhile(async () => {
@@ -247,8 +246,7 @@ export class Pesquisas extends DurableObject<Env> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
 		await medirImport("primeiro_acesso", async () => {
-			await this.reconciliarComPoller();
-			if (this.encerrada()) return CONGELADO;
+			if (await this.encerradaReconciliando()) return CONGELADO;
 			const lote = await this.prepararLote(null);
 			if (lote === null) throw new Error("304 sem import anterior");
 			return this.ctx.blockConcurrencyWhile(async () => {
@@ -788,18 +786,31 @@ export class Pesquisas extends DurableObject<Env> {
 		return this.ctx.storage.kv.get(CHAVE_ENCERRADA) === true;
 	}
 
+	/** Monotônica e idempotente: só a primeira gravação deixa rastro no log. */
+	private travar(origem: "aviso" | "reconciliacao"): void {
+		if (this.encerrada()) return;
+		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		registrar({ evento: "trava", resultado: "gravada", origem });
+	}
+
 	/**
 	 * Pull dos imports, fora do lock: cobre o aviso perdido. Poller fora não
-	 * derruba o import; segue sem trava. Nunca nas rotas do agente.
+	 * derruba o import; loga e segue sem trava. Nunca nas rotas do agente.
 	 */
-	private async reconciliarComPoller(): Promise<void> {
-		if (this.encerrada()) return;
+	private async encerradaReconciliando(): Promise<boolean> {
+		if (this.encerrada()) return true;
 		try {
 			const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
-			if (await poller.apuracaoEncerrada()) this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
-		} catch {
-			// O aviso empurrado ou o próximo import reconciliam.
+			if (await poller.apuracaoEncerrada()) this.travar("reconciliacao");
+		} catch (erro) {
+			registrar({
+				evento: "trava",
+				resultado: "erro",
+				origem: "reconciliacao",
+				erro: erro instanceof Error ? erro.message : String(erro),
+			});
 		}
+		return this.encerrada();
 	}
 
 	/** Chame dentro do lock. Portão das escritas do agente: com a apuração encerrada, 409 na auditoria. */

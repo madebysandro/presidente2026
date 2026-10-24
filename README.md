@@ -175,8 +175,9 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 
 | Campo | Valores |
 | --- | --- |
-| `evento` | `import`, `poller`, `aviso`, `agente` |
-| `resultado` | import: `aplicado`, `nao_modificado`, `congelado`, `erro`; poller: `ok`, `erro`; aviso: `entregue`, `erro` (os de `erro` saem em nível error) |
+| `evento` | `import`, `poller`, `aviso`, `trava`, `agente` |
+| `resultado` | import: `aplicado`, `nao_modificado`, `congelado`, `erro`; poller: `ok`, `erro`; aviso: `entregue`, `erro`; trava: `gravada`, `erro` (os de `erro` saem em nível error) |
+| `origem` | trava: `aviso` (o poller avisou), `reconciliacao` (o pull de um import achou a apuração encerrada) |
 | `motivo` | import: `cron`, `primeiro_acesso`, `plano_b` |
 | `rota` | agente: caminho do template, sem ids nem query (ex. `/api/agente/suspensoes/:registro`) |
 | `status` | agente: status HTTP da resposta |

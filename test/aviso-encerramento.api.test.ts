@@ -98,6 +98,10 @@ function eventosAviso(espiao: { mock: { calls: unknown[][] } }): unknown[] {
 	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "aviso");
 }
 
+function eventosTrava(espiao: { mock: { calls: unknown[][] } }): unknown[] {
+	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "trava");
+}
+
 beforeEach(async () => {
 	await runInDurableObject(stub(), async (_inst, state) => {
 		await state.storage.deleteAll();
@@ -211,6 +215,15 @@ describe("aviso de encerramento do poller para as pesquisas (#86)", () => {
 
 		expect(await travaGravada()).toBe(true);
 		expect(await lerAlarme()).toBeNull();
+	});
+
+	it("o aviso registra a trava uma vez só; o repetido não loga de novo", async () => {
+		const log = vi.spyOn(console, "log");
+
+		await stub().congelar();
+		await stub().congelar();
+
+		expect(eventosTrava(log)).toEqual([{ evento: "trava", resultado: "gravada", origem: "aviso" }]);
 	});
 
 	it("o GET /api/apuracao reagenda a reentrega quando o alarme se perdeu", async () => {
@@ -333,6 +346,35 @@ describe("as escritas não dependem do poller (#86)", () => {
 		expect(await travaGravada()).toBe(true);
 		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
 		expect((await suspender()).status).toBe(409);
+	});
+
+	it("o pull que acha a apuração encerrada registra a trava pela reconciliação", async () => {
+		const log = vi.spyOn(console, "log");
+		await derrubarCongelar();
+		await encerrarApuracao();
+		await cancelarAlarme();
+		restaurar!();
+		restaurar = null;
+		instalarDia0();
+
+		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
+		await expect(stub().importarDoTse({ motivo: "cron" })).resolves.toEqual({ kind: "congelado" });
+
+		expect(eventosTrava(log)).toEqual([{ evento: "trava", resultado: "gravada", origem: "reconciliacao" }]);
+	});
+
+	it("com o poller lançando no pull, o import loga o erro da reconciliação e segue", async () => {
+		const erro = vi.spyOn(console, "error");
+		await derrubarPoller();
+		instalarDia0();
+
+		const changeset = await stub().importarDoTse({ motivo: "cron" });
+
+		expect(changeset.kind).toBe("aplicar");
+		expect(await travaGravada()).toBe(false);
+		expect(eventosTrava(erro)).toEqual([
+			{ evento: "trava", resultado: "erro", origem: "reconciliacao", erro: "poller fora do ar" },
+		]);
 	});
 
 	it("com o aviso perdido, o primeiro acesso e o plano B também congelam", async () => {

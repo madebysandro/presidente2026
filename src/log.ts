@@ -38,6 +38,12 @@ export type EventoLog =
 			erro?: string;
 	  }
 	| {
+			evento: "trava";
+			resultado: "gravada" | "erro";
+			origem: "aviso" | "reconciliacao";
+			erro?: string;
+	  }
+	| {
 			evento: "agente";
 			metodo: string;
 			rota: string;
