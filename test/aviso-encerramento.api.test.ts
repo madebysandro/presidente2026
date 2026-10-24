@@ -316,7 +316,8 @@ describe("as escritas não dependem do poller (#86)", () => {
 		await stub().importarDoTse({ motivo: "teste" });
 		await marcarInstancia();
 		await derrubarPollerInteiro();
-		await expect(stubPoller().apuracaoEncerrada()).rejects.toThrow("poller fora do ar");
+		// Promise nativa: `.rejects` direto no RpcPromise deixa uma rejeição sem dono no vitest.
+		await expect((async () => stubPoller().apuracaoEncerrada())()).rejects.toThrow("poller fora do ar");
 
 		expect((await publicar()).status).toBe(201);
 		expect((await substituir()).status).toBe(200);
