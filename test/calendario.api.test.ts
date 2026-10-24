@@ -10,7 +10,7 @@ import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratan
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
 import { documentoPesquisas } from "../src/pagina/documento";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
-import type { Changeset } from "../src/pesquisas/tipos";
+import type { Changeset, ImportCongelado } from "../src/pesquisas/tipos";
 import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
 import { network } from "./helpers/rede";
@@ -76,7 +76,7 @@ async function limpar(): Promise<void> {
 	});
 }
 
-async function importar(): Promise<Changeset> {
+async function importar(): Promise<Changeset | ImportCongelado> {
 	instalarCdnPesquisas({
 		pesquisa: dia0Pesquisa,
 		contratante: dia0Contratante,

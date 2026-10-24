@@ -26,6 +26,7 @@ import type {
 	EstadoApuracao,
 	Leitura,
 } from "../dominio/tipos";
+import { NOME_INSTANCIA } from "../pesquisas/fontes";
 import { buscarArquivoTse, ErroTse } from "./cliente-tse";
 import { registrar } from "../log";
 import { escoposProntosParaEncerrar } from "./encerrada";
@@ -42,6 +43,10 @@ const CHAVE_ESCADA = "escadaEstavel";
 const ESCADA_ESTAVEL = [60, 120, 300, 600, 1800, 3600] as const;
 
 const CHAVE_RELOGIO = "relogio";
+const CHAVE_AVISO = "avisoPesquisas";
+const CHAVE_AVISO_TENTATIVAS = "avisoTentativas";
+/** Reentrega do aviso às pesquisas (#86): 30 s → 10 min, depois fica em 10 min. */
+const ESCADA_AVISO = [30, 60, 120, 300, 600] as const;
 
 type Etags = Record<string, string>;
 
@@ -106,6 +111,11 @@ export class PollerApuracao extends DurableObject<Env> {
 		return faseDe(await this.agora(), estado.encerrada);
 	}
 
+	/** O DO de pesquisas congela as escritas a partir daqui (#86). */
+	async apuracaoEncerrada(): Promise<boolean> {
+		return Boolean((await this.lerEstado()).encerrada);
+	}
+
 	async obterEstado(): Promise<EstadoApuracao> {
 		await this.garantirAlarme();
 		const estado = await this.lerEstado();
@@ -150,12 +160,52 @@ export class PollerApuracao extends DurableObject<Env> {
 	}
 
 	async alarm(): Promise<void> {
-		await this.consultar();
+		const estado = await this.lerEstado();
+		if (!estado.encerrada) return this.consultar();
+		if (await this.avisoPendente()) await this.entregarAviso();
+	}
+
+	private async avisoPendente(): Promise<boolean> {
+		return (await this.ctx.storage.get<string>(CHAVE_AVISO)) !== "entregue";
+	}
+
+	/** Nunca lança: falha vira alarme de reentrega. */
+	private async entregarAviso(): Promise<void> {
+		const tentativa =
+			((await this.ctx.storage.get<number>(CHAVE_AVISO_TENTATIVAS)) ?? 0) + 1;
+		try {
+			await this.env.PESQUISAS.getByName(NOME_INSTANCIA).congelar();
+		} catch (erro) {
+			const proximaMs =
+				ESCADA_AVISO[Math.min(tentativa - 1, ESCADA_AVISO.length - 1)]! * 1000;
+			await this.ctx.storage.put(CHAVE_AVISO_TENTATIVAS, tentativa);
+			await this.ctx.storage.setAlarm(Date.now() + proximaMs);
+			registrar({
+				evento: "aviso",
+				resultado: "erro",
+				tentativa,
+				proximaMs,
+				erro: erro instanceof Error ? erro.message : String(erro),
+			});
+			return;
+		}
+		await this.ctx.storage.put(CHAVE_AVISO, "entregue");
+		await this.ctx.storage.delete(CHAVE_AVISO_TENTATIVAS);
+		await this.ctx.storage.deleteAlarm();
+		registrar({ evento: "aviso", resultado: "entregue", tentativa, proximaMs: null });
 	}
 
 	private async garantirAlarme(): Promise<void> {
 		const estado = await this.lerEstado();
-		if (estado.encerrada) return;
+		if (estado.encerrada) {
+			if (
+				(await this.avisoPendente()) &&
+				(await this.ctx.storage.getAlarm()) == null
+			) {
+				await this.ctx.storage.setAlarm(Date.now());
+			}
+			return;
+		}
 
 		const alarme = await this.ctx.storage.getAlarm();
 		if (alarme != null) return;
@@ -327,9 +377,11 @@ export class PollerApuracao extends DurableObject<Env> {
 		if (estado.encerrada) {
 			estado.proximaConsulta = null;
 			await this.ctx.storage.put(CHAVE_ESTADO, estado);
-			await this.ctx.storage.deleteAlarm();
+			// Write-ahead: o alarme de guarda sai no mesmo commit do encerramento; o ack o apaga.
+			await this.ctx.storage.setAlarm(Date.now() + ESCADA_AVISO[0] * 1000);
 			await this.ctx.storage.delete(CHAVE_ESCADA);
 			registrarCiclo(null);
+			await this.entregarAviso();
 			return;
 		}
 

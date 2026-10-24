@@ -56,6 +56,11 @@ describe("evento de log do import (#55)", () => {
 		});
 	});
 
+	it("congelado não leva ETags nem contagens (#86)", () => {
+		const evento = eventoImport("cron", { kind: "congelado" }, 3);
+		expect(evento).toEqual({ evento: "import", motivo: "cron", resultado: "congelado", ms: 3 });
+	});
+
 	it("erro leva a mensagem", () => {
 		const evento = eventoImport(
 			"cron",

@@ -41,6 +41,8 @@ Não busque registro que não esteja nessa lista. Nunca invente número, margem,
 
 Respostas: `201 {"status":"publicado"}` ou `200 {"status":"substituido"}`. Recusa: `422 {"motivos":[{"codigo":"…","detalhe":"…"}]}`.
 
+Depois que a apuração do 2º turno encerra, o site vira arquivo. Publicar, substituir, suspender e reativar respondem `409 {"erro":"apuracao_encerrada","detalhe":"…"}` e não mudam nada. Não repita. Termine.
+
 ## Regras
 
 - Só registros nacionais da lista de pendentes, depois da liberação efetiva.
@@ -82,6 +84,7 @@ Reativar: `DELETE /api/agente/suspensoes/BR-02949/2026` com corpo `{"motivo":"de
 | `fonte_inacessivel` | A página não abriu. Procure outra fonte, de preferência no Poder360. |
 | `fonte_nao_confirma` | A página não mostra o instituto e o par de números. Procure outra matéria. |
 | `nao_autorizado` | A chave não foi aceita. Não repita em loop. |
+| `apuracao_encerrada` | A apuração encerrou e o arquivo está congelado. Não repita. Termine. |
 | `decisao_invalida` | A URL da decisão tem de ser https. |
 | `motivo_ausente` | Suspensão e reativação exigem motivo. |
 | `nao_suspensa` | Não havia suspensão para reativar. |

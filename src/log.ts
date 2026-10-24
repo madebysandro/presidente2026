@@ -7,7 +7,7 @@ export type EventoLog =
 	| {
 			evento: "import";
 			motivo: string;
-			resultado: "aplicado" | "nao_modificado" | "erro";
+			resultado: "aplicado" | "nao_modificado" | "congelado" | "erro";
 			upserts?: number;
 			removidos?: number;
 			auditoria?: number;
@@ -29,6 +29,19 @@ export type EventoLog =
 			statusTse?: number;
 			erro?: string;
 			ms: number;
+	  }
+	| {
+			evento: "aviso";
+			resultado: "entregue" | "erro";
+			tentativa: number;
+			proximaMs: number | null;
+			erro?: string;
+	  }
+	| {
+			evento: "trava";
+			resultado: "gravada" | "erro";
+			origem: "aviso" | "reconciliacao";
+			erro?: string;
 	  }
 	| {
 			evento: "agente";
