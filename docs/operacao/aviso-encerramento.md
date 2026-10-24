@@ -17,7 +17,8 @@ RPC `Pesquisas.congelar(): Promise<{ congelada: true }>`.
 - O ack é `{ congelada: true }`. Só sai depois da escrita (output gate do DO). Ack recebido = trava durável.
 - Idempotente. Repetir não muda nada e devolve o mesmo ack.
 - Monotônica. Só vai de aberta para encerrada. Não existe mensagem de reabertura. Nada no código apaga a trava.
-- Fora de ordem é seguro. O aviso pode chegar antes de qualquer import (banco vazio), no meio de um download, depois de uma reconciliação, ou quando o poller nem está mais encerrado. Em todos os casos a trava fica e não volta.
+- Fora de ordem é seguro. O aviso pode chegar antes de qualquer import (banco vazio), no meio de um download, depois de uma reconciliação, ou depois que o estado do poller foi apagado. Em todos os casos a trava fica e não volta.
+- Não há reabertura. Desfazer uma trava indevida exige apagar a chave `apuracao_encerrada` no storage do DO; não há rota para isso.
 
 ## O que as escritas consultam
 

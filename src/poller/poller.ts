@@ -26,12 +26,12 @@ import type {
 	EstadoApuracao,
 	Leitura,
 } from "../dominio/tipos";
+import { NOME_INSTANCIA } from "../pesquisas/fontes";
 import { buscarArquivoTse, ErroTse } from "./cliente-tse";
 import { registrar } from "../log";
 import { escoposProntosParaEncerrar } from "./encerrada";
 import { montarLeitura } from "./historico";
 import { eventoPoller } from "./log";
-import { NOME_INSTANCIA } from "../pesquisas/fontes";
 
 const CHAVE_ESTADO = "estado";
 const CHAVE_ETAGS = "etags";
