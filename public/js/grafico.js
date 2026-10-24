@@ -46,10 +46,6 @@ function diaNumero(iso) {
 	return Date.UTC(ano, mes - 1, dia) / 86400000;
 }
 
-function isoDe(dia) {
-	return new Date(dia * 86400000).toISOString().slice(0, 10);
-}
-
 function n2(n) {
 	return (Math.round(n * 100) / 100).toFixed(2);
 }
