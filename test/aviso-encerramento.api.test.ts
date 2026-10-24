@@ -102,6 +102,10 @@ function eventosTrava(espiao: { mock: { calls: unknown[][] } }): unknown[] {
 	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "trava");
 }
 
+function eventosImport(espiao: { mock: { calls: unknown[][] } }): unknown[] {
+	return espiao.mock.calls.map(([e]) => e).filter((e) => (e as { evento?: string })?.evento === "import");
+}
+
 beforeEach(async () => {
 	await runInDurableObject(stub(), async (_inst, state) => {
 		await state.storage.deleteAll();
@@ -377,13 +381,31 @@ describe("as escritas não dependem do poller (#86)", () => {
 		]);
 	});
 
+	it("com a trava já gravada e o banco vazio, o primeiro acesso não loga import a cada página", async () => {
+		await stub().congelar();
+		instalarDia0();
+		const log = vi.spyOn(console, "log");
+
+		for (let i = 0; i < 2; i++) {
+			expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
+		}
+
+		expect(pedidosCdn).toEqual([]);
+		expect(eventosImport(log)).toEqual([]);
+	});
+
 	it("com o aviso perdido, o primeiro acesso e o plano B também congelam", async () => {
 		await derrubarCongelar();
 		await encerrarApuracao();
 		await cancelarAlarme();
 		instalarDia0();
+		const log = vi.spyOn(console, "log");
 
 		expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
+		expect((await fetchWorker(new Request("http://presidente2026.test/api/pesquisas"))).status).toBe(200);
+		expect(eventosImport(log)).toEqual([
+			expect.objectContaining({ evento: "import", motivo: "primeiro_acesso", resultado: "congelado" }),
+		]);
 		expect(pedidosCdn).toEqual([]);
 		expect((await stub().obterEstado()).registros).toBe(0);
 		expect(await travaGravada()).toBe(true);

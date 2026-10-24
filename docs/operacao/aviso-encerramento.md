@@ -30,7 +30,7 @@ Vale para todas as escritas:
 
 Nenhuma escrita faz RPC ao poller dentro de `blockConcurrencyWhile`. As rotas do agente não falam com o poller. Se o poller cair, a escrita não dá `500` e o DO de pesquisas não reinicia.
 
-Com a trava, a escrita do agente responde `409 {"erro":"apuracao_encerrada"}` e entra na auditoria. O import devolve `congelado`. `POST /api/import` responde o mesmo `409`.
+Com a trava, a escrita do agente responde `409 {"erro":"apuracao_encerrada"}` e entra na auditoria. O import devolve `congelado`. Com o banco vazio e a trava já gravada, o primeiro acesso volta antes do import e não loga a cada página. `POST /api/import` responde o mesmo `409`.
 
 ## Envio
 

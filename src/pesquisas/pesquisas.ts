@@ -245,6 +245,8 @@ export class Pesquisas extends DurableObject<Env> {
 	async garantirImportInicial(): Promise<void> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
+		// Já congelado: cada página vazia logaria `congelado` de novo.
+		if (this.encerrada()) return;
 		await medirImport("primeiro_acesso", async () => {
 			if (await this.encerradaReconciliando()) return CONGELADO;
 			const lote = await this.prepararLote(null);
