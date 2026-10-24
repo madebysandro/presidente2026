@@ -134,6 +134,12 @@ export class Pesquisas extends DurableObject<Env> {
 		return { ok: true };
 	}
 
+	/** Aviso do poller (#86). Só abre → encerra; o ack sai depois da escrita, então ack = trava durável. */
+	async congelar(): Promise<{ congelada: true }> {
+		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		return { congelada: true };
+	}
+
 	async alarm(): Promise<void> {
 		await this.ctx.blockConcurrencyWhile(async () => {
 			this.garantirEsquema();

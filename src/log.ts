@@ -31,6 +31,13 @@ export type EventoLog =
 			ms: number;
 	  }
 	| {
+			evento: "aviso";
+			resultado: "entregue" | "erro";
+			tentativa: number;
+			proximaMs: number | null;
+			erro?: string;
+	  }
+	| {
 			evento: "agente";
 			metodo: string;
 			rota: string;
