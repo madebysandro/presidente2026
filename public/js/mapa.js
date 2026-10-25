@@ -1,5 +1,6 @@
 /**
- * Mapa do Brasil no ao vivo. Passar o mouse, tocar ou focar uma UF mostra o detalhe no painel ao lado.
+ * Mapa do Brasil no ao vivo. Passar o mouse, tocar ou focar uma UF mostra o detalhe no painel ao lado;
+ * tocar de novo a UF selecionada desmarca.
  * O ao-vivo.js entrega cada leitura de /api/apuracao no evento `apuracao:leitura`.
  */
 import { contaUfs, descreverUf, p2 } from "./mapa-tom.mjs";
@@ -70,8 +71,8 @@ document.addEventListener("pointerout", (evento) => {
 document.addEventListener("click", (evento) => {
 	const uf = ufDoAlvo(evento.target);
 	if (uf) {
-		tocada = uf.dataset.uf;
-		mostrar(uf);
+		tocada = tocada === uf.dataset.uf ? null : uf.dataset.uf;
+		mostrar(tocada ? uf : null);
 		return;
 	}
 	if (tocada && raiz() && !evento.target.closest?.("[data-mapa-br]")) {
