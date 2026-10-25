@@ -3,11 +3,13 @@
  * Seam: GET /api/apuracao (`proximaConsulta`) + alarme do Durable Object.
  */
 import { fetchWorker } from "./helpers/fetch-worker";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import {
 	forcarConsulta,
 	lerAlarme,
 	limparPoller,
+	stubPoller,
 } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
 
@@ -42,13 +44,16 @@ function expectativaIntervalo(
 describe("Poller — escada sem mudança (#24)", () => {
 	let tse: ReturnType<typeof instalarTseFalso>;
 
-	beforeEach(() => {
+	beforeEach(async () => {
+		vi.spyOn(Date, "now").mockReturnValue(ABERTURA_2T_MS);
+		await stubPoller().fixarAgora(ABERTURA_2T_MS);
 		tse = instalarTseFalso();
 		// max-age baixo para não mascarar a escada no caminho com mudança.
 		tse.definirCacheControl("max-age=10");
 	});
 
 	afterEach(async () => {
+		vi.restoreAllMocks();
 		await limparPoller();
 	});
 
