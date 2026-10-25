@@ -367,23 +367,23 @@ function vinheta() {
 	faixa.className = "a-i-faixa";
 	faixa.append(
 		lado(
-			"a-i-f",
-			"/midia/multidao-flavio.jpg",
-			"/midia/multidao-flavio.webm",
-			"/midia/multidao-flavio.mp4",
-			fotos[0],
-			"Flávio",
-			vf.textContent || "",
-			dados.vf,
-		),
-		lado(
 			"a-i-l",
 			"/midia/multidao-lula.jpg",
 			"/midia/multidao-lula.webm",
 			"/midia/multidao-lula.mp4",
-			fotos[1],
+			fotos[0],
 			"Lula",
 			vl.textContent || "",
+			dados.vl,
+		),
+		lado(
+			"a-i-f",
+			"/midia/multidao-flavio.jpg",
+			"/midia/multidao-flavio.webm",
+			"/midia/multidao-flavio.mp4",
+			fotos[1],
+			"Flávio",
+			vf.textContent || "",
 		),
 	);
 	const meio = document.createElement("em");
@@ -425,11 +425,11 @@ function vinheta() {
 	}
 	const t1 = 700 + passos * 55 + 300;
 	animar(bloco, [{ opacity: 1 }, { opacity: 0 }], { delay: t1, duration: 300 });
-	animar(faixa.querySelector(".a-i-f"), [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], {
+	animar(faixa.querySelector(".a-i-l"), [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], {
 		delay: t1,
 		duration: 700,
 	});
-	animar(faixa.querySelector(".a-i-l"), [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], {
+	animar(faixa.querySelector(".a-i-f"), [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], {
 		delay: t1,
 		duration: 700,
 	});
@@ -438,12 +438,12 @@ function vinheta() {
 	}, t1);
 	timersVinheta.push(toca);
 	animar(
-		faixa.querySelector(".a-i-f .a-i-multidao"),
+		faixa.querySelector(".a-i-l .a-i-multidao"),
 		[{ transform: "translateX(-5%) scale(1.1)" }, { transform: "translateX(3%) scale(1.1)" }],
 		{ delay: t1, duration: 3200, easing: "linear" },
 	);
 	animar(
-		faixa.querySelector(".a-i-l .a-i-multidao"),
+		faixa.querySelector(".a-i-f .a-i-multidao"),
 		[{ transform: "translateX(5%) scale(1.1)" }, { transform: "translateX(-3%) scale(1.1)" }],
 		{ delay: t1, duration: 3200, easing: "linear" },
 	);
@@ -457,8 +457,8 @@ function vinheta() {
 		animar(rosto, [{ opacity: 1 }, { opacity: 0 }], { delay: t1 + 1900, duration: 200, fill: "forwards" });
 	}
 	for (const [seletor, x] of [
-		[".a-i-f span", -40],
-		[".a-i-l span", 40],
+		[".a-i-l span", -40],
+		[".a-i-f span", 40],
 	]) {
 		const el = faixa.querySelector(seletor);
 		animar(el, [{ opacity: 0, transform: `translateX(${x}px)` }, { opacity: 1, transform: "none" }], {

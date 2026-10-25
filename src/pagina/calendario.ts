@@ -92,7 +92,7 @@ function textoTotais(totais: TotaisPublicos): string {
 		totais.brancoNuloNaoSabe != null
 			? `brancos, nulos e indecisos ${n1.format(totais.brancoNuloNaoSabe)}%`
 			: `brancos e nulos ${n1.format(totais.brancoNulo ?? 0)}%, não sabem ${n1.format(totais.naoSabe ?? 0)}%`;
-	return `Flávio ${n1.format(totais.flavio)}%, Lula ${n1.format(totais.lula)}%, ${resto}`;
+	return `Lula ${n1.format(totais.lula)}%, Flávio ${n1.format(totais.flavio)}%, ${resto}`;
 }
 
 function htmlFonte(fonte: string): string {
@@ -102,16 +102,16 @@ function htmlFonte(fonte: string): string {
 
 function htmlDetalhe(pesquisa: PesquisaPublicada): string {
 	const publicados = pesquisa.validosPublicados
-		? `; o instituto publicou ${n1.format(pesquisa.validosPublicados.flavio)} a ${n1.format(pesquisa.validosPublicados.lula)}`
+		? `; o instituto publicou ${n1.format(pesquisa.validosPublicados.lula)} a ${n1.format(pesquisa.validosPublicados.flavio)}`
 		: "";
 	const ficha = `${escHtml(textoFicha(pesquisa))}${htmlFonte(pesquisa.fonte)}`;
-	return `<div class="a-det-num"><span class="a-f"><img class="a-mini-rosto" data-numero="${FLAVIO.numero}" src="${FLAVIO.foto}" alt="" width="161" height="225">${FLAVIO.nome} <b data-dvf data-v="${pesquisa.vf}">${p1.format(pesquisa.vf)}</b></span><span class="a-l">${LULA.nome} <b data-dvl data-v="${pesquisa.vl}">${p1.format(pesquisa.vl)}</b><img class="a-mini-rosto" data-numero="${LULA.numero}" src="${LULA.foto}" alt="" width="161" height="225"></span></div><div class="a-barra"><i style="width:${pesquisa.vf}%"></i><i style="width:${pesquisa.vl}%"></i></div><div data-dtxt><p class="a-det-tit"><b>${escHtml(pesquisa.instituto)}</b>, divulgada em ${porExtenso(pesquisa.liberacaoEfetiva)}. Votos válidos calculados dos totais (${escHtml(textoTotais(pesquisa.totais))}${publicados}).</p><p class="a-ficha">${ficha}</p></div>`;
+	return `<div class="a-det-num"><span class="a-l"><img class="a-mini-rosto" data-numero="${LULA.numero}" src="${LULA.foto}" alt="" width="161" height="225">${LULA.nome} <b data-dvl data-v="${pesquisa.vl}">${p1.format(pesquisa.vl)}</b></span><span class="a-f">${FLAVIO.nome} <b data-dvf data-v="${pesquisa.vf}">${p1.format(pesquisa.vf)}</b><img class="a-mini-rosto" data-numero="${FLAVIO.numero}" src="${FLAVIO.foto}" alt="" width="161" height="225"></span></div><div class="a-barra"><i style="width:${pesquisa.vl}%"></i><i style="width:${pesquisa.vf}%"></i></div><div data-dtxt><p class="a-det-tit"><b>${escHtml(pesquisa.instituto)}</b>, divulgada em ${porExtenso(pesquisa.liberacaoEfetiva)}. Votos válidos calculados dos totais (${escHtml(textoTotais(pesquisa.totais))}${publicados}).</p><p class="a-ficha">${ficha}</p></div>`;
 }
 
 function htmlPublicada(pesquisa: PesquisaPublicada, selecionada: boolean): string {
-	const rotulo = `${pesquisa.instituto}: Flávio ${p1.format(pesquisa.vf)}%, Lula ${p1.format(pesquisa.vl)}%`;
+	const rotulo = `${pesquisa.instituto}: Lula ${p1.format(pesquisa.vl)}%, Flávio ${p1.format(pesquisa.vf)}%`;
 	const sel = selecionada ? " sel" : "";
-	return `<button type="button" class="a-pesq a-item${sel}" data-registro="${escHtml(pesquisa.registro)}" aria-label="${escHtml(rotulo)}"><span>${escHtml(pesquisa.instituto)}</span><span class="a-mini"><i style="width:${pesquisa.vf}%"></i><i style="width:${pesquisa.vl}%"></i></span><small>${p1.format(pesquisa.vf)} a ${p1.format(pesquisa.vl)}</small></button>`;
+	return `<button type="button" class="a-pesq a-item${sel}" data-registro="${escHtml(pesquisa.registro)}" aria-label="${escHtml(rotulo)}"><span>${escHtml(pesquisa.instituto)}</span><span class="a-mini"><i style="width:${pesquisa.vl}%"></i><i style="width:${pesquisa.vf}%"></i></span><small>${p1.format(pesquisa.vl)} a ${p1.format(pesquisa.vf)}</small></button>`;
 }
 
 function htmlSemNumero(ficha: FichaPublica): string {

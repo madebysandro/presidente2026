@@ -214,7 +214,7 @@ describe("calendário da reta final (#11)", () => {
 		const publicadaDia = celula(html, "2026-10-08");
 		expect(publicadaDia).toContain('class="a-pesq a-item');
 		expect(publicadaDia).toContain("Datafolha");
-		expect(publicadaDia).toContain("52,1 a 47,9");
+		expect(publicadaDia).toContain("47,9 a 52,1");
 		expect(publicadaDia).toContain('class="a-mini"');
 		expect(publicadaDia).not.toContain("a-sem");
 		expect(publicadaDia).not.toContain("a-vem");
@@ -250,7 +250,7 @@ describe("calendário da reta final (#11)", () => {
 		expect(vivo).toContain('class="a-barra"');
 		expect(vivo).toContain("divulgada em 14 de outubro");
 		expect(vivo).toContain(
-			"Votos válidos calculados dos totais (Flávio 46%, Lula 44%, brancos e nulos 9%, não sabem 1%)",
+			"Votos válidos calculados dos totais (Lula 44%, Flávio 46%, brancos e nulos 9%, não sabem 1%)",
 		);
 		expect(vivo).not.toContain("o instituto publicou");
 		expect(vivo).toContain("Quaest ouviu 2.154 eleitores de 10/10 a 13/10");
@@ -260,7 +260,7 @@ describe("calendário da reta final (#11)", () => {
 		expect(vivo).toContain("Registro no TSE BR-08729/2026");
 		expect(vivo).toContain('href="https://www.poder360.com.br/quaest-13"');
 		expect(vivo).toContain(">Ver fonte</a>");
-		expect(vivo.indexOf('data-numero="22"')).toBeLessThan(vivo.indexOf('data-numero="13"'));
+		expect(vivo.indexOf('data-numero="13"')).toBeLessThan(vivo.indexOf('data-numero="22"'));
 		expect(html).toContain('class="a-pesq a-item sel"');
 		expect(html).toContain('data-registro="BR-08729/2026"');
 		expect(html).toContain("/js/calendario.js");
@@ -268,7 +268,7 @@ describe("calendário da reta final (#11)", () => {
 		const datafolha = bloco(html, 'data-detalhe="BR-02949/2026"');
 		expect(datafolha).toContain("Datafolha ouviu 2.520 eleitores de 06/10 a 08/10");
 		expect(datafolha).toContain("divulgada em 8 de outubro");
-		expect(datafolha).toContain("o instituto publicou 52 a 48");
+		expect(datafolha).toContain("o instituto publicou 48 a 52");
 		expect(datafolha).toContain("Contratada por Folha de S.Paulo e TV Globo");
 		expect(datafolha).toContain('href="https://www.metropoles.com/brasil/datafolha-08"');
 		expect(datafolha).toContain("52,1");
@@ -332,5 +332,30 @@ describe("calendário da reta final (#11)", () => {
 		expect(estreita).toMatch(/display:\s*flex/);
 		expect(estreita).toMatch(/flex-direction:\s*column-reverse/);
 		expect(estreita).not.toMatch(/repeat\(7/);
+	});
+
+	it("cards, barras e destaque põem Lula à esquerda e Flávio à direita, fixo (#139)", async () => {
+		const html = pagina();
+		const datafolha = celula(html, "2026-10-08");
+		expect(datafolha).toContain('<span class="a-mini"><i style="width:47.87%"></i><i style="width:52.13%"></i></span>');
+		expect(datafolha).toContain("<small>47,9 a 52,1</small>");
+		expect(datafolha).toContain('aria-label="Datafolha: Lula 47,9%, Flávio 52,1%"');
+
+		const vivo = bloco(html, 'data-detalhe-vivo=""');
+		expect(vivo).toContain('<div class="a-barra"><i style="width:48.89%"></i><i style="width:51.11%"></i></div>');
+		expect(vivo.indexOf('class="a-l"')).toBeGreaterThan(-1);
+		expect(vivo.indexOf('class="a-l"')).toBeLessThan(vivo.indexOf('class="a-f"'));
+		expect(vivo.indexOf("data-dvl")).toBeLessThan(vivo.indexOf("data-dvf"));
+
+		const css = await (await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css")).text();
+		expect(css).toMatch(/\.a-mini i:first-child, \.a-barra i:first-child \{ background: var\(--l\); \}/);
+		expect(css).toMatch(/\.a-mini i:last-child, \.a-barra i:last-child \{ background: var\(--f\); \}/);
+		expect(regra(css, ".a-leg-pub::before")).toMatch(/var\(--l\) 52%, var\(--f\) 52%/);
+		expect(regra(css, ".a-det-num .a-l .a-mini-rosto")).toContain("margin-left: 0");
+		expect(regra(css, ".a-det-num .a-f .a-mini-rosto")).toContain("margin-right: 0");
+
+		const js = await (await env.ASSETS.fetch("https://presidente2026.test/js/calendario.js")).text();
+		expect(js).toContain("fatias[0].style.width = `${deVl}%`;");
+		expect(js).toContain("fatias[1].style.width = `${deVf}%`;");
 	});
 });

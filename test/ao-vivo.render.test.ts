@@ -616,6 +616,7 @@ describe("paridade com o protótipo da #16", () => {
 		const dir = coluna(html(), "dir");
 		expect(dir).toContain("O que as pesquisas diziam");
 		expect(dir).toContain("51,8");
+		expect(dir).toMatch(/<b class="a-l">Lula [\d,]+<\/b> a <b class="a-f">Flávio 51,8<\/b>/);
 		expect(dir).not.toMatch(/undefined|NaN/);
 	});
 

@@ -129,8 +129,8 @@ describe("colégios, exterior e transferência (#19)", () => {
 			anterior = indice;
 		}
 		const saoPaulo = bloco.match(/data-colegio="71072"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(saoPaulo).toContain("2º turno Flávio 40,00% · Lula 58,00%");
-		expect(saoPaulo).toContain("1º turno Flávio 42,13% · Lula 46,58%");
+		expect(saoPaulo).toContain("2º turno Lula 58,00% · Flávio 40,00%");
+		expect(saoPaulo).toContain("1º turno Lula 46,58% · Flávio 42,13%");
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 
@@ -175,6 +175,8 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(cartao).toContain("40,10%");
 		expect(cartao).toContain("37,31%");
 		expect(cartao).toContain("+2,79 p.p.");
+		expect(cartao.indexOf('data-lado="13"')).toBeGreaterThan(-1);
+		expect(cartao.indexOf('data-lado="13"')).toBeLessThan(cartao.indexOf('data-lado="22"'));
 		expect(comVotos).not.toMatch(/undefined|NaN/);
 	});
 

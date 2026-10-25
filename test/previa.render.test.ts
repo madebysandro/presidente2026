@@ -41,8 +41,8 @@ function conteudo(html: string, atributo: string, nome: string): string | undefi
 describe("prévia da home (#66)", () => {
 	it("com média, o head leva o placar, a imagem 1200×630 e o card do X", () => {
 		const html = documentoPesquisas(payload(), AGORA);
-		expect(conteudo(html, "property", "og:title")).toBe("Flávio 51,8% x Lula 48,2% · 2º turno");
-		expect(conteudo(html, "property", "og:description")).toBe("Flávio 51,8% x Lula 48,2%");
+		expect(conteudo(html, "property", "og:title")).toBe("Lula 48,2% x Flávio 51,8% · 2º turno");
+		expect(conteudo(html, "property", "og:description")).toBe("Lula 48,2% x Flávio 51,8%");
 		expect(conteudo(html, "property", "og:image")).toBe(
 			`https://presidente2026.win/og.png?v=${VERSAO}`,
 		);
@@ -52,8 +52,8 @@ describe("prévia da home (#66)", () => {
 		expect(conteudo(html, "property", "og:type")).toBe("website");
 		expect(conteudo(html, "property", "og:locale")).toBe("pt_BR");
 		expect(conteudo(html, "name", "twitter:card")).toBe("summary_large_image");
-		expect(conteudo(html, "name", "twitter:title")).toBe("Flávio 51,8% x Lula 48,2% · 2º turno");
-		expect(conteudo(html, "name", "twitter:description")).toBe("Flávio 51,8% x Lula 48,2%");
+		expect(conteudo(html, "name", "twitter:title")).toBe("Lula 48,2% x Flávio 51,8% · 2º turno");
+		expect(conteudo(html, "name", "twitter:description")).toBe("Lula 48,2% x Flávio 51,8%");
 		expect(conteudo(html, "name", "twitter:image")).toBe(
 			`https://presidente2026.win/og.png?v=${VERSAO}`,
 		);
@@ -198,7 +198,7 @@ describe("prévia da noite (#133)", () => {
 		const estado = noite("ao_vivo", 50.36, 49.64, 11.66);
 		estado.apuracao.fase = "pesquisas";
 		const html = documentoPesquisas(payload(), AGORA, estado);
-		expect(conteudo(html, "property", "og:title")).toBe("Flávio 51,8% x Lula 48,2% · 2º turno");
+		expect(conteudo(html, "property", "og:title")).toBe("Lula 48,2% x Flávio 51,8% · 2º turno");
 		expect(conteudo(html, "property", "og:image")).toBe(
 			`https://presidente2026.win/og.png?v=${VERSAO}`,
 		);

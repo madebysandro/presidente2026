@@ -368,7 +368,7 @@ export function htmlPesquisasNoite(vista: VistaNoite): string {
 		cargo && !arquivoZerado(vista.apuracao) && flavio && lula
 			? `<p>Na urna, agora: ${escHtml(textoVantagem(flavio.pct - lula.pct))}, com ${pf.format(cargo.apurado)}% apurado. A comparação justa só vem no fim, porque as urnas não chegam em ordem aleatória.</p>`
 			: "";
-	return `<section class="a-est" data-pesquisas-noite>${titulo}<p>Média de ${media.n} institutos: <b class="a-f">${FLAVIO.nome} ${p1.format(media.vf)}</b> a <b class="a-l">${LULA.nome} ${p1.format(media.vl)}</b>, ${escHtml(textoVantagem(media.v))}.</p>${urna}<p>A marca no cabo de guerra é esta média.</p></section>`;
+	return `<section class="a-est" data-pesquisas-noite>${titulo}<p>Média de ${media.n} institutos: <b class="a-l">${LULA.nome} ${p1.format(media.vl)}</b> a <b class="a-f">${FLAVIO.nome} ${p1.format(media.vf)}</b>, ${escHtml(textoVantagem(media.v))}.</p>${urna}<p>A marca no cabo de guerra é esta média.</p></section>`;
 }
 
 function textoTendencia(tendencia: TendenciaCandidato): string {

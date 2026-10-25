@@ -28,8 +28,8 @@ export type LadoPrevia = {
 };
 
 /**
- * O placar do cartão. Em pesquisas é a média, Flávio à esquerda. Na noite é
- * a apuração do placar, Lula à esquerda, com as seções apuradas.
+ * O placar do cartão, sempre com Lula à esquerda. Em pesquisas é a média; na
+ * noite é a apuração do placar, com as seções apuradas.
  */
 export type PlacarPrevia = {
 	esquerda: LadoPrevia;
@@ -61,8 +61,8 @@ export function placarDaPrevia(fonte: FontePrevia): PlacarPrevia | null {
 	const media = fonte.pesquisas.media;
 	if (!media) return null;
 	return {
-		esquerda: { quem: "flavio", pct: media.vf, texto: textoUm(media.vf) },
-		direita: { quem: "lula", pct: media.vl, texto: textoUm(media.vl) },
+		esquerda: { quem: "lula", pct: media.vl, texto: textoUm(media.vl) },
+		direita: { quem: "flavio", pct: media.vf, texto: textoUm(media.vf) },
 		secoes: null,
 	};
 }

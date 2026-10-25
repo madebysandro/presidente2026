@@ -1,6 +1,7 @@
 /**
  * Aceite #10: veredito, legenda do cabo e próxima liberação a partir do JSON da API.
  */
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { documentoPesquisas } from "../src/pagina/documento";
 import {
@@ -74,7 +75,7 @@ function payload(extra: Partial<PayloadPesquisas> = {}): PayloadPesquisas {
 }
 
 describe("render do topo (#10)", () => {
-	it("o veredito traz Flávio, o a e Lula, com acento e uma casa", () => {
+	it("o veredito traz Lula, o a e Flávio, com acento e uma casa (#139)", () => {
 		const html = htmlVeredito(payload());
 		const h1 = html.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
 		expect(h1).toContain("Flávio");
@@ -82,8 +83,9 @@ describe("render do topo (#10)", () => {
 		expect(h1).toContain("51,8");
 		expect(h1).toContain("48,2");
 		expect(h1).toMatch(/>a</);
-		expect(h1.indexOf(FLAVIO.foto)).toBeLessThan(h1.indexOf(LULA.foto));
-		expect(h1.indexOf('data-numero="22"')).toBeLessThan(h1.indexOf('data-numero="13"'));
+		expect(h1.indexOf(LULA.foto)).toBeLessThan(h1.indexOf(FLAVIO.foto));
+		expect(h1.indexOf('data-numero="13"')).toBeLessThan(h1.indexOf('data-numero="22"'));
+		expect(h1.indexOf('class="a-l"')).toBeLessThan(h1.indexOf('class="a-f"'));
 		expect(html).toContain("4 institutos");
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
@@ -124,16 +126,33 @@ describe("render do topo (#10)", () => {
 		expect(html).not.toContain(" e ");
 	});
 
-	it("os lados não trocam quando Lula está na frente", () => {
-		const html = htmlTopo(
-			payload({
-				media: { ...payload().media!, vf: 48.2, vl: 51.8, v: -3.6 },
-			}),
-			AGORA,
-		);
-		const cabo = html.match(/class="a-cabo-linha"[\s\S]*?<\/div><\/div>/)?.[0] ?? html;
-		expect(cabo.indexOf('data-numero="22"')).toBeLessThan(cabo.indexOf('data-numero="13"'));
-		expect(cabo.indexOf(FLAVIO.foto)).toBeLessThan(cabo.indexOf(LULA.foto));
+	it("os lados ficam Lula à esquerda e Flávio à direita, liderando um ou outro (#139)", () => {
+		for (const [vf, vl, margem] of [
+			[48.2, 51.8, "left:50.1%;width:3.4%"],
+			[51.8, 48.2, "left:46.5%;width:3.4%"],
+		] as const) {
+			const html = htmlTopo(payload({ media: { ...payload().media!, vf, vl, v: vf - vl } }), AGORA);
+			const cabo = html.slice(html.indexOf('class="a-cabo-linha"'), html.indexOf('class="a-cabo-leg"'));
+			expect(cabo.indexOf('data-numero="13"')).toBeGreaterThan(-1);
+			expect(cabo.indexOf('data-numero="13"')).toBeLessThan(cabo.indexOf('data-numero="22"'));
+			expect(cabo).toContain("a-cabo-lf");
+			expect(cabo).toContain(`style="width:${vf}%"`);
+			expect(cabo).toContain(margem);
+			const h1 = html.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
+			expect(h1.indexOf("Lula")).toBeLessThan(h1.indexOf("Flávio"));
+		}
+	});
+
+	it("a vinheta abre com Lula à esquerda e Flávio à direita, como o cabo (#139)", async () => {
+		const js = await (await env.ASSETS.fetch("https://presidente2026.test/js/movimento.js")).text();
+		const vinheta = js.match(/function vinheta\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+		expect(vinheta.indexOf('"a-i-l"')).toBeGreaterThan(-1);
+		expect(vinheta.indexOf('"a-i-l"')).toBeLessThan(vinheta.indexOf('"a-i-f"'));
+		expect(vinheta).toMatch(/querySelector\("\.a-i-l"\), \[\{ clipPath: "inset\(0 100% 0 0\)" \}/);
+		expect(vinheta).toMatch(/querySelector\("\.a-i-f"\), \[\{ clipPath: "inset\(0 0 0 100%\)" \}/);
+		const css = await (await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css")).text();
+		expect(css).toMatch(/\.a-i-l \{ background: var\(--l\); transform-origin: left; \}/);
+		expect(css).toMatch(/\.a-i-f \{[^}]*flex: 1;[^}]*transform-origin: right;/);
 	});
 
 	it("na 0h de 25/10 a contagem chega a zero, sem NaN", () => {
