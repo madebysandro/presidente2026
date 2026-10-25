@@ -45,7 +45,6 @@ const GRADE: Record<string, readonly [number, number]> = {
 	zz: [6, 6],
 };
 
-/** Um token só para o que ainda não tem 2º turno (#129): UF, região, exterior e colégio. */
 const SEM_2T = `<span class="a-sem2">sem 2º</span>`;
 
 const AVISO_EXTERIOR =
@@ -182,8 +181,9 @@ function linhaLado(
 	pct1: number | undefined,
 	comDelta: boolean,
 ): string {
-	const delta = comDelta && pct2 != null && pct1 != null ? ` · ${deltaPp(pct2 - pct1)}` : "";
-	const segundo = pct2 == null || !Number.isFinite(pct2) ? SEM_2T : pctTexto(pct2);
+	const tem2 = pct2 != null && Number.isFinite(pct2);
+	const delta = comDelta && tem2 && pct1 != null ? ` · ${deltaPp(pct2 - pct1)}` : "";
+	const segundo = tem2 ? pctTexto(pct2) : SEM_2T;
 	return `<li data-lado="${n}"><span class="${classeLado(n)}">${nomeLado(n)}</span> ${segundo} · 1º turno ${pctTexto(pct1)}${delta}</li>`;
 }
 
@@ -285,7 +285,7 @@ function htmlTransferencia(vista: VistaNoite): string {
 function textoTurnoColegio(colegio: ColegioPresidente | undefined): string {
 	if (!colegio || colegio.validos <= 0) return SEM_2T;
 	const pct = (n: string) => pctTexto(colegio.candidatos.find((c) => c.n === n)?.pct);
-	return `Flávio ${pct(FLAVIO.numero)} · Lula ${pct(LULA.numero)}`;
+	return `2º turno Flávio ${pct(FLAVIO.numero)} · Lula ${pct(LULA.numero)}`;
 }
 
 function htmlColegios(vista: VistaNoite): string {
@@ -298,7 +298,7 @@ function htmlColegios(vista: VistaNoite): string {
 		const lider2 = liderDe(colegio?.candidatos);
 		const lider1 = ref ? liderDeVotos(ref.votos) : null;
 		const virou = Boolean(lider2 && lider1 && lider2.n !== lider1);
-		return `<li data-colegio="${escHtml(meta.cd)}"><b>${escHtml(meta.nome)}</b> <small>${meta.uf.toUpperCase()}</small> <span data-turno="2">2º turno ${textoTurnoColegio(colegio)}</span> <span data-turno="1">1º turno Flávio ${pct1(FLAVIO.numero)} · Lula ${pct1(LULA.numero)}</span>${virou ? " <i>viraram</i>" : ""}</li>`;
+		return `<li data-colegio="${escHtml(meta.cd)}"><b>${escHtml(meta.nome)}</b> <small>${meta.uf.toUpperCase()}</small> <span data-turno="2">${textoTurnoColegio(colegio)}</span> <span data-turno="1">1º turno Flávio ${pct1(FLAVIO.numero)} · Lula ${pct1(LULA.numero)}</span>${virou ? " <i>viraram</i>" : ""}</li>`;
 	}).join("");
 	return secao(
 		"colegios",

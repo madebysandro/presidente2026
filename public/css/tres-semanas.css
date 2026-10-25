@@ -830,6 +830,8 @@ body {
 	backdrop-filter: blur(10px);
 }
 
+.a-faixa:not([data-fase="pesquisas"]) { margin-bottom: 8px; }
+
 .a-faixa-esq { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 
 .a-faixa-ponto {
@@ -919,8 +921,6 @@ body {
 	height: 1.1em;
 	vertical-align: -0.18em;
 }
-
-.a-faixa:not([data-fase="pesquisas"]) { margin-bottom: 8px; }
 
 .a-cabo-media {
 	position: absolute;

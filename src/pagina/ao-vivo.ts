@@ -227,8 +227,12 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 	const rotulo = zerado
 		? "Ainda sem votos apurados. A marca é a média das pesquisas."
 		: `Flávio ${pctF}%, Lula ${pctL}%. A marca é a média das pesquisas.`;
-	const urna = vista.fase === "encerrada" ? "Na urna, resultado final" : "Na urna agora";
-	return `<p class="a-cabo-rotulo">${urna}</p><div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	const textoUrna = zerado
+		? "Na urna, ainda sem votos"
+		: vista.fase === "encerrada"
+			? "Na urna, resultado final"
+			: "Na urna agora";
+	return `<p class="a-cabo-rotulo">${textoUrna}</p><div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };

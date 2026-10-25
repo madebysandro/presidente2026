@@ -738,6 +738,15 @@ describe("pacote Critiquito (#129)", () => {
 		);
 		expect(final).toContain('<p class="a-cabo-rotulo">Na urna, resultado final</p>');
 
+		const zerado = htmlCaboApuracao(
+			vista({
+				apuracao: estado({
+					cargos: { presidente: cargo({ apurado: 0, candidatos: [candidato("22", 0, 0), candidato("13", 0, 0)] }) },
+				}),
+			}),
+		);
+		expect(zerado).toContain('<p class="a-cabo-rotulo">Na urna, ainda sem votos</p>');
+
 		const css = await asset("/css/tres-semanas.css");
 		const altura = Number(regra(css, ".a-cabo-trilha .a-cabo").match(/height:\s*(\d+)px/)?.[1]);
 		expect(altura).toBeGreaterThanOrEqual(16);

@@ -501,7 +501,7 @@ describe("um padrão só para sem 2º turno (#129 W6)", () => {
 		expect(flavioExt).toContain("1º turno");
 
 		const colegio = html.match(/data-colegio="71072"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(colegio).toContain(`<span data-turno="2">2º turno ${SEM2}</span>`);
+		expect(colegio).toContain(`<span data-turno="2">${SEM2}</span>`);
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 
