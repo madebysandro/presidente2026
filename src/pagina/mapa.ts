@@ -1,4 +1,4 @@
-import { descreverUf, textoConta } from "../../public/js/mapa-tom.mjs";
+import { contaUfs, descreverUf } from "../../public/js/mapa-tom.mjs";
 import { NOMES_UF } from "../config/ufs";
 import { escHtml } from "../dominio/texto";
 import type { VistaNoite } from "./ao-vivo";
@@ -48,6 +48,9 @@ export function htmlMapaBrasil(vista: VistaNoite): string {
 		);
 	}
 	const svg = `<svg class="a-br-svg" viewBox="-10 -10 1150 1010" role="group" aria-label="Mapa do Brasil com a cor de quem lidera em cada estado"><defs><pattern id="a-br-hach" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="a-br-hach-fundo" width="8" height="8"/><line class="a-br-hach-traco" x1="0" y1="0" x2="0" y2="8"/></pattern></defs><g class="a-br-ufs">${caminhos.join("")}</g><g class="a-br-guias" aria-hidden="true">${guias.join("")}</g><g class="a-br-rotulos" aria-hidden="true">${rotulos.join("")}</g></svg>`;
-	const legenda = `<p class="a-br-leg"><span><i class="a-br-cor-f"></i>Flávio lidera</span><span><i class="a-br-cor-l"></i>Lula lidera</span><span><i class="a-br-cor-vazio"></i>Sem seções apuradas</span><span>Tom mais forte, vantagem maior</span><small>Contornos: <a href="https://github.com/codeforgermany/click_that_hood">click_that_hood</a> (MIT)</small></p>`;
-	return `<section class="a-br" data-mapa-br aria-labelledby="a-br-titulo"><h2 id="a-br-titulo">Quem lidera em cada estado</h2><p class="a-br-conta" data-mapa-conta>${textoConta(ufs, SIGLAS)}</p><div class="a-br-quadro">${svg}<div class="a-br-tip" data-mapa-tip hidden></div></div>${legenda}<p class="a-br-det" data-mapa-det aria-live="polite">Passe o mouse ou toque num estado para ver os números.</p></section>`;
+	const conta = contaUfs(ufs, SIGLAS);
+	const placar = `<div class="a-br-conta"><div class="a-br-conta-l"><strong data-mapa-n="l">${conta.l}</strong><span>estados Lula</span></div><div class="a-br-conta-f"><strong data-mapa-n="f">${conta.f}</strong><span>estados Flávio</span></div></div>`;
+	const detalhe = `<div class="a-br-det" data-mapa-det aria-live="polite"><span>Toque num estado para ver votos e seções apuradas.</span></div>`;
+	const legenda = `<p class="a-br-leg"><span><i class="a-br-cor-l"></i>Lula lidera</span><span><i class="a-br-cor-f"></i>Flávio lidera</span><span><i class="a-br-cor-vazio"></i>Sem seções apuradas</span><small>Contornos: <a href="https://github.com/codeforgermany/click_that_hood">click_that_hood</a> (MIT)</small></p>`;
+	return `<section class="a-geo a-br" data-mapa-br aria-labelledby="a-br-titulo"><h2 id="a-br-titulo">Apuração por estado</h2><p>Cada estado na cor de quem lidera; tom mais forte, vantagem maior. Toque ou passe o mouse para ver os números.</p><div class="a-br-quadro">${svg}</div><aside class="a-br-lado">${placar}${detalhe}${legenda}</aside></section>`;
 }

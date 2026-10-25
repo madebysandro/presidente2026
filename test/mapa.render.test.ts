@@ -168,10 +168,10 @@ describe("mapa do Brasil no ao vivo (#131)", () => {
 		expect(caminho(html, "sp")).toMatch(/style="--t:\d+%"/);
 	});
 
-	it("cada UF tem sigla e % do líder, e o detalhe vai em atributos e no aria-label", () => {
+	it("cada UF tem sigla e % do líder, e o detalhe vai em atributos e no aria-label, Lula primeiro", () => {
 		const html = htmlMapaBrasil(vista());
 		const sp = caminho(html, "sp");
-		expect(sp).toContain('aria-label="São Paulo: Flávio 52,30%, Lula 47,70%, 12,50% apurado"');
+		expect(sp).toContain('aria-label="São Paulo: Lula 47,70%, Flávio 52,30%, 12,50% apurado"');
 		expect(sp).toContain('data-pct-f="52.30"');
 		expect(sp).toContain('data-pct-l="47.70"');
 		expect(sp).toContain('data-apurado="12.50"');
@@ -181,36 +181,77 @@ describe("mapa do Brasil no ao vivo (#131)", () => {
 		expect(caminho(html, "mg")).toContain("Minas Gerais: sem seções apuradas");
 	});
 
-	it("conta as UFs lideradas, Flávio primeiro, e cita a fonte do contorno", () => {
+	it("conta as UFs lideradas com Lula à esquerda e Flávio à direita, e cita a fonte do contorno", () => {
 		const html = htmlMapaBrasil(vista());
-		expect(html).toContain('<p class="a-br-conta" data-mapa-conta>Flávio lidera em <b class="a-f">1</b> · Lula em <b class="a-l">1</b> · 25 sem seções apuradas</p>');
-		expect(html).toContain("click_that_hood");
+		const conta = html.match(/<div class="a-br-conta">[\s\S]*?<\/div><\/div>/)?.[0] ?? "";
+		expect(conta).toContain('<strong data-mapa-n="l">1</strong>');
+		expect(conta).toContain('<strong data-mapa-n="f">1</strong>');
+		expect(conta.indexOf('data-mapa-n="l"')).toBeLessThan(conta.indexOf('data-mapa-n="f"'));
+		const legenda = html.match(/<p class="a-br-leg">[\s\S]*?<\/p>/)?.[0] ?? "";
+		expect(legenda.indexOf("Lula lidera")).toBeGreaterThanOrEqual(0);
+		expect(legenda.indexOf("Lula lidera")).toBeLessThan(legenda.indexOf("Flávio lidera"));
+		expect(legenda).toContain("click_that_hood");
 		expect(html).toContain("vantagem");
+	});
+
+	it("o mapa e o painel lateral com contagem, detalhe e legenda ficam lado a lado na mesma seção", () => {
+		const html = htmlMapaBrasil(vista());
+		expect(html).toMatch(/^<section class="a-geo a-br" data-mapa-br/);
+		expect(html.indexOf('class="a-br-quadro"')).toBeLessThan(html.indexOf('class="a-br-lado"'));
+		expect(html).toContain('data-mapa-det aria-live="polite"');
+		expect(html).not.toContain("data-mapa-tip");
 	});
 
 	it("sem ufs na apuração todas ficam neutras", () => {
 		const html = htmlMapaBrasil(vista({ apuracao: estado({ ufs: undefined }) }));
 		expect(html.match(/a-br-vazio/g)?.length).toBeGreaterThanOrEqual(27);
-		expect(html).toContain("27 sem seções apuradas");
+		expect(html).toContain('<strong data-mapa-n="l">0</strong>');
+		expect(html).toContain('<strong data-mapa-n="f">0</strong>');
 	});
 });
 
 describe("o mapa na página (#131)", () => {
-	it("ao vivo, o placar vem à esquerda do mapa no palco e o cabo continua com a fatia do Flávio (#127)", () => {
+	it("ao vivo, o mapa vem logo depois do placar e do cabo e antes da grade da vantagem e dos momentos", () => {
 		const html = documentoPesquisas(payload(), AGORA, { apuracao: estado(), historico: [] });
-		const palco = html.match(/<div class="a-palco">[\s\S]*?<!--\/palco--><\/div>/)?.[0] ?? "";
-		expect(palco).not.toBe("");
-		expect(palco.indexOf('class="a-topo"')).toBeLessThan(palco.indexOf("data-mapa-br"));
-		expect(palco).toContain('class="a-cabo-f" style="width:47.06%"');
+		const cabo = html.indexOf('class="a-cabo-leg"');
+		const mapa = html.indexOf("data-mapa-br");
+		const grade = html.indexOf('class="a-noite-grade"');
+		expect(cabo).toBeGreaterThan(html.indexOf('class="a-placar"'));
+		expect(mapa).toBeGreaterThan(cabo);
+		expect(mapa).toBeGreaterThan(html.indexOf("</header>"));
+		expect(grade).toBeGreaterThan(mapa);
+		expect(html.indexOf("Momentos da noite")).toBeGreaterThan(grade);
+		expect(html).not.toContain("a-palco");
 		expect(html).toContain('<script type="module" src="/js/mapa.js"></script>');
 		const { miolo } = fragmentoPagina(payload(), AGORA, { apuracao: estado(), historico: [] });
-		expect(miolo).toContain("data-mapa-br");
+		expect(miolo.indexOf("data-mapa-br")).toBeGreaterThan(miolo.indexOf("</header>"));
+		expect(miolo.indexOf("data-mapa-br")).toBeLessThan(miolo.indexOf('class="a-noite-grade"'));
+	});
+
+	it("ao vivo e no resultado final, a grade antiga de UFs não é renderizada", () => {
+		for (const fase of ["ao_vivo", "encerrada"] as const) {
+			const html = documentoPesquisas(payload({ fase }), AGORA, {
+				apuracao: estado({ fase, encerrada: fase === "encerrada" }),
+				historico: [],
+			});
+			expect(html).toContain("data-mapa-br");
+			expect(html).not.toContain('data-geo="estados"');
+			expect(html).not.toContain("Estados e regiões");
+			expect(html).not.toContain('class="a-mapa"');
+			expect(html).not.toMatch(/class="a-uf[ "]/);
+		}
+	});
+
+	it("o cabo da noite segue com a fatia do Flávio na largura certa, agora à direita (#127)", () => {
+		const html = documentoPesquisas(payload(), AGORA, { apuracao: estado(), historico: [] });
+		expect(html).toContain('class="a-cabo a-cabo-lf"');
+		expect(html).toContain('class="a-cabo-f" style="width:47.06%"');
 	});
 
 	it("na fase pesquisas não há mapa", () => {
 		const html = documentoPesquisas(payload({ fase: "pesquisas" }), AGORA);
 		expect(html).not.toContain("data-mapa-br");
-		expect(html).not.toContain("a-palco");
+		expect(html).not.toContain("a-cabo-lf");
 	});
 
 	it("o poller guarda o mapa vivo na troca do miolo e entrega as ufs da API", async () => {
@@ -225,6 +266,9 @@ describe("o mapa na página (#131)", () => {
 		expect(js).toContain('addEventListener("apuracao:leitura"');
 		expect(js).toContain("prefers-reduced-motion");
 		expect(js).not.toContain("a-cabo");
+		expect(js.indexOf("<span>Lula</span>")).toBeGreaterThan(-1);
+		expect(js.indexOf("<span>Lula</span>")).toBeLessThan(js.indexOf("<span>Flávio</span>"));
+		expect(js.indexOf('class="a-br-cor-l"')).toBeLessThan(js.indexOf('class="a-br-cor-f"'));
 		const css = await asset("/css/tres-semanas.css");
 		expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^}]*\.a-br-uf/);
 	});

@@ -192,8 +192,8 @@ body {
 }
 
 .a-ponta { width: 44px; height: 44px; }
-.a-ponta:first-child { box-shadow: 0 0 0 3px var(--f); }
-.a-ponta:last-child { box-shadow: 0 0 0 3px var(--l); }
+.a-ponta[data-numero="22"] { box-shadow: 0 0 0 3px var(--f); }
+.a-ponta[data-numero="13"] { box-shadow: 0 0 0 3px var(--l); }
 
 .a-proxima {
 	grid-column: 1 / -1;
@@ -1062,40 +1062,7 @@ body {
 
 .a-geo b { color: var(--tinta); }
 
-.a-mapa {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 4px;
-	min-width: 0;
-	max-width: 100%;
-}
-
-.a-uf {
-	display: grid;
-	place-content: center;
-	aspect-ratio: 1;
-	min-width: 0;
-	overflow: hidden;
-	border-radius: 6px;
-	background: color-mix(in srgb, var(--c, var(--regua)) var(--a, 10%), var(--branco));
-	color: var(--tinta);
-	text-align: center;
-	font-size: 11px;
-	line-height: 1.1;
-}
-
-.a-uf b { display: block; font-size: 13px; }
-
-.a-uf small,
-.a-uf i { display: block; }
-
-.a-uf i,
 .a-colegios i { color: var(--tinta); font-style: normal; font-weight: 700; }
-
-.a-uf-f { --c: var(--f); }
-.a-uf-l { --c: var(--l); }
-.a-uf-1t { color: var(--suave); box-shadow: inset 0 0 0 1px var(--regua); }
-.a-uf[data-virou="1"] { box-shadow: inset 0 0 0 2px var(--tinta); }
 
 .a-sem2 {
 	display: inline-block;
@@ -1108,8 +1075,6 @@ body {
 	line-height: 1.3;
 	white-space: nowrap;
 }
-
-.a-uf .a-sem2 { margin-top: 2px; padding: 0 4px; font-size: inherit; }
 
 .a-analise {
 	display: grid;
@@ -1140,7 +1105,6 @@ body {
 	font-stretch: 100%;
 }
 
-.a-regioes,
 .a-colegios,
 .a-comp,
 .a-lados {
@@ -1153,7 +1117,6 @@ body {
 	list-style: none;
 }
 
-.a-regioes li,
 .a-colegios li,
 .a-comp li,
 .a-lados li {
@@ -1205,75 +1168,20 @@ body {
 }
 
 @media (max-width: 420px) {
-	.a-uf { padding: 3px 1px; font-size: 9px; }
-	.a-uf b { font-size: 11px; }
-	.a-regioes li,
 	.a-colegios li,
 	.a-comp li,
 	.a-lados li { padding: 10px 12px; }
 }
 
-/* Palco do ao vivo (#131): placar e cabo à esquerda, mapa à direita. */
-.a-palco {
-	display: grid;
-	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-	gap: 24px 48px;
+/* Mapa do Brasil no ao vivo (#131): seção própria entre o cabo e a grade da noite. */
+.a-br {
+	grid-template-columns: minmax(0, 1fr) 280px;
+	column-gap: 28px;
 	align-items: start;
 }
 
-.a-palco .a-topo {
-	position: sticky;
-	top: 56px;
-	grid-template-columns: minmax(0, 1fr);
-}
-
-.a-palco .a-veredito h1 { font-size: clamp(28px, 3.4vw, 44px); }
-
-.a-palco .a-veredito h1 > span {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 0 0.3em;
-	padding: 8px 0;
-	font-size: clamp(18px, 1.9vw, 24px);
-	white-space: normal;
-}
-
-.a-palco .a-veredito h1 > span:first-child { border-bottom: 1px solid var(--regua); }
-
-.a-palco .a-veredito h1 b {
-	margin-left: auto;
-	font-size: 1.8em;
-	line-height: 1;
-}
-
-.a-palco .a-veredito .a-x {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-
-.a-br {
-	display: grid;
-	gap: 8px;
-	min-width: 0;
-}
-
-.a-br h2 {
-	margin: 0;
-	font: 700 22px/1.2 "Archivo", sans-serif;
-	font-stretch: 112%;
-}
-
-.a-br-conta {
-	margin: 0;
-	color: var(--suave);
-}
-
-.a-br-conta b { font-weight: 800; }
+.a-br > h2,
+.a-br > p { grid-column: 1 / -1; }
 
 .a-br-quadro {
 	position: relative;
@@ -1284,7 +1192,7 @@ body {
 	display: block;
 	width: 100%;
 	height: auto;
-	max-height: 78vh;
+	max-height: 76vh;
 	overflow: visible;
 }
 
@@ -1354,13 +1262,76 @@ body {
 	to { opacity: 0; stroke-width: 0; }
 }
 
+.a-br-lado {
+	display: grid;
+	gap: 10px;
+	align-content: start;
+	min-width: 0;
+}
+
+.a-br-conta {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 8px;
+}
+
+.a-br-conta > div,
+.a-br-det {
+	padding: 12px 14px;
+	border-radius: 8px;
+	background: var(--branco);
+}
+
+.a-br-conta strong {
+	display: block;
+	font: 800 28px/1.1 "Archivo", sans-serif;
+	font-stretch: 88%;
+}
+
+.a-br-conta-l strong { color: var(--l); }
+.a-br-conta-f strong { color: var(--f); }
+
+.a-br-conta span,
 .a-br-leg {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px 16px;
-	margin: 0;
 	color: var(--suave);
 	font-size: 13px;
+}
+
+.a-br-det {
+	display: grid;
+	gap: 2px;
+	margin: 0;
+	color: var(--suave);
+	font-size: 14px;
+}
+
+.a-br-det b { font-size: 15px; }
+.a-br-det small { font-weight: 600; color: var(--suave); }
+
+.a-br-linha {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.a-br-barra {
+	display: flex;
+	height: 6px;
+	margin: 6px 0;
+	overflow: hidden;
+	border-radius: 2px;
+	background: var(--regua);
+}
+
+.a-br-barra i {
+	display: block;
+	transition: width 400ms ease;
+}
+
+.a-br-leg {
+	display: grid;
+	gap: 4px;
+	margin: 0;
 }
 
 .a-br-leg i {
@@ -1378,74 +1349,11 @@ body {
 .a-br-cor-l { background: var(--l); }
 .a-br-cor-vazio { background: color-mix(in srgb, var(--regua) 55%, var(--papel)); }
 
-.a-br-tip {
-	position: absolute;
-	z-index: 3;
-	display: grid;
-	gap: 2px;
-	min-width: 210px;
-	padding: 10px 12px;
-	border-radius: 6px;
-	background: var(--tinta);
-	color: var(--branco);
-	font-size: 13px;
-	pointer-events: none;
-}
+/* O cabo da noite (#131): Lula à esquerda, a fatia do Flávio encosta na direita. */
+.a-cabo-lf { justify-content: flex-end; }
 
-.a-br-tip[hidden],
-.a-br-det { display: none; }
-
-.a-br-tip b,
-.a-br-det b { font-size: 15px; }
-
-.a-br-det small { font-weight: 600; color: var(--suave); }
-
-.a-br-tip small { font-weight: 600; opacity: 0.7; }
-
-.a-br-tip-ap { color: color-mix(in srgb, var(--branco) 65%, var(--tinta)); }
-
-.a-br-tip-barra {
-	display: flex;
-	height: 6px;
-	margin: 4px 0;
-	overflow: hidden;
-	border-radius: 2px;
-	background: color-mix(in srgb, var(--branco) 15%, var(--tinta));
-}
-
-.a-br-tip-barra i {
-	display: block;
-	transition: width 400ms ease;
-}
-
-.a-br-tip-linha {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-@media (max-width: 1000px) {
-	.a-palco { grid-template-columns: minmax(0, 1fr); }
-	.a-palco .a-topo { position: static; }
-	.a-palco .a-veredito h1 > span { font-size: clamp(17px, 4.6vw, 24px); }
-}
-
-@media (max-width: 760px) {
-	.a-br-tip,
-	.a-br-tip[hidden] { display: none; }
-	.a-br-det {
-		display: grid;
-		gap: 2px;
-		margin: 0;
-		padding: 12px 14px;
-		border-radius: 8px;
-		background: var(--branco);
-		color: var(--suave);
-	}
-	.a-br-det b { color: var(--tinta); }
-	.a-br-det .a-br-tip-ap { color: var(--suave); }
-	.a-br-det .a-br-tip-barra { background: var(--regua); }
-	.a-br-det .a-br-tip-linha { color: var(--tinta); }
+@media (max-width: 860px) {
+	.a-br { grid-template-columns: minmax(0, 1fr); }
 	.a-br-s { font-size: 38px; }
 	.a-br-p { font-size: 32px; }
 	.a-br-fora .a-br-p { display: none; }
@@ -1454,6 +1362,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
 	.a-br-uf,
 	.a-br-rot,
-	.a-br-tip-barra i { transition: none; }
+	.a-br-barra i { transition: none; }
 	.a-br-pulso { display: none; animation: none; }
 }

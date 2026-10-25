@@ -27,7 +27,7 @@ export function tomDaUf(uf: UfDoMapa | undefined): TomUf;
 
 export function descreverUf(nome: string, uf: UfDoMapa | undefined): DescricaoUf;
 
-export function textoConta(
+export function contaUfs(
 	ufs: Readonly<Record<string, UfDoMapa>> | undefined,
 	siglas: readonly string[],
-): string;
+): { l: number; f: number };

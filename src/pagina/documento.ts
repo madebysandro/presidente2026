@@ -49,7 +49,7 @@ function htmlMiolo(vista: VistaNoite): string {
 	}
 	const esquerda = `${htmlGraficoNoite(vista)}${htmlAnaliseFinal(vista)}${htmlMomentos(vista)}`;
 	const direita = `${htmlPesquisasNoite(vista)}${htmlPesquisasUrnas(vista)}${htmlGeografiaLateral(vista)}`;
-	return `<div class="a-palco"><header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header>${htmlMapaBrasil(vista)}<!--/palco--></div><div class="a-noite-grade"><div class="a-noite-esq">${esquerda}<!--/esq--></div><div class="a-noite-dir">${direita}<!--/dir--></div></div>${htmlGeografiaCheia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
+	return `<header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header>${htmlMapaBrasil(vista)}<div class="a-noite-grade"><div class="a-noite-esq">${esquerda}<!--/esq--></div><div class="a-noite-dir">${direita}<!--/dir--></div></div>${htmlGeografiaCheia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
 }
 
 export function fragmentoPagina(payload: PayloadPesquisas, agora: Date, noite?: NoiteDaPagina) {

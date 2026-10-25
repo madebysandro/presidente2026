@@ -56,7 +56,7 @@ describe("GET / segue a fase do servidor (#18)", () => {
 		expect(html).not.toMatch(/undefined|NaN/);
 	});
 
-	it("ao vivo o placar é a apuração, os lados não trocam e a virada aparece", async () => {
+	it("ao vivo o placar é a apuração, Lula à esquerda, e a virada aparece", async () => {
 		tse.usarNoiteSintetica(corposNoiteVirada());
 		await stubPoller().fixarAgora(ABERTURA_2T_MS + 60 * 60 * 1000);
 		await forcarConsulta();
@@ -66,9 +66,9 @@ describe("GET / segue a fase do servidor (#18)", () => {
 		const html = await htmlPagina();
 		const h1 = html.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
 		expect(html).toMatch(FAIXA_AO_VIVO_OU_PAUSADA);
-		expect(h1.indexOf("Flávio")).toBeGreaterThanOrEqual(0);
-		expect(h1.indexOf("Flávio")).toBeLessThan(h1.indexOf("Lula"));
-		expect(h1.indexOf('data-numero="22"')).toBeLessThan(h1.indexOf('data-numero="13"'));
+		expect(h1.indexOf("Lula")).toBeGreaterThanOrEqual(0);
+		expect(h1.indexOf("Lula")).toBeLessThan(h1.indexOf("Flávio"));
+		expect(h1.indexOf('data-numero="13"')).toBeLessThan(h1.indexOf('data-numero="22"'));
 		const largura = Number(html.match(/class="a-cabo-f" style="width:([\d.]+)%"/)?.[1]);
 		expect(largura).toBeLessThan(50);
 		expect(html).not.toContain("a-cabo-margem");

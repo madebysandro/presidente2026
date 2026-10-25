@@ -1,8 +1,8 @@
 /**
- * Mapa do Brasil no ao vivo. Passar o mouse, tocar ou focar uma UF mostra o detalhe.
+ * Mapa do Brasil no ao vivo. Passar o mouse, tocar ou focar uma UF mostra o detalhe no painel ao lado.
  * O ao-vivo.js entrega cada leitura de /api/apuracao no evento `apuracao:leitura`.
  */
-import { descreverUf, p2, textoConta } from "./mapa-tom.mjs";
+import { contaUfs, descreverUf, p2 } from "./mapa-tom.mjs";
 
 const nf = new Intl.NumberFormat("pt-BR");
 
@@ -25,50 +25,28 @@ function htmlDetalhe(uf) {
 	const nome = `<b>${esc(d.nome || "")} <small>${esc((d.uf || "").toUpperCase())}</small></b>`;
 	const secoes = `${nf.format(Number(d.secoesApuradas) || 0)} de ${nf.format(Number(d.secoes) || 0)} seções`;
 	if (uf.classList.contains("a-br-vazio")) {
-		return `${nome}<span class="a-br-tip-ap">Sem seções apuradas · ${secoes}</span>`;
+		return `${nome}<span>Sem seções apuradas · ${secoes}</span>`;
 	}
-	const f = Number(d.pctF) || 0;
 	const l = Number(d.pctL) || 0;
-	return `${nome}<span class="a-br-tip-ap">${p2.format(Number(d.apurado) || 0)}% apurado · ${secoes}</span><span class="a-br-tip-barra"><i class="a-br-cor-f" style="width:${f}%"></i><i class="a-br-cor-l" style="width:${l}%"></i></span><span class="a-br-tip-linha"><span>Flávio</span><span><b>${p2.format(f)}%</b> · ${nf.format(Number(d.votosF) || 0)}</span></span><span class="a-br-tip-linha"><span>Lula</span><span><b>${p2.format(l)}%</b> · ${nf.format(Number(d.votosL) || 0)}</span></span>`;
+	const f = Number(d.pctF) || 0;
+	return `${nome}<span>${p2.format(Number(d.apurado) || 0)}% apurado · ${secoes}</span><span class="a-br-barra"><i class="a-br-cor-l" style="width:${l}%"></i><i class="a-br-cor-f" style="width:${f}%"></i></span><span class="a-br-linha"><span>Lula</span><span><b>${p2.format(l)}%</b> · ${nf.format(Number(d.votosL) || 0)}</span></span><span class="a-br-linha"><span>Flávio</span><span><b>${p2.format(f)}%</b> · ${nf.format(Number(d.votosF) || 0)}</span></span>`;
 }
 
-function posicionar(mapa, x, y) {
-	const tip = mapa.querySelector("[data-mapa-tip]");
-	const quadro = mapa.querySelector(".a-br-quadro");
-	if (!tip || !quadro) return;
-	const caixa = quadro.getBoundingClientRect();
-	let esquerda = x - caixa.left + 16;
-	if (esquerda + tip.offsetWidth > caixa.width) esquerda = Math.max(0, x - caixa.left - tip.offsetWidth - 16);
-	tip.style.left = `${esquerda}px`;
-	tip.style.top = `${Math.max(0, y - caixa.top + 16)}px`;
-}
-
-function mostrar(uf, x, y) {
+function mostrar(uf) {
 	const mapa = raiz();
 	if (!mapa) return;
 	for (const marcado of mapa.querySelectorAll(".on")) marcado.classList.remove("on");
 	mapa.classList.toggle("a-br-foco", Boolean(uf));
-	const tip = mapa.querySelector("[data-mapa-tip]");
 	const det = mapa.querySelector("[data-mapa-det]");
-	if (det && det.dataset.dica == null) det.dataset.dica = det.textContent;
+	if (!det) return;
+	if (det.dataset.dica == null) det.dataset.dica = det.innerHTML;
 	if (!uf) {
-		if (tip) tip.hidden = true;
-		if (det) det.textContent = det.dataset.dica;
+		det.innerHTML = det.dataset.dica;
 		return;
 	}
 	uf.classList.add("on");
 	mapa.querySelector(`[data-rotulo="${uf.dataset.uf}"]`)?.classList.add("on");
-	const html = htmlDetalhe(uf);
-	if (det) det.innerHTML = html;
-	if (!tip) return;
-	tip.innerHTML = html;
-	tip.hidden = false;
-	if (x == null || y == null) {
-		const caixa = uf.getBoundingClientRect();
-		x = caixa.left + caixa.width / 2;
-		y = caixa.top + caixa.height / 2;
-	}
-	posicionar(mapa, x, y);
+	det.innerHTML = htmlDetalhe(uf);
 }
 
 function ufTocada() {
@@ -81,12 +59,7 @@ function ufDoAlvo(alvo) {
 
 document.addEventListener("pointerover", (evento) => {
 	const uf = ufDoAlvo(evento.target);
-	if (uf && evento.pointerType === "mouse") mostrar(uf, evento.clientX, evento.clientY);
-});
-
-document.addEventListener("pointermove", (evento) => {
-	const mapa = raiz();
-	if (mapa && evento.pointerType === "mouse" && ufDoAlvo(evento.target)) posicionar(mapa, evento.clientX, evento.clientY);
+	if (uf && evento.pointerType === "mouse") mostrar(uf);
 });
 
 document.addEventListener("pointerout", (evento) => {
@@ -98,7 +71,7 @@ document.addEventListener("click", (evento) => {
 	const uf = ufDoAlvo(evento.target);
 	if (uf) {
 		tocada = uf.dataset.uf;
-		mostrar(uf, evento.clientX, evento.clientY);
+		mostrar(uf);
 		return;
 	}
 	if (tocada && raiz() && !evento.target.closest?.("[data-mapa-br]")) {
@@ -162,14 +135,14 @@ document.addEventListener("apuracao:leitura", (evento) => {
 		}
 		if (animar && mudouCor) pulsar(uf, novo.classe);
 	}
-	const conta = mapa.querySelector("[data-mapa-conta]");
-	if (conta) conta.innerHTML = textoConta(ufs, caminhos.map((uf) => uf.dataset.uf));
-	const ativa = mapa.querySelector(".a-br-uf.on");
-	if (ativa) {
-		const tip = mapa.querySelector("[data-mapa-tip]");
-		const det = mapa.querySelector("[data-mapa-det]");
-		const html = htmlDetalhe(ativa);
-		if (tip && !tip.hidden) tip.innerHTML = html;
-		if (det) det.innerHTML = html;
+	const conta = contaUfs(ufs, caminhos.map((uf) => uf.dataset.uf));
+	for (const lado of ["l", "f"]) {
+		const numero = mapa.querySelector(`[data-mapa-n="${lado}"]`);
+		if (!numero || numero.textContent === String(conta[lado])) continue;
+		numero.textContent = String(conta[lado]);
+		if (animar) numero.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 600, easing: "ease-out" });
 	}
+	const ativa = mapa.querySelector(".a-br-uf.on");
+	const det = mapa.querySelector("[data-mapa-det]");
+	if (ativa && det) det.innerHTML = htmlDetalhe(ativa);
 });

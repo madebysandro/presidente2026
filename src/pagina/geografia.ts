@@ -1,6 +1,5 @@
 import { COLEGIOS_MAIORES } from "../apuracao/escopos";
-import { COLEGIOS_1T, colegio1t, liderDeVotos, votosUf1t } from "../apuracao/referencia-1t";
-import { NOMES_UF, SIGLAS_UF } from "../config/ufs";
+import { COLEGIOS_1T, colegio1t, liderDeVotos } from "../apuracao/referencia-1t";
 import { escHtml, nf, pf } from "../dominio/texto";
 import type {
 	CandidatoUf,
@@ -12,38 +11,6 @@ import { arquivoZerado, type VistaNoite } from "./ao-vivo";
 import { FLAVIO, LULA } from "./topo";
 
 export type { VistaNoite } from "./ao-vivo";
-
-/** Posição aproximada na grade de 7 colunas. Não é mapa geográfico. */
-const GRADE: Record<string, readonly [number, number]> = {
-	rr: [2, 0],
-	ap: [4, 0],
-	am: [1, 1],
-	pa: [3, 1],
-	ma: [4, 1],
-	ce: [5, 1],
-	rn: [6, 1],
-	ac: [0, 2],
-	ro: [1, 2],
-	mt: [2, 2],
-	to: [3, 2],
-	pi: [4, 2],
-	pe: [5, 2],
-	pb: [6, 2],
-	ms: [2, 3],
-	go: [3, 3],
-	df: [4, 3],
-	ba: [5, 3],
-	al: [6, 3],
-	pr: [2, 4],
-	sp: [3, 4],
-	mg: [4, 4],
-	es: [5, 4],
-	se: [6, 4],
-	sc: [2, 5],
-	rj: [4, 5],
-	rs: [2, 6],
-	zz: [6, 6],
-};
 
 const SEM_2T = `<span class="a-sem2">sem 2º</span>`;
 
@@ -62,12 +29,6 @@ function classeLado(n: string | null | undefined): string {
 	return "";
 }
 
-function classeTile(n: string | null | undefined): string {
-	if (n === FLAVIO.numero) return " a-uf-f";
-	if (n === LULA.numero) return " a-uf-l";
-	return "";
-}
-
 function liderDe(candidatos: readonly CandidatoUf[] | undefined): CandidatoUf | null {
 	return vantagemDe(candidatos)?.lider ?? null;
 }
@@ -80,11 +41,6 @@ function vantagemDe(
 	const topo = ordenados[0];
 	if (!topo || topo.votos <= 0) return null;
 	return { lider: topo, margem: topo.pct - (ordenados[1]?.pct ?? 0) };
-}
-
-function margemCurta(margem: number): string {
-	if (margem < 9.95) return pf.format(margem);
-	return String(Math.round(margem));
 }
 
 function pctTexto(valor: number | undefined): string {
@@ -107,72 +63,6 @@ function pctDoSnapshot(votos: number, validos: number): number | undefined {
 
 function secao(id: string, titulo: string, corpo: string): string {
 	return `<section class="a-geo" data-geo="${id}" aria-labelledby="a-geo-${id}"><h2 id="a-geo-${id}">${titulo}</h2>${corpo}</section>`;
-}
-
-function htmlEstados(vista: VistaNoite): string {
-	const ufs = vista.apuracao.ufs ?? {};
-	const viraram = new Set(
-		(vista.apuracao.analise?.ufsQueViraram ?? [])
-			.filter((item) => item.uf !== "zz")
-			.map((item) => item.uf),
-	);
-	let flavio = 0;
-	let lula = 0;
-	let flavio1t = 0;
-	let lula1t = 0;
-	const ordem = [...SIGLAS_UF].sort((a, b) => {
-		const pa = GRADE[a] ?? [0, 99];
-		const pb = GRADE[b] ?? [0, 99];
-		return pa[1] - pb[1] || pa[0] - pb[0];
-	});
-	const tiles = ordem
-		.map((sigla) => {
-			const pos = GRADE[sigla] ?? [0, 0];
-			const unidade = ufs[sigla];
-			const vantagem = vantagemDe(unidade?.candidatos);
-			const lider = vantagem?.lider ?? null;
-			const lider1 = liderDeVotos(votosUf1t(sigla));
-			const virou = sigla !== "zz" && Boolean(lider) && viraram.has(sigla);
-			if (sigla !== "zz" && lider?.n === FLAVIO.numero) flavio += 1;
-			if (sigla !== "zz" && lider?.n === LULA.numero) lula += 1;
-			if (sigla !== "zz" && lider1 === FLAVIO.numero) flavio1t += 1;
-			if (sigla !== "zz" && lider1 === LULA.numero) lula1t += 1;
-			const nome = NOMES_UF[sigla] ?? unidade?.nome ?? sigla.toUpperCase();
-			const rotulo = sigla === "zz" ? "EXT" : sigla.toUpperCase();
-			const marca = virou ? " viraram" : "";
-			const aria = lider
-				? `${nome}: ${nomeLado(lider.n)} lidera no 2º turno${marca}`
-				: `${nome}: sem seções apuradas · 1º turno: ${nomeLado(lider1)}`;
-			const cor = lider?.n ?? lider1;
-			const alfa = vantagem ? Math.round(28 + Math.min(60, vantagem.margem * 2.4)) : 10;
-			const miolo = vantagem
-				? `<small>${margemCurta(vantagem.margem)}</small>${virou ? "<i>viraram</i>" : ""}`
-				: SEM_2T;
-			return `<div class="a-uf${classeTile(cor)}${vantagem ? "" : " a-uf-1t"}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1};--a:${alfa}%" aria-label="${escHtml(aria)}"><b>${rotulo}</b>${miolo}</div>`;
-		})
-		.join("");
-	const placar = flavio + lula === 0
-		? `No 1º turno, Flávio liderou em ${flavio1t} UFs e Lula em ${lula1t}. O quadro mostra esse 1º turno, apagado, até as primeiras seções.`
-		: `Flávio ${flavio} · Lula ${lula} UFs lideradas · ${viraram.size} viraram`;
-	const regioes = vista.apuracao.analise?.regioes ?? [];
-	const linhas = regioes.length
-		? regioes
-				.map((regiao) => {
-					const lider = regiao.lider;
-					const abre = `<li data-regiao="${escHtml(regiao.nome)}" data-virou="${regiao.virou ? "1" : "0"}"><b>${escHtml(regiao.nome)}</b>`;
-					if (!lider) return `${abre} ${SEM_2T}</li>`;
-					const pct22 = pctTexto(regiao.candidatos.find((c) => c.n === FLAVIO.numero)?.pct);
-					const pct13 = pctTexto(regiao.candidatos.find((c) => c.n === LULA.numero)?.pct);
-					const marca = regiao.virou ? "<i>viraram</i>" : "";
-					return `${abre} <span class="a-f">Flávio ${pct22}</span> <span class="a-l">Lula ${pct13}</span> <span>${escHtml(`${nomeLado(lider)} lidera`)}</span> ${marca}</li>`;
-				})
-				.join("")
-		: `<li>As regiões entram com a leitura das UFs.</li>`;
-	return secao(
-		"estados",
-		"Estados e regiões",
-		`<p>A cor segue quem lidera na UF. Sem seções apuradas, o quadro mostra o 1º turno, apagado. Quem mudou de líder leva a marca viraram. O exterior aparece na grade e fica de fora deste placar.</p><p data-placar-ufs>${placar}</p><div class="a-mapa" role="group" aria-label="Grade de UFs em 7 colunas">${tiles}</div><h3>Por região</h3><ul class="a-regioes">${linhas}</ul>`,
-	);
 }
 
 function linhaLado(
@@ -247,8 +137,8 @@ function htmlComparecimento(vista: VistaNoite): string {
 
 function fatias(fatia: FatiaEleitorado): string {
 	const partes: Array<[string, number, string]> = [
-		["Flávio", fatia.flavio, "var(--f)"],
 		["Lula", fatia.lula, "var(--l)"],
+		["Flávio", fatia.flavio, "var(--f)"],
 		["Outros", fatia.outros, "var(--suave)"],
 		["Brancos e nulos", fatia.brancosNulos, "#9aa3b2"],
 		["Abstenção", fatia.abstencao, "var(--regua)"],
@@ -312,9 +202,9 @@ export function htmlGeografiaLateral(vista: VistaNoite): string {
 	return `${htmlExterior(vista)}${htmlComparecimento(vista)}`;
 }
 
-/** Abaixo da grade, na largura toda (#16): estados, colégios e a comparação dos turnos. */
+/** Abaixo da grade, na largura toda (#16): colégios e a comparação dos turnos. O mapa (#131) substitui a grade de UFs. */
 export function htmlGeografiaCheia(vista: VistaNoite): string {
-	return `${htmlEstados(vista)}${htmlColegios(vista)}${htmlTransferencia(vista)}`;
+	return `${htmlColegios(vista)}${htmlTransferencia(vista)}`;
 }
 
 /** Geografia da noite, na ordem do celular. */

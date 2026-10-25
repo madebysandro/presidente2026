@@ -203,7 +203,7 @@ export function htmlPlacar(vista: VistaNoite): string {
 	const secoes = pctVisitante(vista.fase, cargo.apurado);
 	const selo = (numero: string) =>
 		seloEleito(numero, flavio?.votos ?? Number.NaN, lula?.votos ?? Number.NaN, vista.fase);
-	return `<div class="a-veredito a-placar"><h1><span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}</span> <span class="a-x">a</span> <span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span></h1><p>${votos(flavio?.votos)} a ${votos(lula?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
+	return `<div class="a-veredito a-placar"><h1><span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span> <span class="a-x">a</span> <span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}</span></h1><p>${votos(lula?.votos)} a ${votos(flavio?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
 export function htmlCaboApuracao(vista: VistaNoite): string {
@@ -217,7 +217,7 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 		? `<i class="a-cabo-f" style="width:${largura}%"></i>`
 		: "";
 	const marca = media && Number.isFinite(media.vf)
-		? `<i class="a-cabo-media" style="left:${n2(media.vf)}%" title="média das pesquisas"></i>`
+		? `<i class="a-cabo-media" style="left:${n2(100 - media.vf)}%" title="média das pesquisas"></i>`
 		: "";
 	const legenda = media && Number.isFinite(media.vf)
 		? `A marca é a média das pesquisas em ${porExtenso(media.data)}, congelada: Flávio ${p1.format(media.vf)}%.`
@@ -226,13 +226,13 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 	const pctL = pctVisitante(vista.fase, lula?.pct);
 	const rotulo = zerado
 		? "Ainda sem votos apurados. A marca é a média das pesquisas."
-		: `Flávio ${pctF}%, Lula ${pctL}%. A marca é a média das pesquisas.`;
+		: `Lula ${pctL}%, Flávio ${pctF}%. A marca é a média das pesquisas.`;
 	const textoUrna = zerado
 		? "Na urna, ainda sem votos"
 		: vista.fase === "encerrada"
 			? "Na urna, resultado final"
 			: "Na urna agora";
-	return `<p class="a-cabo-rotulo">${textoUrna}</p><div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	return `<p class="a-cabo-rotulo">${textoUrna}</p><div class="a-cabo-linha">${rosto(LULA).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo a-cabo-lf${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(FLAVIO).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };
@@ -261,7 +261,7 @@ function py(v: number, lim: number): number {
 }
 
 export function htmlGraficoNoite(vista: VistaNoite): string {
-	const intro = `<section class="a-noite" aria-labelledby="a-noite-titulo"><h2 id="a-noite-titulo">A vantagem na apuração</h2><p>Eixo de 0 a 100% das seções. A área sombreada ainda vai ser apurada. Flávio fica à esquerda do cabo, mesmo quando a linha cruza o empate.</p>`;
+	const intro = `<section class="a-noite" aria-labelledby="a-noite-titulo"><h2 id="a-noite-titulo">A vantagem na apuração</h2><p>Eixo de 0 a 100% das seções. A área sombreada ainda vai ser apurada. Lula fica à esquerda do cabo e Flávio à direita, mesmo quando a linha cruza o empate.</p>`;
 	const pontos = pontosNoite(vista.historico);
 	const eixos = `<div class="a-eixo-x" aria-hidden="true"><span style="left:${n2(px(0))}%">0%</span><span style="left:${n2(px(100))}%">100%</span></div>`;
 	if (pontos.length === 0) {

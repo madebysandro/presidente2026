@@ -57,21 +57,18 @@ export function descreverUf(nome, uf) {
 		estilo: empate ? "" : `--t:${tom.tom}%`,
 		rotulo: `${Math.round(tom.pctLider)}%`,
 		claro: empate || tom.tom < TOM_ROTULO_CLARO,
-		aria: `${nome}: Flávio ${p2.format(pctF)}%, Lula ${p2.format(pctL)}%, ${p2.format(apurado)}% apurado`,
+		aria: `${nome}: Lula ${p2.format(pctL)}%, Flávio ${p2.format(pctF)}%, ${p2.format(apurado)}% apurado`,
 		dados,
 	};
 }
 
-export function textoConta(ufs, siglas) {
-	let f = 0;
+export function contaUfs(ufs, siglas) {
 	let l = 0;
-	let vazio = 0;
+	let f = 0;
 	for (const sigla of siglas) {
 		const lado = tomDaUf(ufs?.[sigla]).lado;
-		if (lado === "f") f += 1;
-		else if (lado === "l") l += 1;
-		else if (lado == null) vazio += 1;
+		if (lado === "l") l += 1;
+		else if (lado === "f") f += 1;
 	}
-	const resto = vazio > 0 ? ` · ${vazio} sem seções apuradas` : "";
-	return `Flávio lidera em <b class="a-f">${f}</b> · Lula em <b class="a-l">${l}</b>${resto}`;
+	return { l, f };
 }

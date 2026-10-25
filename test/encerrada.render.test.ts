@@ -157,8 +157,8 @@ describe("resultado final (#20)", () => {
 
 		const placar = htmlPlacar(vista());
 		const h1 = placar.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
-		const flavio = h1.split('class="a-x"')[0] ?? "";
-		const lula = h1.split('class="a-x"')[1] ?? "";
+		const lula = h1.split('class="a-x"')[0] ?? "";
+		const flavio = h1.split('class="a-x"')[1] ?? "";
 		expect(flavio).toContain('data-eleito="22"');
 		expect(flavio).toContain("✓ Eleito");
 		expect(flavio).toContain("55,0%");
@@ -180,8 +180,8 @@ describe("resultado final (#20)", () => {
 			}),
 		);
 		const h1Lula = lulaNaFrente.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
-		expect(h1Lula.split('class="a-x"')[0]).not.toContain("✓ Eleito");
-		expect(h1Lula.split('class="a-x"')[1]).toContain('data-eleito="13"');
+		expect(h1Lula.split('class="a-x"')[0]).toContain('data-eleito="13"');
+		expect(h1Lula.split('class="a-x"')[1]).not.toContain("✓ Eleito");
 
 		const empate = htmlPlacar(
 			vista({
