@@ -2,6 +2,7 @@
  * Aceite #18: faixa, placar, cabo, gráfico, momentos e estimativas.
  * Seam: funções puras de render (o HTML que a página e o fragmento devolvem).
  */
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import { PAUSA_TSE } from "../src/apuracao/pausa-tse";
@@ -378,7 +379,11 @@ describe("gráfico, momentos e estimativas (#18)", () => {
 			vista({ historico: [leitura(12, 55, 45, "17:20:00")] }),
 		);
 		expect(html).toContain('class="t-apurar" x="18.08" width="73.92"');
-		expect(html).toContain('class="t-noite" cx="18.08" cy="8.00"');
+		expect(html).toContain('d="M18.08,8.00h0"');
+		const ponto = html.match(/<path[^>]*d="M18\.08,8\.00h0"[^>]*>/)?.[0] ?? "";
+		expect(ponto).toContain('stroke-linecap="round"');
+		expect(ponto).toContain('vector-effect="non-scaling-stroke"');
+		expect(html).not.toContain("<circle");
 		expect(html).toContain('class="t-virada" style="left:50.00%"');
 		expect(html).not.toContain("2ª leitura");
 		expect(html).not.toMatch(/undefined|NaN/);
@@ -597,5 +602,15 @@ describe("paridade com o protótipo da #16", () => {
 
 	it("não traz mais \"Para onde foram os votos?\"", () => {
 		expect(html()).not.toContain("Para onde foram os votos?");
+	});
+});
+
+describe("gráfico da noite com espaço próprio (#123)", () => {
+	it("o plot da noite não herda a grade de eixo Y das pesquisas e ocupa a largura", async () => {
+		const css = await (await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css")).text();
+		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*display:\s*block/);
+		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*position:\s*relative/);
+		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*height:\s*\d+px/);
+		expect(css).toMatch(/\.a-noite \.a-plot svg\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
 	});
 });

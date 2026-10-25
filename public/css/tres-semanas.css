@@ -975,6 +975,23 @@ body {
 
 .a-est b { display: block; color: var(--tinta); }
 
+.a-noite .a-plot {
+	display: block;
+	position: relative;
+	height: 320px;
+}
+
+.a-noite .a-plot svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+@media (max-width: 760px) {
+	.a-noite .a-plot { height: 220px; }
+}
+
 .t-noite { stroke: var(--tinta); }
 .t-apurar { fill: rgb(23 32 43 / 8%); }
 

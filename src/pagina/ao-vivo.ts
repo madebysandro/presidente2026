@@ -277,7 +277,7 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 	const unico = pontos.length === 1 ? pontos[0] : undefined;
 	const marca =
 		unico != null
-			? `<circle class="t-noite" cx="${n2(px(unico.ap))}" cy="${n2(py(unico.v, lim))}" r="1.6"/>`
+			? `<path class="t-noite" d="M${n2(px(unico.ap))},${n2(py(unico.v, lim))}h0" stroke-width="8" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`
 			: "";
 	const ultimo = pontos[pontos.length - 1]!;
 	const sombrear = vista.fase !== "encerrada" && ultimo.ap < 100;
