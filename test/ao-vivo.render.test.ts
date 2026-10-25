@@ -675,6 +675,29 @@ describe("pacote Critiquito (#129)", () => {
 		expect(js).toContain('"Ao vivo"');
 	});
 
+	it("W1/W5: no início da noite o plot encolhe e diz quanto já foi apurado", async () => {
+		const vazio = htmlGraficoNoite(vista({ historico: [] }));
+		expect(vazio).toContain('class="a-graf" data-inicio');
+		expect(vazio).toContain('class="a-noite-inicio"');
+		expect(vazio).not.toContain("a-graf-vazio");
+
+		const comeco = htmlGraficoNoite(vista({ historico: [leitura(0.25, 55, 45, "17:06:31")] }));
+		expect(comeco).toContain('class="a-graf" data-inicio');
+		expect(comeco).toContain("0,25% das seções apuradas. A linha cresce a cada leitura do TSE.");
+
+		const poucas = htmlGraficoNoite(
+			vista({ historico: [leitura(0.2, 55, 45, "17:06:31"), leitura(0.6, 54, 46, "17:10:00")] }),
+		);
+		expect(poucas).toContain('class="a-graf" data-inicio');
+
+		const trajetoria = htmlGraficoNoite(vista());
+		expect(trajetoria).not.toContain("data-inicio");
+		expect(trajetoria).not.toContain("a-noite-inicio");
+
+		const css = await asset("/css/tres-semanas.css");
+		expect(regra(css, ".a-noite .a-graf[data-inicio] .a-plot")).toMatch(/height:\s*1\d\dpx/);
+	});
+
 	it("W2: válidos que faltam saem inteiros em pt-BR", () => {
 		const base = estado();
 		const presidente = base.analise!.majoritarias!.presidente!;
@@ -690,5 +713,42 @@ describe("pacote Critiquito (#129)", () => {
 		);
 		expect(html).toContain("<dd>77.710.256</dd>");
 		expect(html).not.toContain("77.710.256,461");
+	});
+
+	it("W3: os rostos do placar sobem sem mexer no veredito das pesquisas", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const placar = regra(css, ".a-placar .a-rosto");
+		const largura = Number(placar.match(/width:\s*([\d.]+)em/)?.[1]);
+		expect(largura).toBeGreaterThanOrEqual(1.1);
+		expect(largura).toBeLessThanOrEqual(1.25);
+		expect(placar).toMatch(/height:\s*[\d.]+em/);
+		expect(regra(css, ".a-rosto")).toMatch(/width:\s*0\.9em/);
+		expect(regra(css, ".a-rosto")).toMatch(/currentColor/);
+	});
+
+	it("W4: o cabo da noite engrossa e ganha o rótulo Na urna agora, sem perder a fatia do Flávio (#127)", async () => {
+		const cabo = htmlCaboApuracao(vista());
+		expect(cabo).toContain('<p class="a-cabo-rotulo">Na urna agora</p>');
+		expect(cabo.indexOf("a-cabo-rotulo")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
+		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
+		expect(cabo).not.toContain("data-base");
+
+		const final = htmlCaboApuracao(
+			vista({ fase: "encerrada", apuracao: estado({ fase: "encerrada", encerrada: true }) }),
+		);
+		expect(final).toContain('<p class="a-cabo-rotulo">Na urna, resultado final</p>');
+
+		const css = await asset("/css/tres-semanas.css");
+		const altura = Number(regra(css, ".a-cabo-trilha .a-cabo").match(/height:\s*(\d+)px/)?.[1]);
+		expect(altura).toBeGreaterThanOrEqual(16);
+		expect(altura).toBeLessThanOrEqual(18);
+		expect(regra(css, ".a-cabo")).toMatch(/height:\s*14px/);
+	});
+
+	it("W5: a noite tira ar sob a faixa e sob o H1", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const faixa = regra(css, '.a-faixa:not([data-fase="pesquisas"])');
+		expect(Number(faixa.match(/margin-bottom:\s*(\d+)px/)?.[1])).toBeLessThanOrEqual(10);
+		expect(Number(regra(css, ".a-placar p").match(/margin-top:\s*(\d+)px/)?.[1])).toBeLessThanOrEqual(6);
 	});
 });

@@ -45,6 +45,9 @@ const GRADE: Record<string, readonly [number, number]> = {
 	zz: [6, 6],
 };
 
+/** Um token só para o que ainda não tem 2º turno (#129): UF, região, exterior e colégio. */
+const SEM_2T = `<span class="a-sem2">sem 2º</span>`;
+
 const AVISO_EXTERIOR =
 	"O exterior costuma apurar por último: as urnas fecham no fuso de cada país.";
 
@@ -145,7 +148,7 @@ function htmlEstados(vista: VistaNoite): string {
 			const alfa = vantagem ? Math.round(28 + Math.min(60, vantagem.margem * 2.4)) : 10;
 			const miolo = vantagem
 				? `<small>${margemCurta(vantagem.margem)}</small>${virou ? "<i>viraram</i>" : ""}`
-				: "";
+				: SEM_2T;
 			return `<div class="a-uf${classeTile(cor)}${vantagem ? "" : " a-uf-1t"}" data-uf="${escHtml(sigla)}" data-virou="${virou ? "1" : "0"}" style="grid-column:${pos[0] + 1};grid-row:${pos[1] + 1};--a:${alfa}%" aria-label="${escHtml(aria)}"><b>${rotulo}</b>${miolo}</div>`;
 		})
 		.join("");
@@ -157,11 +160,12 @@ function htmlEstados(vista: VistaNoite): string {
 		? regioes
 				.map((regiao) => {
 					const lider = regiao.lider;
-					const pct22 = lider ? pctTexto(regiao.candidatos.find((c) => c.n === FLAVIO.numero)?.pct) : "—";
-					const pct13 = lider ? pctTexto(regiao.candidatos.find((c) => c.n === LULA.numero)?.pct) : "—";
+					const abre = `<li data-regiao="${escHtml(regiao.nome)}" data-virou="${regiao.virou ? "1" : "0"}"><b>${escHtml(regiao.nome)}</b>`;
+					if (!lider) return `${abre} ${SEM_2T}</li>`;
+					const pct22 = pctTexto(regiao.candidatos.find((c) => c.n === FLAVIO.numero)?.pct);
+					const pct13 = pctTexto(regiao.candidatos.find((c) => c.n === LULA.numero)?.pct);
 					const marca = regiao.virou ? "<i>viraram</i>" : "";
-					const frase = lider ? `${nomeLado(lider)} lidera` : "sem apuração";
-					return `<li data-regiao="${escHtml(regiao.nome)}" data-virou="${regiao.virou ? "1" : "0"}"><b>${escHtml(regiao.nome)}</b> <span class="a-f">Flávio ${pct22}</span> <span class="a-l">Lula ${pct13}</span> <span>${escHtml(frase)}</span> ${marca}</li>`;
+					return `${abre} <span class="a-f">Flávio ${pct22}</span> <span class="a-l">Lula ${pct13}</span> <span>${escHtml(`${nomeLado(lider)} lidera`)}</span> ${marca}</li>`;
 				})
 				.join("")
 		: `<li>As regiões entram com a leitura das UFs.</li>`;
@@ -179,7 +183,8 @@ function linhaLado(
 	comDelta: boolean,
 ): string {
 	const delta = comDelta && pct2 != null && pct1 != null ? ` · ${deltaPp(pct2 - pct1)}` : "";
-	return `<li data-lado="${n}"><span class="${classeLado(n)}">${nomeLado(n)}</span> ${pctTexto(pct2)} · 1º turno ${pctTexto(pct1)}${delta}</li>`;
+	const segundo = pct2 == null || !Number.isFinite(pct2) ? SEM_2T : pctTexto(pct2);
+	return `<li data-lado="${n}"><span class="${classeLado(n)}">${nomeLado(n)}</span> ${segundo} · 1º turno ${pctTexto(pct1)}${delta}</li>`;
 }
 
 function htmlExterior(vista: VistaNoite): string {
@@ -277,13 +282,10 @@ function htmlTransferencia(vista: VistaNoite): string {
 	);
 }
 
-function textoTurnoColegio(
-	colegio: ColegioPresidente | undefined,
-	n: string,
-): string {
-	if (!colegio || colegio.validos <= 0) return "—";
-	const candidato = colegio.candidatos.find((c) => c.n === n);
-	return pctTexto(candidato?.pct);
+function textoTurnoColegio(colegio: ColegioPresidente | undefined): string {
+	if (!colegio || colegio.validos <= 0) return SEM_2T;
+	const pct = (n: string) => pctTexto(colegio.candidatos.find((c) => c.n === n)?.pct);
+	return `Flávio ${pct(FLAVIO.numero)} · Lula ${pct(LULA.numero)}`;
 }
 
 function htmlColegios(vista: VistaNoite): string {
@@ -296,7 +298,7 @@ function htmlColegios(vista: VistaNoite): string {
 		const lider2 = liderDe(colegio?.candidatos);
 		const lider1 = ref ? liderDeVotos(ref.votos) : null;
 		const virou = Boolean(lider2 && lider1 && lider2.n !== lider1);
-		return `<li data-colegio="${escHtml(meta.cd)}"><b>${escHtml(meta.nome)}</b> <small>${meta.uf.toUpperCase()}</small> <span data-turno="2">2º turno Flávio ${textoTurnoColegio(colegio, FLAVIO.numero)} · Lula ${textoTurnoColegio(colegio, LULA.numero)}</span> <span data-turno="1">1º turno Flávio ${pct1(FLAVIO.numero)} · Lula ${pct1(LULA.numero)}</span>${virou ? " <i>viraram</i>" : ""}</li>`;
+		return `<li data-colegio="${escHtml(meta.cd)}"><b>${escHtml(meta.nome)}</b> <small>${meta.uf.toUpperCase()}</small> <span data-turno="2">2º turno ${textoTurnoColegio(colegio)}</span> <span data-turno="1">1º turno Flávio ${pct1(FLAVIO.numero)} · Lula ${pct1(LULA.numero)}</span>${virou ? " <i>viraram</i>" : ""}</li>`;
 	}).join("");
 	return secao(
 		"colegios",

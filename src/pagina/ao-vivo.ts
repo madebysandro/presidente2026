@@ -227,7 +227,8 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 	const rotulo = zerado
 		? "Ainda sem votos apurados. A marca é a média das pesquisas."
 		: `Flávio ${pctF}%, Lula ${pctL}%. A marca é a média das pesquisas.`;
-	return `<div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	const urna = vista.fase === "encerrada" ? "Na urna, resultado final" : "Na urna agora";
+	return `<p class="a-cabo-rotulo">${urna}</p><div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };
@@ -265,9 +266,9 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 				? `<rect class="t-apurar" x="${n2(px(0))}" width="${n2(px(100) - px(0))}" y="0" height="100"/>`
 				: "";
 		const grafico = sombra
-			? `<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}</svg></div>${eixos}</div>`
+			? `<div class="a-graf" data-inicio><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}</svg></div>${eixos}</div>`
 			: eixos;
-		return `${intro}<p class="a-graf-vazio">A linha aparece a partir da 2ª leitura do TSE.</p>${grafico}${htmlEstimativas(vista)}</section>`;
+		return `${intro}<p class="a-noite-inicio">A linha aparece a partir da 2ª leitura do TSE.</p>${grafico}${htmlEstimativas(vista)}</section>`;
 	}
 	const pico = Math.max(2, ...pontos.map((ponto) => Math.abs(ponto.v)));
 	const lim = Math.ceil(pico / 2) * 2;
@@ -291,7 +292,11 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 				`<span class="t-virada" style="left:${n2(px(virada.ap))}%" title="virada"></span>`,
 		)
 		.join("");
-	return `${intro}<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div>${htmlEstimativas(vista)}</section>`;
+	const inicio = pontos.length < 3 || ultimo.ap < 1;
+	const aviso = inicio
+		? `<p class="a-noite-inicio">${pf.format(ultimo.ap)}% das seções apuradas. A linha cresce a cada leitura do TSE.</p>`
+		: "";
+	return `${intro}${aviso}<div class="a-graf"${inicio ? " data-inicio" : ""}><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div>${htmlEstimativas(vista)}</section>`;
 }
 
 function textoMomento(momento: MomentoNoite): string {

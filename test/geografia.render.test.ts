@@ -462,3 +462,53 @@ describe("página ao vivo (#19)", () => {
 		expect(html).not.toContain("Estados e regiões");
 	});
 });
+
+describe("um padrão só para sem 2º turno (#129 W6)", () => {
+	const SEM2 = '<span class="a-sem2">sem 2º</span>';
+
+	it("UF, região, exterior e colégio sem 2º turno levam o mesmo token", () => {
+		const html = htmlGeografia(
+			vista(
+				estado({
+					ufs: { sp: uf("sp", "São Paulo", 60, 40) },
+					analise: {
+						regioes: [
+							{ ...regiao("Norte", 0, 0, false), lider: null, lider1t: null, candidatos: [] },
+							regiao("Sudeste", 55, 45, false),
+						],
+					},
+				}),
+			),
+		);
+
+		const bahia = html.match(/data-uf="ba"[\s\S]*?<\/div>/)?.[0] ?? "";
+		expect(bahia).toContain(SEM2);
+		expect(html).toMatch(/class="a-uf[^"]*a-uf-1t" data-uf="ba"/);
+		const saoPaulo = html.match(/data-uf="sp"[\s\S]*?<\/div>/)?.[0] ?? "";
+		expect(saoPaulo).not.toContain("a-sem2");
+
+		const norte = html.match(/data-regiao="Norte"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(norte).toContain(SEM2);
+		expect(norte).not.toContain("sem apuração");
+		expect(norte).not.toContain("—");
+		const sudeste = html.match(/data-regiao="Sudeste"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(sudeste).not.toContain("a-sem2");
+
+		const exterior = html.match(/data-geo="exterior"[\s\S]*?<\/section>/)?.[0] ?? "";
+		const flavioExt = exterior.match(/data-lado="22"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(flavioExt).toContain(SEM2);
+		expect(flavioExt).not.toContain("—");
+		expect(flavioExt).toContain("1º turno");
+
+		const colegio = html.match(/data-colegio="71072"[\s\S]*?<\/li>/)?.[0] ?? "";
+		expect(colegio).toContain(`<span data-turno="2">2º turno ${SEM2}</span>`);
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("o token usa a régua de fundo", async () => {
+		const { env } = await import("cloudflare:workers");
+		const css = await (await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css")).text();
+		const regra = css.match(/\n\.a-sem2\s*\{([^}]*)\}/)?.[1] ?? "";
+		expect(regra).toMatch(/background:\s*var\(--regua\)/);
+	});
+});
