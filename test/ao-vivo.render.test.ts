@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
+import { PAUSA_TSE } from "../src/apuracao/pausa-tse";
 import type { Cargo, EstadoApuracao, Leitura, MomentoNoite } from "../src/dominio/tipos";
 import {
 	htmlCaboApuracao,
@@ -18,7 +19,7 @@ import {
 import { documentoPesquisas } from "../src/pagina/documento";
 import type { FichaPublica, PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
 
-const AGORA = new Date("2026-10-25T21:00:00.000Z");
+const AGORA = new Date("2026-10-25T22:30:00.000Z");
 
 function payload(extra: Partial<PayloadPesquisas> = {}): PayloadPesquisas {
 	return {
@@ -255,6 +256,52 @@ describe("faixa de status (#18)", () => {
 			}),
 		);
 		expect(emHoras).toContain("Próxima consulta em 2 h 05 min");
+	});
+});
+
+describe("pausa do TSE até 19h (#124)", () => {
+	const FIM = Date.parse(PAUSA_TSE.fim);
+
+	it("dentro da pausa a faixa diz que a apuração parou e volta às 19h, sem contagem genérica", () => {
+		const agora = new Date("2026-10-25T18:00:00-03:00");
+		const html = htmlFaixa(
+			vista({
+				agora,
+				apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: FIM }),
+			}),
+		);
+		expect(html).toContain("Ao vivo");
+		expect(html).toContain("Apuração do TSE pausada até 19h");
+		expect(html).toContain("Próxima consulta às 19h (Belém/Brasília)");
+		expect(html).toContain(`data-pausa-ate="${FIM}"`);
+		expect(html).not.toContain("Próxima consulta em");
+		expect(html).not.toMatch(/undefined|NaN/);
+	});
+
+	it("depois das 19h volta a hora do TSE e a contagem normal", () => {
+		const agora = new Date("2026-10-25T19:05:00-03:00");
+		const html = htmlFaixa(
+			vista({
+				agora,
+				apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: agora.getTime() + 90_000 }),
+			}),
+		);
+		expect(html).toContain("Dados do TSE 18:40:00 · há 2 min");
+		expect(html).toContain("Próxima consulta em 1 min 30 s");
+		expect(html).not.toContain("pausada");
+		expect(html).not.toContain("data-pausa");
+	});
+
+	it("encerrada não fala de pausa", () => {
+		const html = htmlFaixa(
+			vista({
+				fase: "encerrada",
+				agora: new Date("2026-10-25T18:00:00-03:00"),
+				apuracao: estado({ fase: "encerrada", encerrada: true, proximaConsulta: null }),
+			}),
+		);
+		expect(html).toContain("Resultado final · 2º turno");
+		expect(html).not.toContain("pausada");
 	});
 });
 

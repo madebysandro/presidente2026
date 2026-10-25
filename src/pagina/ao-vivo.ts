@@ -1,4 +1,5 @@
 import { ABERTURA_2T_MS, type FaseApuracao } from "../apuracao/abertura";
+import { fimDaPausa } from "../apuracao/pausa-tse";
 import { escHtml, nf, pf } from "../dominio/texto";
 import type { EstadoApuracao, MomentoNoite, TendenciaCandidato } from "../dominio/tipos";
 import type { PayloadPesquisas } from "../pesquisas/tipos";
@@ -114,6 +115,29 @@ function attrNumero(nome: string, valor: number | null | undefined): string {
 	return ` ${nome}="${valor}"`;
 }
 
+function horaCheia(ms: number): string {
+	const hora = new Intl.DateTimeFormat("pt-BR", {
+		timeZone: "America/Sao_Paulo",
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23",
+	}).format(new Date(ms));
+	return hora.replace(/:00$/, "h");
+}
+
+/** Textos da pausa do TSE (#124). O cliente troca de volta quando o relógio passa de `data-pausa-ate`. */
+function pausaDaFaixa(vista: VistaNoite): { ate: number; meio: string; dir: string } | null {
+	if (vista.fase !== "ao_vivo") return null;
+	const ate = fimDaPausa(vista.agora.getTime());
+	if (ate == null) return null;
+	const hora = horaCheia(ate);
+	return {
+		ate,
+		meio: `Apuração do TSE pausada até ${hora}`,
+		dir: `Próxima consulta às ${hora} (Belém/Brasília)`,
+	};
+}
+
 export function htmlFaixa(vista: VistaNoite): string {
 	const hora = horaTse(vista);
 	const idade = textoIdade(vista.apuracao.consultadoEm, vista.agora.getTime());
@@ -122,15 +146,24 @@ export function htmlFaixa(vista: VistaNoite): string {
 		vista.apuracao.proximaConsulta,
 		vista.agora.getTime(),
 	);
+	const pausa = pausaDaFaixa(vista);
+	const attrPausa = pausa
+		? `${attrNumero("data-pausa-ate", pausa.ate)} data-pausa-meio="${escHtml(pausa.meio)}" data-pausa-dir="${escHtml(pausa.dir)}"`
+		: "";
 	const extra = arquivoZerado(vista.apuracao)
 		? `<span data-faixa-extra>arquivo zerado</span>`
 		: "";
-	const meio =
-		vista.fase === "pesquisas"
+	const meio = pausa
+		? escHtml(pausa.meio)
+		: vista.fase === "pesquisas"
 			? "Primeiros resultados às 17:00"
 			: `Dados do TSE ${escHtml(hora)} · ${idade}`;
-	const direita = vista.fase === "encerrada" ? "Resultado final · 2º turno" : proxima;
-	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong>${rotuloFase(vista.fase)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
+	const direita = pausa
+		? escHtml(pausa.dir)
+		: vista.fase === "encerrada"
+			? "Resultado final · 2º turno"
+			: proxima;
+	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)}${attrPausa} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong>${rotuloFase(vista.fase)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
 }
 
 function rosto(lado: typeof FLAVIO | typeof LULA): string {
