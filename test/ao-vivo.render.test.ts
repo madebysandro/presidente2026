@@ -307,12 +307,13 @@ describe("pausa do TSE até 19h (#124)", () => {
 });
 
 describe("placar e cabo da apuração (#18)", () => {
-	it("com Lula na frente, Flávio continua à esquerda e o cabo não tem faixa de margem", () => {
+	it("Lula fica à esquerda e Flávio à direita, e o cabo não tem faixa de margem (#131)", () => {
 		const placar = htmlPlacar(vista());
 		const h1 = placar.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
-		expect(h1.indexOf("Flávio")).toBeGreaterThanOrEqual(0);
-		expect(h1.indexOf("Flávio")).toBeLessThan(h1.indexOf("Lula"));
-		expect(h1.indexOf('data-numero="22"')).toBeLessThan(h1.indexOf('data-numero="13"'));
+		expect(h1.indexOf("Lula")).toBeGreaterThanOrEqual(0);
+		expect(h1.indexOf("Lula")).toBeLessThan(h1.indexOf("Flávio"));
+		expect(h1.indexOf('data-numero="13"')).toBeLessThan(h1.indexOf('data-numero="22"'));
+		expect(placar).toContain("4.500.000 a 4.000.000 votos válidos");
 		expect(h1).toContain("47,06");
 		expect(h1).toContain("52,94");
 		expect(placar).toContain("4.000.000");
@@ -323,7 +324,11 @@ describe("placar e cabo da apuração (#18)", () => {
 		const cabo = htmlCaboApuracao(vista());
 		expect(cabo).not.toContain("a-cabo-margem");
 		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
-		expect(cabo).toContain('class="a-cabo-media" style="left:51.77%"');
+		expect(cabo).toContain('class="a-cabo-media" style="left:48.23%"');
+		expect(cabo).toContain('class="a-cabo a-cabo-lf"');
+		expect(cabo.indexOf('class="a-ponta" data-numero="13"')).toBeLessThan(cabo.indexOf('class="a-ponta" data-numero="22"'));
+		expect(cabo).toContain("Lula 52,94%, Flávio 47,06%");
+		expect(htmlGraficoNoite(vista())).toContain("Lula fica à esquerda do cabo e Flávio à direita");
 		expect(cabo).toContain("média das pesquisas");
 		expect(cabo).toContain("25 de outubro");
 		expect(cabo).toContain("51,8%");
@@ -752,6 +757,9 @@ describe("pacote Critiquito (#129)", () => {
 		expect(altura).toBeGreaterThanOrEqual(16);
 		expect(altura).toBeLessThanOrEqual(18);
 		expect(regra(css, ".a-cabo")).toMatch(/height:\s*14px/);
+		expect(regra(css, ".a-cabo-lf")).toMatch(/justify-content:\s*flex-end/);
+		expect(regra(css, '.a-ponta[data-numero="13"]')).toContain("var(--l)");
+		expect(regra(css, '.a-ponta[data-numero="22"]')).toContain("var(--f)");
 	});
 
 	it("W5: a noite tira ar sob a faixa e sob o H1", async () => {

@@ -13,6 +13,7 @@ import {
 } from "./ao-vivo";
 import { htmlAnaliseFinal, htmlPesquisasUrnas } from "./encerrada";
 import { htmlGeografiaCheia, htmlGeografiaLateral } from "./geografia";
+import { htmlMapaBrasil } from "./mapa";
 import { dadosAbertura } from "./abertura";
 import { htmlCalendario } from "./calendario";
 import { htmlComoCalculamos, htmlRodape, htmlVantagem } from "./grafico";
@@ -48,7 +49,7 @@ function htmlMiolo(vista: VistaNoite): string {
 	}
 	const esquerda = `${htmlGraficoNoite(vista)}${htmlAnaliseFinal(vista)}${htmlMomentos(vista)}`;
 	const direita = `${htmlPesquisasNoite(vista)}${htmlPesquisasUrnas(vista)}${htmlGeografiaLateral(vista)}`;
-	return `<header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header><div class="a-noite-grade"><div class="a-noite-esq">${esquerda}<!--/esq--></div><div class="a-noite-dir">${direita}<!--/dir--></div></div>${htmlGeografiaCheia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
+	return `<header class="a-topo"><p class="a-marca">Presidente 2026, 2º turno</p>${htmlPlacar(vista)}${htmlCaboApuracao(vista)}</header>${htmlMapaBrasil(vista)}<div class="a-noite-grade"><div class="a-noite-esq">${esquerda}<!--/esq--></div><div class="a-noite-dir">${direita}<!--/dir--></div></div>${htmlGeografiaCheia(vista)}${htmlCalendario(vista.pesquisas, vista.agora, { encolher: true })}${htmlComoCalculamos()}${htmlRodape()}`;
 }
 
 export function fragmentoPagina(payload: PayloadPesquisas, agora: Date, noite?: NoiteDaPagina) {
@@ -75,7 +76,7 @@ export function documentoPesquisas(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Presidente 2026 · 2º turno</title>
-${htmlMetasPrevia(vista.pesquisas, agora, origem)}
+${htmlMetasPrevia(vista, origem)}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/tres-semanas.css">
 </head>
@@ -91,6 +92,7 @@ ${htmlMiolo(vista)}
 <script type="module" src="/js/grafico.js"></script>
 <script src="/js/movimento.js" defer></script>
 <script src="/js/ao-vivo.js" defer></script>
+<script type="module" src="/js/mapa.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "aef83da97b4846a5ae996d5d11524a11"}'></script>
 </body>
 </html>`;

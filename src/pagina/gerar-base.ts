@@ -1,23 +1,12 @@
-import type { PayloadPesquisas } from "../pesquisas/tipos";
 import { empacotarBase, inflate, lerGlifos, quantizar } from "./og-codec";
-import { rgbaCartao } from "./previa-png-media";
+import { rgbaCartao, type Cartao } from "./previa-png-media";
 import { ALTURA_PREVIA, LARGURA_PREVIA } from "./previa";
 
 type BuscaAssets = {
 	fetch(input: URL): Promise<Response>;
 };
 
-const SEM: PayloadPesquisas = {
-	hoje: "2026-10-15",
-	fase: "pesquisas",
-	atualizadoEm: "2026-10-15T21:16:00.000Z",
-	registroTse: { geradoEm: null, etag: null },
-	media: null,
-	serieMedia: [],
-	publicadas: [],
-	liberadasSemNumero: [],
-	vemAi: [],
-};
+const SEM: Cartao = { esquerda: "flavio", placar: null, convite: true };
 
 /** Cartão sem média e sem a contagem de dias, já na paleta do Worker. */
 export async function baseSemBruta(assets: BuscaAssets, requestUrl: string): Promise<Uint8Array> {

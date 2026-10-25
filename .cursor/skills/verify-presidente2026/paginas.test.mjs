@@ -36,6 +36,8 @@ test("diff da noite com a fase pesquisas não conta como noite exercitada", () =
 	assert.equal(noiteSemSuperficie(["src/pagina/encerrada.ts"], "pesquisas"), true);
 	assert.equal(noiteSemSuperficie(["src/pagina/geografia.ts"], "ao_vivo"), false);
 	assert.equal(noiteSemSuperficie(["public/js/ao-vivo.js"], "pesquisas"), true);
+	assert.equal(noiteSemSuperficie(["src/pagina/mapa.ts"], "pesquisas"), true);
+	assert.equal(noiteSemSuperficie(["public/js/mapa.js"], "pesquisas"), true);
 	assert.equal(noiteSemSuperficie(["src/pagina/grafico.ts"], "pesquisas"), false);
 });
 

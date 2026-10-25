@@ -91,6 +91,7 @@
 		const resposta = await fetch("/api/apuracao", { headers: { accept: "application/json" } });
 		if (!resposta.ok) return;
 		const dados = await resposta.json();
+		document.dispatchEvent(new CustomEvent("apuracao:leitura", { detail: dados }));
 		const fase = typeof dados.fase === "string" ? dados.fase : "";
 		const versao = String(dados.versao ?? "");
 		const atualFase = main.getAttribute("data-fase") || "";
@@ -113,7 +114,11 @@
 		if (faixa && typeof corpo.faixa === "string") faixa.outerHTML = corpo.faixa;
 		const trocaMiolo = mudouFase || (aoVivo && mudouVersao);
 		if (trocaMiolo && miolo && typeof corpo.miolo === "string") {
+			// O mapa atravessa a troca e guarda a UF tocada.
+			const mapa = miolo.querySelector("[data-mapa-br]");
 			miolo.innerHTML = corpo.miolo;
+			const novo = miolo.querySelector("[data-mapa-br]");
+			if (mapa && novo) novo.replaceWith(mapa);
 			if (registroAberto && window.CSS && CSS.escape) {
 				const botao = miolo.querySelector(
 					`.a-pesq[data-registro="${CSS.escape(registroAberto)}"]`,

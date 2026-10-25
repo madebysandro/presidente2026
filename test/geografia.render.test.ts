@@ -1,15 +1,13 @@
 /**
- * Aceite #19: regiões agregadas e a UF que virou, no HTML da página.
+ * Aceite #19: exterior, comparecimento, colégios e comparação dos turnos no HTML da página.
+ * A grade de UFs saiu com o mapa do Brasil (#131).
  * Seam: htmlGeografia — o mesmo HTML que o documento ao vivo inclui.
  */
 import { describe, expect, it } from "vitest";
-import { liderDeVotos, votosUf1t } from "../src/apuracao/referencia-1t";
-import { SIGLAS_UF } from "../src/config/ufs";
 import type {
 	Cargo,
 	ColegioPresidente,
 	EstadoApuracao,
-	RegiaoApuracao,
 	UfPresidente,
 } from "../src/dominio/tipos";
 import { documentoPesquisas } from "../src/pagina/documento";
@@ -66,27 +64,6 @@ function uf(
 	};
 }
 
-function regiao(
-	nome: string,
-	pct22: number,
-	pct13: number,
-	virou: boolean,
-): RegiaoApuracao {
-	const lider = pct13 > pct22 ? "13" : "22";
-	return {
-		nome,
-		apurado: 40,
-		validos: 1_000,
-		candidatos: [
-			{ n: "22", nome: "FLAVIO", votos: pct22, pct: pct22 },
-			{ n: "13", nome: "LULA", votos: pct13, pct: pct13 },
-		],
-		lider,
-		lider1t: virou ? (lider === "13" ? "22" : "13") : lider,
-		virou,
-	};
-}
-
 function estado(extra: Partial<EstadoApuracao> = {}): EstadoApuracao {
 	return {
 		versao: 3,
@@ -108,79 +85,6 @@ function vista(apuracao: EstadoApuracao): VistaNoite {
 		historico: [],
 	};
 }
-
-describe("estados e regiões (#19)", () => {
-	it("mostra a região agregada e marca só a UF que virou", () => {
-		const html = htmlGeografia(
-			vista(
-				estado({
-					ufs: {
-						ba: uf("ba", "Bahia", 30, 70),
-						sp: uf("sp", "São Paulo", 60, 40),
-						zz: uf("zz", "Exterior", 55, 45),
-					},
-					analise: {
-						regioes: [
-							regiao("Nordeste", 39, 61, true),
-							regiao("Sudeste", 55, 45, false),
-						],
-						ufsQueViraram: [
-							{ uf: "ba", nome: "Bahia", lider: "13", lider1t: "22" },
-						],
-					},
-				}),
-			),
-		);
-
-		const nordeste = html.match(/data-regiao="Nordeste"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(nordeste).toContain("Nordeste");
-		expect(nordeste).toContain("Lula");
-		expect(nordeste).toContain("61,00%");
-		expect(nordeste).toContain("39,00%");
-		expect(nordeste).toContain("viraram");
-
-		const sudeste = html.match(/data-regiao="Sudeste"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(sudeste).toContain("Flávio");
-		expect(sudeste).toContain("55,00%");
-		expect(sudeste).not.toContain("viraram");
-
-		const bahia = html.match(/data-uf="ba"[\s\S]*?<\/div>/)?.[0] ?? "";
-		expect(bahia).toContain("BA");
-		expect(bahia).toContain("Lula");
-		expect(bahia).toContain("viraram");
-
-		const saoPaulo = html.match(/data-uf="sp"[\s\S]*?<\/div>/)?.[0] ?? "";
-		expect(saoPaulo).toContain("SP");
-		expect(saoPaulo).toContain("Flávio");
-		expect(saoPaulo).not.toContain("viraram");
-
-		const exterior = html.match(/data-uf="zz"[\s\S]*?<\/div>/)?.[0] ?? "";
-		expect(exterior).toContain("EXT");
-		expect(exterior).toContain("Flávio");
-
-		expect(html).toContain("Flávio 1 · Lula 1 UFs lideradas · 1 viraram");
-		expect(bahia).not.toContain("a-uf-1t");
-		expect(html).toContain("Grade de UFs em 7 colunas");
-		for (const sigla of SIGLAS_UF) expect(html).toContain(`data-uf="${sigla}"`);
-		expect(html).not.toMatch(/undefined|NaN/);
-	});
-
-	it("sem seções apuradas, a grade mostra o 1º turno apagado", () => {
-		let flavio = 0;
-		let lula = 0;
-		for (const sigla of SIGLAS_UF) {
-			if (sigla === "zz") continue;
-			const lider = liderDeVotos(votosUf1t(sigla));
-			if (lider === "22") flavio += 1;
-			if (lider === "13") lula += 1;
-		}
-		const html = htmlGeografia(vista(estado()));
-		expect(html).toContain(`Flávio liderou em ${flavio} UFs e Lula em ${lula}`);
-		expect(html).toContain("apagado, até as primeiras seções");
-		expect(html.match(/a-uf-1t/g)).toHaveLength(SIGLAS_UF.length);
-		expect(html).not.toMatch(/undefined|NaN/);
-	});
-});
 
 const COLEGIOS = [
 	"São Paulo",
@@ -422,9 +326,10 @@ describe("colégios, exterior e transferência (#19)", () => {
 		expect(brasil).toContain("+4,72 p.p. na abstenção");
 	});
 
-	it("empilha exterior, comparecimento, estados, colégios e comparação", () => {
+	it("empilha exterior, comparecimento, colégios e comparação, sem a grade de UFs (#131)", () => {
 		const html = htmlGeografia(vista(estado()));
-		const ordem = ["exterior", "comparecimento", "estados", "colegios", "transferencia"];
+		expect(html).not.toContain('data-geo="estados"');
+		const ordem = ["exterior", "comparecimento", "colegios", "transferencia"];
 		let anterior = -1;
 		for (const id of ordem) {
 			const indice = html.indexOf(`data-geo="${id}"`);
@@ -446,8 +351,7 @@ describe("página ao vivo (#19)", () => {
 		expect(html.indexOf("a-placar")).toBeGreaterThan(-1);
 		expect(html.indexOf('data-geo="exterior"')).toBeGreaterThan(html.indexOf("a-placar"));
 		expect(html.indexOf('data-geo="comparecimento"')).toBeGreaterThan(html.indexOf('data-geo="exterior"'));
-		expect(html.indexOf('data-geo="estados"')).toBeGreaterThan(html.indexOf('data-geo="comparecimento"'));
-		expect(html.indexOf('data-geo="colegios"')).toBeGreaterThan(html.indexOf('data-geo="estados"'));
+		expect(html.indexOf('data-geo="colegios"')).toBeGreaterThan(html.indexOf('data-geo="comparecimento"'));
 		expect(html.indexOf('data-geo="transferencia"')).toBeGreaterThan(html.indexOf('data-geo="colegios"'));
 		expect(html.indexOf("última semana")).toBeGreaterThan(html.indexOf('data-geo="transferencia"'));
 		expect(html).not.toMatch(/undefined|NaN/);
@@ -466,33 +370,8 @@ describe("página ao vivo (#19)", () => {
 describe("um padrão só para sem 2º turno (#129 W6)", () => {
 	const SEM2 = '<span class="a-sem2">sem 2º</span>';
 
-	it("UF, região, exterior e colégio sem 2º turno levam o mesmo token", () => {
-		const html = htmlGeografia(
-			vista(
-				estado({
-					ufs: { sp: uf("sp", "São Paulo", 60, 40) },
-					analise: {
-						regioes: [
-							{ ...regiao("Norte", 0, 0, false), lider: null, lider1t: null, candidatos: [] },
-							regiao("Sudeste", 55, 45, false),
-						],
-					},
-				}),
-			),
-		);
-
-		const bahia = html.match(/data-uf="ba"[\s\S]*?<\/div>/)?.[0] ?? "";
-		expect(bahia).toContain(SEM2);
-		expect(html).toMatch(/class="a-uf[^"]*a-uf-1t" data-uf="ba"/);
-		const saoPaulo = html.match(/data-uf="sp"[\s\S]*?<\/div>/)?.[0] ?? "";
-		expect(saoPaulo).not.toContain("a-sem2");
-
-		const norte = html.match(/data-regiao="Norte"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(norte).toContain(SEM2);
-		expect(norte).not.toContain("sem apuração");
-		expect(norte).not.toContain("—");
-		const sudeste = html.match(/data-regiao="Sudeste"[\s\S]*?<\/li>/)?.[0] ?? "";
-		expect(sudeste).not.toContain("a-sem2");
+	it("exterior e colégio sem 2º turno levam o mesmo token", () => {
+		const html = htmlGeografia(vista(estado({ ufs: { sp: uf("sp", "São Paulo", 60, 40) } })));
 
 		const exterior = html.match(/data-geo="exterior"[\s\S]*?<\/section>/)?.[0] ?? "";
 		const flavioExt = exterior.match(/data-lado="22"[\s\S]*?<\/li>/)?.[0] ?? "";

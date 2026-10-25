@@ -1,5 +1,4 @@
 import { decode as decodificarJpeg } from "jpeg-js";
-import type { PayloadPesquisas } from "../pesquisas/tipos";
 import {
 	carimbar,
 	escreverSprite,
@@ -7,7 +6,7 @@ import {
 	type Glifos,
 	type Sprite,
 } from "./og-codec";
-import { ALTURA_PREVIA, LARGURA_PREVIA, textoUm } from "./previa";
+import { ALTURA_PREVIA, LARGURA_PREVIA, type LadoPrevia, type PlacarPrevia } from "./previa";
 
 type Cor = [number, number, number, number];
 
@@ -237,21 +236,47 @@ function pintar(
 	carimbar(dst, LARGURA_PREVIA, ALTURA_PREVIA, atlas, atlasW, sprite, x, y);
 }
 
+type Quem = LadoPrevia["quem"];
+
+const LADOS: Record<Quem, { fundo: "fundoFlavio" | "fundoLula"; cor: number; py: number; outro: Quem }> = {
+	flavio: { fundo: "fundoFlavio", cor: cor32(45, 108, 223), py: 0.16, outro: "lula" },
+	lula: { fundo: "fundoLula", cor: cor32(224, 89, 42), py: 0.18, outro: "flavio" },
+};
+
+/** O que o cartão desenha: quem fica à esquerda, o placar e o convite das pesquisas. */
+export type Cartao = {
+	esquerda: Quem;
+	placar: PlacarPrevia | null;
+	convite: boolean;
+};
+
+const MIN_LADO = 420;
+
+function pintarLado(dst: Uint8Array, rec: Fotos, quem: Quem, x: number, largura: number): void {
+	const { fundo, cor, py } = LADOS[quem];
+	lado(dst, rec[fundo], rec[quem], x, largura, cor, py);
+}
+
 export async function rgbaCartao(
 	assets: BuscaAssets,
 	requestUrl: string,
 	glifos: Glifos,
 	atlas: Uint8Array,
-	payload: PayloadPesquisas,
+	cartao: Cartao,
 	dias: number | null,
 ): Promise<Uint8Array> {
 	const rec = await carregarFotos(assets, requestUrl);
-	const media = payload.media;
-	const esquerda = media ? Math.round((LARGURA_PREVIA * media.vf) / 100) : (LARGURA_PREVIA - 4) / 2;
-	const larguraEsquerda = Math.min(LARGURA_PREVIA - 280, Math.max(280, esquerda));
+	const { placar } = cartao;
+	const direita = LADOS[cartao.esquerda].outro;
+	const esquerda = placar
+		? Math.round((LARGURA_PREVIA * placar.esquerda.pct) / 100)
+		: (LARGURA_PREVIA - 4) / 2;
+	const larguraEsquerda = Math.min(LARGURA_PREVIA - MIN_LADO, Math.max(MIN_LADO, esquerda));
 	const larguraDireita = LARGURA_PREVIA - larguraEsquerda - 4;
+	const centroEsquerda = larguraEsquerda / 2;
+	const centroDireita = larguraEsquerda + 4 + larguraDireita / 2;
 	const dst = new Uint8Array(LARGURA_PREVIA * ALTURA_PREVIA * 4);
-	lado(dst, rec.fundoFlavio, rec.flavio, 0, larguraEsquerda, cor32(45, 108, 223), 0.16);
+	pintarLado(dst, rec, cartao.esquerda, 0, larguraEsquerda);
 	preencher(
 		new Uint32Array(dst.buffer, dst.byteOffset, dst.byteLength / 4),
 		LARGURA_PREVIA,
@@ -259,7 +284,7 @@ export async function rgbaCartao(
 		4,
 		cor32(255, 255, 255),
 	);
-	lado(dst, rec.fundoLula, rec.lula, larguraEsquerda + 4, larguraDireita, cor32(224, 89, 42), 0.18);
+	pintarLado(dst, rec, direita, larguraEsquerda + 4, larguraDireita);
 	const atlasW = glifos.atlasW;
 	escreverSprite(dst, LARGURA_PREVIA, ALTURA_PREVIA, atlas, atlasW, glifos.turno, 36, 28, "esquerda");
 	if (dias != null) {
@@ -275,50 +300,39 @@ export async function rgbaCartao(
 			"direita",
 		);
 	}
-	escreverSprite(
-		dst,
-		LARGURA_PREVIA,
-		ALTURA_PREVIA,
-		atlas,
-		atlasW,
-		glifos.flavio,
-		larguraEsquerda / 2,
-		360,
-		"centro",
-	);
-	escreverSprite(
-		dst,
-		LARGURA_PREVIA,
-		ALTURA_PREVIA,
-		atlas,
-		atlasW,
-		glifos.lula,
-		larguraEsquerda + 4 + larguraDireita / 2,
-		360,
-		"centro",
-	);
-	if (media) {
-		escreverTexto(
-			(sprite, x, y) => pintar(dst, atlas, atlasW, sprite, x, y),
-			glifos.g150,
-			glifos.kern150,
-			textoUm(media.vf),
-			null,
-			larguraEsquerda / 2,
-			400,
+	for (const [quem, centro] of [
+		[cartao.esquerda, centroEsquerda],
+		[direita, centroDireita],
+	] as const) {
+		escreverSprite(
+			dst,
+			LARGURA_PREVIA,
+			ALTURA_PREVIA,
+			atlas,
+			atlasW,
+			glifos[quem],
+			centro,
+			360,
 			"centro",
 		);
-		escreverTexto(
-			(sprite, x, y) => pintar(dst, atlas, atlasW, sprite, x, y),
-			glifos.g150,
-			glifos.kern150,
-			textoUm(media.vl),
-			null,
-			larguraEsquerda + 4 + larguraDireita / 2,
-			400,
-			"centro",
-		);
-	} else {
+	}
+	if (placar) {
+		for (const [texto, centro] of [
+			[placar.esquerda.texto, centroEsquerda],
+			[placar.direita.texto, centroDireita],
+		] as const) {
+			escreverTexto(
+				(sprite, x, y) => pintar(dst, atlas, atlasW, sprite, x, y),
+				glifos.g150,
+				glifos.kern150,
+				texto,
+				null,
+				centro,
+				400,
+				"centro",
+			);
+		}
+	} else if (cartao.convite) {
 		const frase = glifos.frase;
 		const faixaW = frase.w + 52;
 		const faixaH = frase.h + 24;

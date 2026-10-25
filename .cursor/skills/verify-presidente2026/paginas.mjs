@@ -21,7 +21,9 @@ const NOITE = [
 	"src/pagina/ao-vivo.ts",
 	"src/pagina/encerrada.ts",
 	"src/pagina/geografia.ts",
+	"src/pagina/mapa.ts",
 	"public/js/ao-vivo.js",
+	"public/js/mapa.js",
 ];
 
 export function htmlDoisTurno(titulo, fase, temMarca) {
