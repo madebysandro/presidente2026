@@ -12,13 +12,16 @@ export type TomUf = {
 };
 
 export type DescricaoUf = {
+	lado: TomUf["lado"];
 	classe: string;
 	estilo: string;
 	rotulo: string;
 	claro: boolean;
 	aria: string;
-	dados: Record<"f" | "l" | "vf" | "vl" | "ap" | "sa" | "s", string>;
+	dados: Record<"pctF" | "pctL" | "votosF" | "votosL" | "apurado" | "secoesApuradas" | "secoes", string>;
 };
+
+export const p2: Intl.NumberFormat;
 
 export function tomDaUf(uf: UfDoMapa | undefined): TomUf;
 

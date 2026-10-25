@@ -87,15 +87,11 @@
 		if (typeof dados.fase === "string" && dados.fase) faixa.setAttribute("data-fase", dados.fase);
 	}
 
-	// O mapa (#131) lê as ufs da mesma leitura de /api/apuracao.
-	function avisarMapa(dados) {
-		document.dispatchEvent(new CustomEvent("apuracao", { detail: dados }));
-	}
-
 	async function sincronizar() {
 		const resposta = await fetch("/api/apuracao", { headers: { accept: "application/json" } });
 		if (!resposta.ok) return;
 		const dados = await resposta.json();
+		document.dispatchEvent(new CustomEvent("apuracao:leitura", { detail: dados }));
 		const fase = typeof dados.fase === "string" ? dados.fase : "";
 		const versao = String(dados.versao ?? "");
 		const atualFase = main.getAttribute("data-fase") || "";
@@ -106,7 +102,6 @@
 		if (!mudouFase && !mudouVersao) {
 			aplicarRelogio(document.querySelector("[data-faixa]"), dados);
 			tique();
-			avisarMapa(dados);
 			return;
 		}
 		const fragmento = await fetch("/?fragmento=1", { headers: { accept: "application/json" } });
@@ -119,7 +114,7 @@
 		if (faixa && typeof corpo.faixa === "string") faixa.outerHTML = corpo.faixa;
 		const trocaMiolo = mudouFase || (aoVivo && mudouVersao);
 		if (trocaMiolo && miolo && typeof corpo.miolo === "string") {
-			// O mapa vivo atravessa a troca: guarda o estado tocado e anima a mudança de cor.
+			// O mapa (#131) atravessa a troca e guarda a UF tocada.
 			const mapa = miolo.querySelector("[data-mapa-br]");
 			miolo.innerHTML = corpo.miolo;
 			const novo = miolo.querySelector("[data-mapa-br]");
@@ -135,7 +130,6 @@
 		if (corpo.versao != null) main.setAttribute("data-versao", String(corpo.versao));
 		document.documentElement.scrollTop = scroll;
 		tique();
-		avisarMapa(dados);
 	}
 
 	tique();

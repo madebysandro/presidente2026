@@ -1213,7 +1213,7 @@ body {
 	.a-lados li { padding: 10px 12px; }
 }
 
-/* Palco do ao vivo (#131): placar e cabo à esquerda, mapa do Brasil à direita. */
+/* Palco do ao vivo (#131): placar e cabo à esquerda, mapa à direita. */
 .a-palco {
 	display: grid;
 	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -1300,9 +1300,12 @@ body {
 .a-br-f { fill: color-mix(in srgb, var(--f) var(--t, 100%), var(--branco)); }
 .a-br-l { fill: color-mix(in srgb, var(--l) var(--t, 100%), var(--branco)); }
 .a-br-vazio { fill: url(#a-br-hach); }
+.a-br-hach-fundo { fill: color-mix(in srgb, var(--regua) 55%, var(--papel)); }
+.a-br-hach-traco { stroke: var(--regua); stroke-width: 3; }
 .a-br-empate { fill: var(--regua); }
 
-.a-br-foco .a-br-uf:not(.on) { opacity: 0.55; }
+.a-br-foco .a-br-uf:not(.on),
+.a-br-foco .a-br-rot:not(.on) { opacity: 0.55; }
 
 .a-br-uf.on,
 .a-br-uf:focus-visible {
@@ -1313,13 +1316,14 @@ body {
 
 .a-br-rot {
 	fill: var(--branco);
+	transition: opacity 300ms ease;
 	font-weight: 800;
 	text-anchor: middle;
 	pointer-events: none;
 }
 
-.a-br-s { font-size: 19px; letter-spacing: 0.02em; }
-.a-br-p { font-size: 14px; font-weight: 600; }
+.a-br-s { font-size: 22px; letter-spacing: 0.02em; }
+.a-br-p { font-size: 17px; font-weight: 600; }
 
 .a-br-claro,
 .a-br-fora { fill: var(--tinta); }
@@ -1372,7 +1376,7 @@ body {
 
 .a-br-cor-f { background: var(--f); }
 .a-br-cor-l { background: var(--l); }
-.a-br-cor-vazio { background: #e3e7ed; }
+.a-br-cor-vazio { background: color-mix(in srgb, var(--regua) 55%, var(--papel)); }
 
 .a-br-tip {
 	position: absolute;
@@ -1394,7 +1398,11 @@ body {
 .a-br-tip b,
 .a-br-det b { font-size: 15px; }
 
-.a-br-tip-ap { color: #aab3c0; }
+.a-br-det small { font-weight: 600; color: var(--suave); }
+
+.a-br-tip small { font-weight: 600; opacity: 0.7; }
+
+.a-br-tip-ap { color: color-mix(in srgb, var(--branco) 65%, var(--tinta)); }
 
 .a-br-tip-barra {
 	display: flex;
@@ -1402,7 +1410,7 @@ body {
 	margin: 4px 0;
 	overflow: hidden;
 	border-radius: 2px;
-	background: #3a4452;
+	background: color-mix(in srgb, var(--branco) 15%, var(--tinta));
 }
 
 .a-br-tip-barra i {
@@ -1438,13 +1446,14 @@ body {
 	.a-br-det .a-br-tip-ap { color: var(--suave); }
 	.a-br-det .a-br-tip-barra { background: var(--regua); }
 	.a-br-det .a-br-tip-linha { color: var(--tinta); }
-	.a-br-s { font-size: 36px; }
-	.a-br-p { font-size: 30px; }
+	.a-br-s { font-size: 38px; }
+	.a-br-p { font-size: 32px; }
 	.a-br-fora .a-br-p { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.a-br-uf,
+	.a-br-rot,
 	.a-br-tip-barra i { transition: none; }
 	.a-br-pulso { display: none; animation: none; }
 }

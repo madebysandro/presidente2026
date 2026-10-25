@@ -172,10 +172,10 @@ describe("mapa do Brasil no ao vivo (#131)", () => {
 		const html = htmlMapaBrasil(vista());
 		const sp = caminho(html, "sp");
 		expect(sp).toContain('aria-label="São Paulo: Flávio 52,30%, Lula 47,70%, 12,50% apurado"');
-		expect(sp).toContain('data-f="52.30"');
-		expect(sp).toContain('data-l="47.70"');
-		expect(sp).toContain('data-ap="12.50"');
-		expect(sp).toContain('data-vf="5230"');
+		expect(sp).toContain('data-pct-f="52.30"');
+		expect(sp).toContain('data-pct-l="47.70"');
+		expect(sp).toContain('data-apurado="12.50"');
+		expect(sp).toContain('data-votos-f="5230"');
 		expect(sp).toContain('tabindex="0"');
 		expect(html).toMatch(/<text[^>]*data-rotulo="sp"[^>]*><tspan class="a-br-s"[^>]*>SP<\/tspan><tspan class="a-br-p"[^>]*>52%<\/tspan>/);
 		expect(caminho(html, "mg")).toContain("Minas Gerais: sem seções apuradas");
@@ -217,12 +217,12 @@ describe("o mapa na página (#131)", () => {
 		const js = await asset("/js/ao-vivo.js");
 		expect(js).toContain("[data-mapa-br]");
 		expect(js).toMatch(/replaceWith\(mapa\)/);
-		expect(js).toMatch(/new CustomEvent\("apuracao", \{ detail: dados \}\)/);
+		expect(js).toMatch(/new CustomEvent\("apuracao:leitura", \{ detail: dados \}\)/);
 	});
 
 	it("o cliente do mapa não mexe no cabo e respeita reduzir movimento", async () => {
 		const js = await asset("/js/mapa.js");
-		expect(js).toContain('addEventListener("apuracao"');
+		expect(js).toContain('addEventListener("apuracao:leitura"');
 		expect(js).toContain("prefers-reduced-motion");
 		expect(js).not.toContain("a-cabo");
 		const css = await asset("/css/tres-semanas.css");

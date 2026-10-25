@@ -1,16 +1,16 @@
 /**
- * Tom, rótulo e textos de cada UF no mapa do ao vivo (#131).
+ * Tom, rótulo e textos de cada UF no mapa do ao vivo.
  * O servidor (src/pagina/mapa.ts) e o cliente (mapa.js) usam o mesmo cálculo.
  */
 const FLAVIO = "22";
 const LULA = "13";
-/** Tom mínimo de quem lidera por pouco; a partir de MARGEM_CHEIA p.p. a cor sai cheia. */
+/** Tom de quem lidera por pouco; a partir de MARGEM_CHEIA p.p. a cor sai cheia. */
 const TOM_MIN = 40;
 const MARGEM_CHEIA = 30;
-/** Abaixo deste tom o rótulo sai escuro para ler sobre a cor clara. */
+/** Abaixo deste tom o rótulo sai escuro, para ler sobre a cor clara. */
 const TOM_ROTULO_CLARO = 90;
 
-const p2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const p2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function numero(valor) {
 	return typeof valor === "number" && Number.isFinite(valor) ? valor : 0;
@@ -35,27 +35,29 @@ export function tomDaUf(uf) {
 
 export function descreverUf(nome, uf) {
 	const tom = tomDaUf(uf);
-	const pf = numero(candidato(uf, FLAVIO)?.pct);
-	const pl = numero(candidato(uf, LULA)?.pct);
-	const ap = numero(uf?.apurado);
+	const pctF = numero(candidato(uf, FLAVIO)?.pct);
+	const pctL = numero(candidato(uf, LULA)?.pct);
+	const apurado = numero(uf?.apurado);
 	const dados = {
-		f: pf.toFixed(2),
-		l: pl.toFixed(2),
-		vf: String(numero(candidato(uf, FLAVIO)?.votos)),
-		vl: String(numero(candidato(uf, LULA)?.votos)),
-		ap: ap.toFixed(2),
-		sa: String(numero(uf?.secoesApuradas)),
-		s: String(numero(uf?.secoes)),
+		pctF: pctF.toFixed(2),
+		pctL: pctL.toFixed(2),
+		votosF: String(numero(candidato(uf, FLAVIO)?.votos)),
+		votosL: String(numero(candidato(uf, LULA)?.votos)),
+		apurado: apurado.toFixed(2),
+		secoesApuradas: String(numero(uf?.secoesApuradas)),
+		secoes: String(numero(uf?.secoes)),
 	};
 	if (tom.lado == null) {
-		return { classe: "a-br-vazio", estilo: "", rotulo: "", claro: false, aria: `${nome}: sem seções apuradas`, dados };
+		return { lado: null, classe: "a-br-vazio", estilo: "", rotulo: "", claro: false, aria: `${nome}: sem seções apuradas`, dados };
 	}
+	const empate = tom.lado === "empate";
 	return {
-		classe: tom.lado === "empate" ? "a-br-empate" : `a-br-${tom.lado}`,
-		estilo: tom.lado === "empate" ? "" : `--t:${tom.tom}%`,
+		lado: tom.lado,
+		classe: empate ? "a-br-empate" : `a-br-${tom.lado}`,
+		estilo: empate ? "" : `--t:${tom.tom}%`,
 		rotulo: `${Math.round(tom.pctLider)}%`,
-		claro: tom.lado === "empate" || tom.tom < TOM_ROTULO_CLARO,
-		aria: `${nome}: Flávio ${p2.format(pf)}%, Lula ${p2.format(pl)}%, ${p2.format(ap)}% apurado`,
+		claro: empate || tom.tom < TOM_ROTULO_CLARO,
+		aria: `${nome}: Flávio ${p2.format(pctF)}%, Lula ${p2.format(pctL)}%, ${p2.format(apurado)}% apurado`,
 		dados,
 	};
 }
