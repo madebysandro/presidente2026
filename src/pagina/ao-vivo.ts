@@ -206,6 +206,14 @@ export function htmlPlacar(vista: VistaNoite): string {
 	return `<div class="a-veredito a-placar"><h1><span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span> <span class="a-x">a</span> <span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}</span></h1><p>${votos(lula?.votos)} a ${votos(flavio?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
+/** Líder e |votosL − votosF| em votos válidos (#137). */
+function htmlVantagemVotos(votosL: number | undefined, votosF: number | undefined): string {
+	if (votosL == null || votosF == null || !Number.isFinite(votosL) || !Number.isFinite(votosF)) return "";
+	if (votosL === votosF) return `<b class="a-cabo-vant" data-cabo-vantagem>Empate em votos</b>`;
+	const [nome, classe] = votosL > votosF ? [LULA.nome, "a-l"] : [FLAVIO.nome, "a-f"];
+	return `<b class="a-cabo-vant ${classe}" data-cabo-vantagem>${nome} +${nf.format(Math.abs(votosL - votosF))} votos</b>`;
+}
+
 export function htmlCaboApuracao(vista: VistaNoite): string {
 	const flavio = lado(FLAVIO.numero, vista);
 	const lula = lado(LULA.numero, vista);
@@ -232,7 +240,8 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 		: vista.fase === "encerrada"
 			? "Na urna, resultado final"
 			: "Na urna agora";
-	return `<p class="a-cabo-rotulo">${textoUrna}</p><div class="a-cabo-linha">${rosto(LULA).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo a-cabo-lf${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(FLAVIO).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	const vantagem = zerado ? "" : htmlVantagemVotos(lula?.votos, flavio?.votos);
+	return `<p class="a-cabo-rotulo"><span>${textoUrna}</span>${vantagem}</p><div class="a-cabo-linha">${rosto(LULA).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo a-cabo-lf${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(FLAVIO).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };

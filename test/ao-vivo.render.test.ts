@@ -17,7 +17,7 @@ import {
 	relogioDaPagina,
 	type VistaNoite,
 } from "../src/pagina/ao-vivo";
-import { documentoPesquisas } from "../src/pagina/documento";
+import { documentoPesquisas, fragmentoPagina } from "../src/pagina/documento";
 import type { FichaPublica, PayloadPesquisas, PesquisaPublicada } from "../src/pesquisas/tipos";
 
 const AGORA = new Date("2026-10-25T22:30:00.000Z");
@@ -733,7 +733,7 @@ describe("pacote Critiquito (#129)", () => {
 
 	it("W4: o cabo da noite engrossa e ganha o rótulo Na urna agora, sem perder a fatia do Flávio (#127)", async () => {
 		const cabo = htmlCaboApuracao(vista());
-		expect(cabo).toContain('<p class="a-cabo-rotulo">Na urna agora</p>');
+		expect(cabo).toContain('<p class="a-cabo-rotulo"><span>Na urna agora</span>');
 		expect(cabo.indexOf("a-cabo-rotulo")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
 		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
 		expect(cabo).not.toContain("data-base");
@@ -741,7 +741,7 @@ describe("pacote Critiquito (#129)", () => {
 		const final = htmlCaboApuracao(
 			vista({ fase: "encerrada", apuracao: estado({ fase: "encerrada", encerrada: true }) }),
 		);
-		expect(final).toContain('<p class="a-cabo-rotulo">Na urna, resultado final</p>');
+		expect(final).toContain('<p class="a-cabo-rotulo"><span>Na urna, resultado final</span>');
 
 		const zerado = htmlCaboApuracao(
 			vista({
@@ -750,7 +750,7 @@ describe("pacote Critiquito (#129)", () => {
 				}),
 			}),
 		);
-		expect(zerado).toContain('<p class="a-cabo-rotulo">Na urna, ainda sem votos</p>');
+		expect(zerado).toContain('<p class="a-cabo-rotulo"><span>Na urna, ainda sem votos</span></p>');
 
 		const css = await asset("/css/tres-semanas.css");
 		const altura = Number(regra(css, ".a-cabo-trilha .a-cabo").match(/height:\s*(\d+)px/)?.[1]);
@@ -819,5 +819,82 @@ describe("placar lado a lado no celular (#135)", () => {
 			expect(h1.indexOf('class="a-l"')).toBeLessThan(h1.indexOf('class="a-x"'));
 			expect(h1.indexOf('class="a-x"')).toBeLessThan(h1.indexOf('class="a-f"'));
 		}
+	});
+});
+
+describe("vantagem em votos na barra Na urna agora (#137)", () => {
+	function comVotos(votosL: number, votosF: number, extra: Partial<VistaNoite> = {}): VistaNoite {
+		const total = votosL + votosF;
+		return vista({
+			apuracao: estado({
+				cargos: {
+					presidente: cargo({
+						candidatos: [
+							candidato("22", votosF, (votosF / total) * 100),
+							candidato("13", votosL, (votosL / total) * 100),
+						],
+					}),
+				},
+			}),
+			...extra,
+		});
+	}
+
+	function vantagem(html: string): string {
+		return html.match(/<b class="a-cabo-vant[^"]*" data-cabo-vantagem>([^<]*)<\/b>/)?.[1] ?? "";
+	}
+
+	it("Flávio na frente: nome dele e |votosL − votosF| em pt-BR", () => {
+		const cabo = htmlCaboApuracao(comVotos(4_000_000, 4_298_000));
+		expect(vantagem(cabo)).toBe("Flávio +298.000 votos");
+		expect(cabo).toContain('class="a-cabo-vant a-f"');
+		expect(cabo.indexOf("data-cabo-vantagem")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
+	});
+
+	it("Lula na frente: nome dele e a diferença exata", () => {
+		const cabo = htmlCaboApuracao(vista());
+		expect(vantagem(cabo)).toBe("Lula +500.000 votos");
+		expect(cabo).toContain('class="a-cabo-vant a-l"');
+		expect(vantagem(htmlCaboApuracao(comVotos(1_234_567, 1_000_000)))).toBe("Lula +234.567 votos");
+	});
+
+	it("empate exato tem copy neutro, sem nome de candidato", () => {
+		const cabo = htmlCaboApuracao(comVotos(3_000_000, 3_000_000));
+		expect(vantagem(cabo)).toBe("Empate em votos");
+		expect(cabo).toContain('class="a-cabo-vant" data-cabo-vantagem');
+	});
+
+	it("no resultado final segue mostrando o líder", () => {
+		const cabo = htmlCaboApuracao(
+			vista({ fase: "encerrada", apuracao: estado({ fase: "encerrada", encerrada: true }) }),
+		);
+		expect(vantagem(cabo)).toBe("Lula +500.000 votos");
+	});
+
+	it("sem votos não inventa vantagem", () => {
+		const zerado = htmlCaboApuracao(
+			vista({
+				apuracao: estado({
+					cargos: { presidente: cargo({ apurado: 0, candidatos: [candidato("22", 0, 0), candidato("13", 0, 0)] }) },
+				}),
+			}),
+		);
+		expect(zerado).not.toContain("data-cabo-vantagem");
+		const semCargo = htmlCaboApuracao(vista({ apuracao: estado({ cargos: {} }) }));
+		expect(semCargo).not.toContain("data-cabo-vantagem");
+	});
+
+	it("o fragmento que o poller busca traz a vantagem da leitura nova, e o lado não inverte", () => {
+		const antes = comVotos(4_500_000, 4_000_000);
+		const depois = comVotos(5_000_000, 5_298_000);
+		const mioloAntes = fragmentoPagina(antes.pesquisas, AGORA, { apuracao: antes.apuracao, historico: HISTORICO }).miolo;
+		const mioloDepois = fragmentoPagina(depois.pesquisas, AGORA, {
+			apuracao: { ...depois.apuracao, versao: 3 },
+			historico: HISTORICO,
+		}).miolo;
+		expect(vantagem(mioloAntes)).toBe("Lula +500.000 votos");
+		expect(vantagem(mioloDepois)).toBe("Flávio +298.000 votos");
+		const linha = mioloDepois.match(/<div class="a-cabo-linha">[\s\S]*?<\/div><\/div>/)?.[0] ?? "";
+		expect(linha.indexOf('data-numero="13"')).toBeLessThan(linha.indexOf('data-numero="22"'));
 	});
 });

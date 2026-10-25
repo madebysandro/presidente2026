@@ -914,6 +914,26 @@ body {
 
 .a-cabo-rotulo + .a-cabo-linha { margin-top: 0; }
 
+.a-cabo-rotulo:has(.a-cabo-vant) {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 2px 12px;
+	margin-bottom: 4px;
+}
+
+.a-cabo-vant {
+	color: var(--tinta);
+	font: 800 16px/1.2 "Archivo", sans-serif;
+	letter-spacing: 0;
+	text-transform: none;
+	white-space: nowrap;
+}
+
+.a-cabo-vant.a-l { color: var(--l); }
+.a-cabo-vant.a-f { color: var(--f); }
+
 .a-placar p { margin-top: 6px; }
 
 .a-placar .a-rosto {
