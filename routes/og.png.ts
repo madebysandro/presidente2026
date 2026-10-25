@@ -19,7 +19,7 @@ export const GET = defineHandler(async (c) => {
 		encerrada: fase === "encerrada",
 	});
 	const png = await pngDaPrevia(
-		c.env.ASSETS as { fetch(input: URL): Promise<Response> },
+		{ fetch: (url: URL) => c.env.ASSETS.fetch(new Request(url)) },
 		c.req.url,
 		corpo,
 		agoraPagina,
