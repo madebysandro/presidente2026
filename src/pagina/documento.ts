@@ -76,7 +76,7 @@ export function documentoPesquisas(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Presidente 2026 · 2º turno</title>
-${htmlMetasPrevia(vista.pesquisas, agora, origem)}
+${htmlMetasPrevia(vista, origem)}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/tres-semanas.css">
 </head>

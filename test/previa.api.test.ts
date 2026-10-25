@@ -1,17 +1,21 @@
 /**
- * Aceite #66: GET /og.png desenha a prévia no Worker.
+ * Aceites #66 e #133: GET /og.png desenha a prévia no Worker.
  * Seam: GET / e GET /og.png.
  */
 import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratante.zip?inline";
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
+import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
+import { corposNoiteVirada } from "../src/apuracao/noite-sintetica";
 import type { Pesquisas } from "../src/pesquisas/pesquisas";
 import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
 import { fetchWorker } from "./helpers/fetch-worker";
+import { forcarConsulta, limparPoller, stubPoller } from "./helpers/poller";
 import { network } from "./helpers/rede";
+import { instalarTseFalso } from "./helpers/tse-falso";
 
 const CHAVE = "teste-chave-agente";
 
@@ -53,6 +57,14 @@ beforeEach(async () => {
 });
 
 describe("imagem da prévia (#66)", () => {
+	beforeEach(async () => {
+		await stubPoller().fixarAgora(ABERTURA_2T_MS - 60 * 60 * 1000);
+	});
+
+	afterEach(async () => {
+		await limparPoller();
+	});
+
 	it("sem média, a home convida e /og.png responde 1200×630 abaixo de 300 KB", async () => {
 		const html = await (await fetchWorker("http://presidente2026.test/")).text();
 		expect(meta(html, "og:description")).toBe("Acompanhe as pesquisas do 2º turno");
@@ -111,5 +123,42 @@ describe("imagem da prévia (#66)", () => {
 		const bytes = new Uint8Array(await segunda.arrayBuffer());
 		expect(medidasPng(bytes)).toEqual({ largura: 1200, altura: 630 });
 		expect(bytes.byteLength).toBeLessThan(300 * 1024);
+	});
+});
+
+describe("imagem da prévia na noite (#133)", () => {
+	afterEach(async () => {
+		await limparPoller();
+	});
+
+	it("ao vivo, a home e /og.png seguem a apuração e o ?v= anda com ela", async () => {
+		const tse = instalarTseFalso();
+		tse.usarNoiteSintetica(corposNoiteVirada());
+		await stubPoller().fixarAgora(ABERTURA_2T_MS + 60 * 60 * 1000);
+		await forcarConsulta();
+
+		const html = await (await fetchWorker("http://presidente2026.test/")).text();
+		const titulo = meta(html, "og:title") ?? "";
+		expect(titulo).toMatch(/^Lula \d+,\d{2}% x Flávio \d+,\d{2}% · 2º turno$/);
+		expect(meta(html, "og:description") ?? "").toMatch(/das seções apuradas$/);
+		const imagem = meta(html, "og:image") ?? "";
+		expect(imagem).toMatch(/^http:\/\/presidente2026\.test\/og\.png\?v=ao-\d+-\d+-\d+$/);
+
+		const primeira = await fetchWorker(imagem);
+		expect(primeira.status).toBe(200);
+		expect(primeira.headers.get("content-type")).toMatch(/^image\/png/);
+		const antes = new Uint8Array(await primeira.arrayBuffer());
+		expect(medidasPng(antes)).toEqual({ largura: 1200, altura: 630 });
+		expect(antes.byteLength).toBeLessThan(300 * 1024);
+
+		tse.avancar();
+		await forcarConsulta();
+		const depois = await (await fetchWorker("http://presidente2026.test/")).text();
+		expect(meta(depois, "og:image")).not.toBe(imagem);
+		const segunda = new Uint8Array(
+			await (await fetchWorker(meta(depois, "og:image") ?? "")).arrayBuffer(),
+		);
+		expect(medidasPng(segunda)).toEqual({ largura: 1200, altura: 630 });
+		expect(segunda).not.toEqual(antes);
 	});
 });

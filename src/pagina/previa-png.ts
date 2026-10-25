@@ -1,4 +1,3 @@
-import type { PayloadPesquisas } from "../pesquisas/tipos";
 import { contagemVotacao } from "./topo";
 import {
 	carimbarIndice,
@@ -10,7 +9,8 @@ import {
 	quantizar,
 	type Glifos,
 } from "./og-codec";
-import { LARGURA_PREVIA, versaoDaPrevia } from "./previa";
+import type { Cartao } from "./previa-png-media";
+import { ehNoite, LARGURA_PREVIA, placarDaPrevia, versaoDaPrevia, type FontePrevia } from "./previa";
 
 type BuscaAssets = {
 	fetch(input: URL): Promise<Response>;
@@ -85,23 +85,27 @@ async function pngSemMedia(assets: BuscaAssets, requestUrl: string, dias: number
 }
 
 /**
- * O PNG fica em memória por versão da média (dígitos + dias). A arte sem
- * média já vem indexada; o miolo com média desenha uma vez e reaproveita.
+ * O PNG fica em memória pela versão da prévia (os dígitos que ele mostra). A
+ * arte sem média já vem indexada; o resto desenha uma vez e reaproveita.
  */
 export async function pngDaPrevia(
 	assets: BuscaAssets,
 	requestUrl: string,
-	payload: PayloadPesquisas,
-	agora: Date,
+	fonte: FontePrevia,
 ): Promise<Uint8Array> {
-	const dias = contagemVotacao(agora).dias;
-	const chave = versaoDaPrevia(payload, dias);
+	const chave = versaoDaPrevia(fonte);
 	const pronto = cachePng.get(chave);
 	if (pronto) return pronto;
-	if (!payload.media) return guardar(chave, await pngSemMedia(assets, requestUrl, dias));
-	const fonte = await carregarGlifos(assets, requestUrl);
+	const placar = placarDaPrevia(fonte);
+	const noite = ehNoite(fonte);
+	if (!noite && !placar) {
+		return guardar(chave, await pngSemMedia(assets, requestUrl, contagemVotacao(fonte.agora).dias));
+	}
+	const dias = noite ? null : contagemVotacao(fonte.agora).dias;
+	const glifos = await carregarGlifos(assets, requestUrl);
 	const { rgbaCartao } = await import("./previa-png-media");
-	const rgba = await rgbaCartao(assets, requestUrl, fonte.meta, fonte.atlas, payload, dias);
+	const cartao: Cartao = { esquerda: placar?.esquerda.quem ?? "lula", placar, convite: false };
+	const rgba = await rgbaCartao(assets, requestUrl, glifos.meta, glifos.atlas, cartao, dias);
 	const q = quantizar(rgba, LARGURA_PREVIA, 630, CORES);
 	return guardar(chave, await codificarPng(q.indices, LARGURA_PREVIA, 630, q.paleta));
 }
