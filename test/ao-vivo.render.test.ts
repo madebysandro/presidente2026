@@ -734,7 +734,7 @@ describe("pacote Critiquito (#129)", () => {
 
 	it("W4: o cabo da noite engrossa e ganha o rótulo Na urna agora, sem perder a fatia do Flávio (#127)", async () => {
 		const cabo = htmlCaboApuracao(vista());
-		expect(cabo).toContain('<p class="a-cabo-rotulo"><span>Na urna agora</span>');
+		expect(cabo).toContain('<p class="a-cabo-rotulo a-cabo-rotulo-encontro"><span>Na urna agora</span>');
 		expect(cabo.indexOf("a-cabo-rotulo")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
 		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
 		expect(cabo).not.toContain("data-base");
@@ -742,7 +742,7 @@ describe("pacote Critiquito (#129)", () => {
 		const final = htmlCaboApuracao(
 			vista({ fase: "encerrada", apuracao: estado({ fase: "encerrada", encerrada: true }) }),
 		);
-		expect(final).toContain('<p class="a-cabo-rotulo"><span>Na urna, resultado final</span>');
+		expect(final).toContain('<p class="a-cabo-rotulo a-cabo-rotulo-encontro"><span>Na urna, resultado final</span>');
 
 		const zerado = htmlCaboApuracao(
 			vista({
@@ -849,7 +849,13 @@ describe("vantagem em votos na barra Na urna agora (#137)", () => {
 		const cabo = htmlCaboApuracao(comVotos(4_000_000, 4_298_000));
 		expect(vantagem(cabo)).toBe("Flávio +298.000 votos");
 		expect(cabo).toContain('class="a-cabo-vant a-f"');
-		expect(cabo.indexOf("data-cabo-vantagem")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
+		// #143: a vantagem fica no encontro das cores, junto da junta preta.
+		const encontro = cabo.match(/<div class="a-cabo-encontro" style="--x:([\d.]+)%">([\s\S]*?)<\/div>/);
+		expect(encontro?.[2]).toContain("data-cabo-vantagem");
+		expect(encontro?.[2]).toContain('class="a-cabo-junta"');
+		const f = Number(cabo.match(/class="a-cabo-f" style="width:([\d.]+)%"/)?.[1]);
+		expect(Number(encontro?.[1])).toBeCloseTo(100 - f, 2);
+		expect(cabo.match(/<p class="a-cabo-rotulo[^>]*>[\s\S]*?<\/p>/)?.[0]).not.toContain("data-cabo-vantagem");
 	});
 
 	it("Lula na frente: nome dele e a diferença exata", () => {
@@ -895,7 +901,7 @@ describe("vantagem em votos na barra Na urna agora (#137)", () => {
 		}).miolo;
 		expect(vantagem(mioloAntes)).toBe("Lula +500.000 votos");
 		expect(vantagem(mioloDepois)).toBe("Flávio +298.000 votos");
-		const linha = mioloDepois.match(/<div class="a-cabo-linha">[\s\S]*?<\/div><\/div>/)?.[0] ?? "";
+		const linha = mioloDepois.match(/<div class="a-cabo-linha">[\s\S]*?<p class="a-cabo-leg">/)?.[0] ?? "";
 		expect(linha.indexOf('data-numero="13"')).toBeLessThan(linha.indexOf('data-numero="22"'));
 	});
 });
