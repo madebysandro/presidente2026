@@ -1,6 +1,6 @@
 import { normalizarTexto } from "./texto";
 
-export function textoDaPagina(html: string): string {
+function textoDaPagina(html: string): string {
 	const semBloco = html
 		.replace(/<script[\s\S]*?<\/script>/gi, " ")
 		.replace(/<style[\s\S]*?<\/style>/gi, " ");
@@ -14,7 +14,7 @@ export function textoDaPagina(html: string): string {
 }
 
 /** Inteiro aceita 49%, 49 % e 49,0%. Decimal aceita 51,1% e zeros à direita (51,10%). */
-export function padraoNumero(n: number): RegExp | null {
+function padraoNumero(n: number): RegExp | null {
 	if (!Number.isFinite(n)) return null;
 	const [inteiro, frac = ""] = String(n).split(".");
 	if (!/^\d+$/.test(inteiro)) return null;
@@ -23,7 +23,7 @@ export function padraoNumero(n: number): RegExp | null {
 	return new RegExp(`(?<![\\d,])${miolo}\\s?%`, "g");
 }
 
-export function ocorrencias(texto: string, n: number): number[] {
+function ocorrencias(texto: string, n: number): number[] {
 	const padrao = padraoNumero(n);
 	if (!padrao) return [];
 	const indices: number[] = [];
@@ -37,7 +37,7 @@ export function ocorrencias(texto: string, n: number): number[] {
  * A matéria cita este nome no lugar do instituto, só no registro indicado.
  * Não é apelido geral do instituto.
  */
-export const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly string[]>> = {
+const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly string[]>> = {
 	"BR-00650/2026": ["Futura"],
 	"BR-03764/2026": ["Futura"],
 	"BR-07896/2026": ["França", "Franca"],
@@ -46,7 +46,7 @@ export const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly s
 };
 
 /** Os dois números ocupam trechos diferentes. 50% e 50% exigem duas ocorrências. */
-export function parPresente(texto: string, a: number, b: number): boolean {
+function parPresente(texto: string, a: number, b: number): boolean {
 	const fa = ocorrencias(texto, a);
 	if (a === b) return fa.length >= 2;
 	const fb = ocorrencias(texto, b);

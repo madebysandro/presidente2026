@@ -8,6 +8,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    ignore:
+      # #54 → #93 / #109: manter Vitest 5, sem voltar ao pool antigo.
+      - dependency-name: vitest
+        versions: ["<5.0.0"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

@@ -17,13 +17,13 @@ export function textoUm(n: number): string {
 	return um.format(n);
 }
 
-export function descricaoDaPrevia(payload: PayloadPesquisas): string {
+function descricaoDaPrevia(payload: PayloadPesquisas): string {
 	const media = payload.media;
 	if (!media) return SEM_MEDIA;
 	return `Flávio ${textoUm(media.vf)}% x Lula ${textoUm(media.vl)}%`;
 }
 
-export function tituloDaPrevia(payload: PayloadPesquisas): string {
+function tituloDaPrevia(payload: PayloadPesquisas): string {
 	if (!payload.media) return "Presidente 2026 · 2º turno";
 	return `${descricaoDaPrevia(payload)} · 2º turno`;
 }
@@ -36,10 +36,6 @@ export function versaoDaPrevia(payload: PayloadPesquisas, dias: number): string 
 	const vf = textoUm(media.vf).replace(/\D/g, "");
 	const vl = textoUm(media.vl).replace(/\D/g, "");
 	return `${quando}${vf}${vl}${media.n}-d${dias}`;
-}
-
-export function textoDias(dias: number): string {
-	return `${dias} ${dias === 1 ? "DIA" : "DIAS"} ATÉ 25/10`;
 }
 
 function meta(atributo: "property" | "name", nome: string, content: string): string {

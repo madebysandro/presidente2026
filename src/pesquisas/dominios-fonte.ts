@@ -1,5 +1,5 @@
 /** Lista fechada. Muda só por commit. Subdomínios entram. */
-export const DOMINIOS_FONTE = [
+const DOMINIOS_FONTE = [
 	"folha.uol.com.br",
 	"uol.com.br",
 	"g1.globo.com",

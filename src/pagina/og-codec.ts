@@ -72,7 +72,7 @@ function juntar(partes: Uint8Array[]): Uint8Array {
 	return out;
 }
 
-export async function deflate(dados: Uint8Array): Promise<Uint8Array> {
+async function deflate(dados: Uint8Array): Promise<Uint8Array> {
 	const stream = new ReadableStream<Uint8Array>({
 		start(controller) {
 			controller.enqueue(dados);

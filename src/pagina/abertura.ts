@@ -4,7 +4,7 @@ import type { PayloadPesquisas } from "../pesquisas/tipos";
 const INICIO_RETA = "2026-10-05";
 const FIM_RETA = "2026-10-25";
 
-export type PassoAbertura = {
+type PassoAbertura = {
 	data: string;
 	vf: number;
 	vl: number;

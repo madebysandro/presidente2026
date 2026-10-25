@@ -13,10 +13,10 @@ const p1 = new Intl.NumberFormat("pt-BR", {
 
 const n1 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
-export const URL_DADOS_ABERTOS =
+const URL_DADOS_ABERTOS =
 	"https://dadosabertos.tse.jus.br/dataset/pesquisas-eleitorais-2026";
 
-export const URL_PESQELE =
+const URL_PESQELE =
 	"https://pesqele-divulgacao.tse.jus.br/app/pesquisa/listar.xhtml";
 
 function diaNumero(iso: string): number {

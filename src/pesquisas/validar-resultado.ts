@@ -2,7 +2,7 @@ import { dataBrasilia } from "./liberacao";
 import { dominioFonteAceito } from "./dominios-fonte";
 import { validosDiferem } from "./validos";
 
-export const CODIGOS_RECUSA = [
+const CODIGOS_RECUSA = [
 	"registro_desconhecido",
 	"registro_nao_nacional",
 	"antes_da_liberacao",
@@ -17,11 +17,11 @@ export const CODIGOS_RECUSA = [
 	"fonte_nao_confirma",
 ] as const;
 
-export type CodigoRecusa = (typeof CODIGOS_RECUSA)[number];
+type CodigoRecusa = (typeof CODIGOS_RECUSA)[number];
 
 export type MotivoRecusa = { codigo: CodigoRecusa; detalhe: string };
 
-export type TotaisEnvio = {
+type TotaisEnvio = {
 	flavio: number;
 	lula: number;
 	brancoNulo: number | null;
@@ -195,7 +195,7 @@ export function urlFonteValida(fonte: string): boolean {
 	return dominioFonteAceito(url.hostname);
 }
 
-export function somaTotais(totais: TotaisEnvio): number | null {
+function somaTotais(totais: TotaisEnvio): number | null {
 	if (!naFaixa(totais.flavio) || !naFaixa(totais.lula)) return null;
 	if (totais.brancoNuloNaoSabe != null) {
 		if (!naFaixa(totais.brancoNuloNaoSabe)) return null;

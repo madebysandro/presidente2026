@@ -16,7 +16,7 @@ export const LULA = {
 } as const;
 
 /** 25/10/2026 00:00 em Brasília. */
-export const ALVO_VOTACAO_MS = Date.parse("2026-10-25T00:00:00-03:00");
+const ALVO_VOTACAO_MS = Date.parse("2026-10-25T00:00:00-03:00");
 
 const MESES = [
 	"janeiro",
@@ -56,17 +56,17 @@ export function porExtenso(iso: string): string {
 	return `${dia} de ${mes}`;
 }
 
-export function juntarNomes(nomes: readonly string[]): string {
+function juntarNomes(nomes: readonly string[]): string {
 	if (nomes.length <= 1) return nomes[0] ?? "";
 	if (nomes.length === 2) return `${nomes[0]} e ${nomes[1]}`;
 	return `${nomes.slice(0, -1).join(", ")} e ${nomes.at(-1)}`;
 }
 
-export function instanteMeiaNoiteBrasilia(iso: string): number {
+function instanteMeiaNoiteBrasilia(iso: string): number {
 	return Date.parse(`${iso}T00:00:00-03:00`);
 }
 
-export function textoAteLiberacao(alvoMs: number, agora: Date): string {
+function textoAteLiberacao(alvoMs: number, agora: Date): string {
 	const falta = alvoMs - agora.getTime();
 	if (!(falta > 0)) return "já liberadas";
 	const horas = Math.floor(falta / 3_600_000);

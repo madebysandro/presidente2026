@@ -1,6 +1,6 @@
 export type Classificacao = "nacional" | "estadual" | "ambigua";
 
-export type RegistroId = string;
+type RegistroId = string;
 
 export type RegistroPesquisas = {
 	registro: RegistroId;
@@ -135,7 +135,7 @@ export type AuditoriaAgente = {
 	motivos: string[];
 };
 
-export type FasePesquisas = "pesquisas" | "ao_vivo" | "encerrada";
+type FasePesquisas = "pesquisas" | "ao_vivo" | "encerrada";
 
 export type MediaPublica = {
 	data: string;
