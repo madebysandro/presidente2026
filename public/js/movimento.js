@@ -102,6 +102,7 @@ function balanco() {
 	if (calmo()) return;
 	const faixa = document.querySelector(".a-cabo-f");
 	if (!faixa || faixa.getAnimations().some((animacao) => animacao.id === "continuo")) return;
+	if (!faixa.hasAttribute("data-base") || !faixa.hasAttribute("data-margem")) return;
 	const base = Number(faixa.getAttribute("data-base"));
 	const margem = Number(faixa.getAttribute("data-margem"));
 	if (!Number.isFinite(base) || !Number.isFinite(margem)) return;
