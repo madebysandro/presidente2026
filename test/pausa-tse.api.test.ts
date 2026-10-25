@@ -6,9 +6,11 @@ import { fetchWorker } from "./helpers/fetch-worker";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PAUSA_TSE } from "../src/apuracao/pausa-tse";
 import {
+	congelarAlarmes,
 	forcarConsulta,
 	lerAlarme,
 	limparPoller,
+	restaurarAlarmes,
 	stubPoller,
 } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
@@ -41,6 +43,7 @@ describe("Poller — pausa do TSE até 19h (#124)", () => {
 	let tse: ReturnType<typeof instalarTseFalso>;
 
 	beforeEach(async () => {
+		await congelarAlarmes();
 		await fixarRelogio(DENTRO);
 		tse = instalarTseFalso();
 		tse.definirCacheControl("max-age=10");
@@ -48,6 +51,7 @@ describe("Poller — pausa do TSE até 19h (#124)", () => {
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
+		await restaurarAlarmes();
 		await limparPoller();
 	});
 

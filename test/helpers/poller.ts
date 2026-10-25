@@ -34,3 +34,39 @@ export async function cancelarAlarme(): Promise<void> {
 		await state.storage.deleteAlarm();
 	});
 }
+
+type AlarmeStorage = Pick<
+	DurableObjectStorage,
+	"setAlarm" | "getAlarm" | "deleteAlarm"
+>;
+
+/**
+ * Troca o alarme do storage por um em memória: o Miniflare dispara na hora um alarme
+ * cujo horário já passou no relógio real, e os testes com relógio fixo em 25/10/2026
+ * rodariam ciclos extras. `restaurarAlarmes` desfaz.
+ */
+export async function congelarAlarmes(): Promise<void> {
+	await runInDurableObject(stubPoller(), async (_inst, state) => {
+		await state.storage.deleteAlarm();
+		let alarme: number | null = null;
+		const falso: AlarmeStorage = {
+			setAlarm: async (quando) => {
+				alarme = typeof quando === "number" ? quando : quando.getTime();
+			},
+			getAlarm: async () => alarme,
+			deleteAlarm: async () => {
+				alarme = null;
+			},
+		};
+		Object.assign(state.storage, falso);
+	});
+}
+
+export async function restaurarAlarmes(): Promise<void> {
+	await runInDurableObject(stubPoller(), async (_inst, state) => {
+		const storage = state.storage as Partial<AlarmeStorage>;
+		delete storage.setAlarm;
+		delete storage.getAlarm;
+		delete storage.deleteAlarm;
+	});
+}

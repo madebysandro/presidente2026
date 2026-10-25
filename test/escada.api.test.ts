@@ -6,9 +6,11 @@ import { fetchWorker } from "./helpers/fetch-worker";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import {
+	congelarAlarmes,
 	forcarConsulta,
 	lerAlarme,
 	limparPoller,
+	restaurarAlarmes,
 	stubPoller,
 } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
@@ -45,6 +47,7 @@ describe("Poller — escada sem mudança (#24)", () => {
 	let tse: ReturnType<typeof instalarTseFalso>;
 
 	beforeEach(async () => {
+		await congelarAlarmes();
 		vi.spyOn(Date, "now").mockReturnValue(ABERTURA_2T_MS);
 		await stubPoller().fixarAgora(ABERTURA_2T_MS);
 		tse = instalarTseFalso();
@@ -54,6 +57,7 @@ describe("Poller — escada sem mudança (#24)", () => {
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
+		await restaurarAlarmes();
 		await limparPoller();
 	});
 

@@ -10,9 +10,11 @@ import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import { alvosCiclo } from "../src/apuracao/escopos";
 import { corposNoiteVirada } from "../src/apuracao/noite-sintetica";
 import {
+	congelarAlarmes,
 	forcarConsulta,
 	lerAlarme,
 	limparPoller,
+	restaurarAlarmes,
 	stubPoller,
 } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
@@ -145,11 +147,13 @@ describe("fixtures do 6258 zerado e do 1º turno", () => {
 describe("GET /api/apuracao — ciclo 6258 (#17)", () => {
 	let tse: ReturnType<typeof instalarTseFalso>;
 
-	beforeEach(() => {
+	beforeEach(async () => {
+		await congelarAlarmes();
 		tse = instalarTseFalso();
 	});
 
 	afterEach(async () => {
+		await restaurarAlarmes();
 		await limparPoller();
 	});
 
