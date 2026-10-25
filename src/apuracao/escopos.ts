@@ -15,9 +15,9 @@ export const COLEGIOS_MAIORES = [
 	{ uf: "rs", cd: "88013", nome: "Porto Alegre" },
 ] as const;
 
-export type AlvoBrasil = { chave: "presidente"; tipo: "brasil" };
-export type AlvoUf = { chave: `uf:${string}`; tipo: "uf"; uf: string };
-export type AlvoMunicipio = {
+type AlvoBrasil = { chave: "presidente"; tipo: "brasil" };
+type AlvoUf = { chave: `uf:${string}`; tipo: "uf"; uf: string };
+type AlvoMunicipio = {
 	chave: string;
 	tipo: "municipio";
 	uf: string;
@@ -59,7 +59,7 @@ export function urlDoAlvo(cfg: ConfigTse, alvo: AlvoCiclo): string {
 	return urlMunicipio(cfg, alvo.uf, alvo.cd);
 }
 
-export function urlMunicipio(cfg: ConfigTse, uf: string, cd: string): string {
+function urlMunicipio(cfg: ConfigTse, uf: string, cd: string): string {
 	const ele6 = cfg.eleicaoFederal.padStart(6, "0");
 	return `${cfg.base}/ele2026/${cfg.eleicaoFederal}/dados/${uf}/${uf}${cd}-c0001-e${ele6}-u.json`;
 }

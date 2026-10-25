@@ -6,7 +6,7 @@ export type CorpoSuspensao = {
 
 export type RecusaSuspensao = { codigo: CodigoSuspensao; detalhe: string };
 
-export type CodigoSuspensao =
+type CodigoSuspensao =
 	| "registro_desconhecido"
 	| "decisao_invalida"
 	| "motivo_ausente"
@@ -59,7 +59,7 @@ export function lerMotivoReativacao(bruto: unknown): { motivo: string } | { moti
 	return { motivo };
 }
 
-export function decisaoUrlValida(fonte: string): boolean {
+function decisaoUrlValida(fonte: string): boolean {
 	let url: URL;
 	try {
 		url = new URL(fonte);

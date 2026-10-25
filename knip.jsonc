@@ -1,0 +1,45 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"entry": [
+		// O Void descobre handlers, crons, objetos e configs por convenção.
+		"routes/**/*.ts",
+		"crons/**/*.ts",
+		"durable-objects/**/*.ts",
+		"void.config.ts",
+		"env.ts",
+		// O HTML inclui estes módulos por URL, fora do grafo de imports do servidor.
+		"public/js/ao-vivo.js",
+		"public/js/calendario.js",
+		"public/js/grafico.js",
+		"public/js/movimento.js",
+		"public/js/relogio.js",
+		// Declara os tipos de intencao.mjs para os consumidores TypeScript.
+		"public/js/intencao.d.mts",
+		// O esbuild recebe estes caminhos como strings nos scripts de operação.
+		"scripts/ensaio-corpos.ts",
+		"scripts/fixture-pagina.ts",
+		"scripts/plano-b-entrada.ts",
+		"src/pagina/gerar-base.ts",
+		// Chamado manualmente conforme AGENTS.md e CONTRIBUTING.md.
+		".cursor/skills/verify-presidente2026/verificar.mjs"
+	],
+	"vitest": {
+		// A config lê worker.vitest.json, gerado só depois do build. Analisar
+		// como fonte evita executar o runtime; entradas e setup ficam explícitos.
+		"config": [],
+		"entry": ["vitest.config.ts", "test/**/*.test.ts", "test/setup.ts"]
+	},
+	"ignoreDependencies": [
+		// cloudflare:workers e cloudflare:test são módulos nativos do workerd.
+		"cloudflare",
+		// Dependência do Void cujo contrato é exercitado diretamente pelos testes.
+		"@void/deploy-cloudflare"
+	],
+	"ignoreIssues": {
+		// O Void exige default; rotas e testes usam o mesmo objeto pelo nome.
+		"durable-objects/poller.ts": ["duplicates"],
+		"durable-objects/pesquisas.ts": ["duplicates"]
+	},
+	// Gerado pelo esbuild em scripts/preparar-og.mjs e importado na mesma execução.
+	"ignoreUnresolved": ["/tmp/gerar-base.mjs"]
+}

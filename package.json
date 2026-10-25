@@ -19,6 +19,8 @@
 	"scripts": {
 		"postinstall": "node scripts/patch-vpw-self-scheduled.mjs",
 		"prepare:void": "void prepare",
+		"typecheck": "void prepare && tsc --noEmit",
+		"knip": "knip --no-progress",
 		"dev": "vite",
 		"build": "void prepare && tsc --noEmit && vite build && node scripts/ponte-preview.mjs",
 		"test": "node --test scripts/alerta-workers-builds.test.mjs scripts/workflows.test.mjs scripts/plano-b.test.mjs .cursor/skills/verify-presidente2026/paginas.test.mjs && void prepare && vite build && node --test scripts/pre-deploy.test.mjs scripts/ponte-preview.test.mjs scripts/void-contrato.test.mjs && node scripts/preparar-teste-void.mjs && vitest run && node --test scripts/modo-deploy.test.mjs",
@@ -36,12 +38,13 @@
 	"devDependencies": {
 		"@cloudflare/vitest-plugin": "^1.4.5",
 		"@msw/cloudflare": "^0.2.0",
+		"@shuding/opentype.js": "^1.4.0-beta.0",
 		"@types/node": "^26.6.5",
 		"esbuild": "0.28.2",
+		"knip": "^6.43.0",
 		"miniflare": "5.20261012.0-beta",
 		"msw": "^3.0.3",
 		"playwright-core": "^1.64.1",
-		"@shuding/opentype.js": "^1.4.0-beta.0",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.4",
 		"vitest": "^5.0.3",

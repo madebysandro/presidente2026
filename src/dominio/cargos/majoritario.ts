@@ -8,7 +8,7 @@ type CandBruto =
 type ParBruto =
 	DadosBrutosCargo["carg"][number]["agr"][number]["par"][number];
 
-export function candidatoDe(
+function candidatoDe(
 	cand: CandBruto,
 	par: ParBruto,
 	agr: string,
@@ -31,7 +31,7 @@ export function candidatoDe(
 }
 
 /** Totais do arquivo de cargo (eleitorado, comparecimento, válidos…). */
-export function totaisDe(dados: DadosBrutosCargo): TotaisCargo {
+function totaisDe(dados: DadosBrutosCargo): TotaisCargo {
 	return {
 		eleitorado: Number(dados.e?.te) || 0,
 		eleitoradoApurado: Number(dados.e?.est) || 0,

@@ -25,7 +25,7 @@ export type Candidato = {
 	foto: string;
 };
 
-export type Agremiacao = {
+type Agremiacao = {
 	sigla: string;
 	nome: string;
 	federacao: boolean;
@@ -48,14 +48,14 @@ export type Cargo = {
 	agremiacoes?: Agremiacao[];
 };
 
-export type DisputaInterna = {
+type DisputaInterna = {
 	sigla: string;
 	ultimo: { n: string; nome: string; votos: number };
 	proximo: { n: string; nome: string; votos: number };
 	diferenca: number;
 };
 
-export type AnaliseProporcional = {
+type AnaliseProporcional = {
 	disputaInterna: DisputaInterna[];
 };
 
@@ -101,7 +101,7 @@ export type ColegioPresidente = {
 	} | null;
 };
 
-export type FaseApuracao = "pesquisas" | "ao_vivo" | "encerrada";
+type FaseApuracao = "pesquisas" | "ao_vivo" | "encerrada";
 
 export type ViradaNoite = {
 	de: string;
@@ -140,7 +140,7 @@ export type FatiaEleitorado = {
 	abstencao: number;
 };
 
-export type EstimativaFluxo = {
+type EstimativaFluxo = {
 	selo: "ESTIMATIVA";
 	flavioVotos: number;
 	lulaVotos: number;
@@ -172,16 +172,11 @@ export type UfVirou = {
 	lider1t: string;
 };
 
-export type {
-	AnaliseMajoritaria,
-	TendenciaCandidato,
-	PrimeiroTurnoAnalise,
-	RefCandidatoAnalise,
-} from "./majoritarias/analise";
+export type { TendenciaCandidato } from "./majoritarias/analise";
 
 import type { AnaliseMajoritaria } from "./majoritarias/analise";
 
-export type AnaliseApuracao = {
+type AnaliseApuracao = {
 	majoritarias?: Record<string, AnaliseMajoritaria>;
 	proporcionais?: Record<string, AnaliseProporcional>;
 	/** Fora do 2º turno nacional. Permanece vazio. */

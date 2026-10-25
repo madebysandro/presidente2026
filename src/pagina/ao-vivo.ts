@@ -65,14 +65,14 @@ function horaTse(vista: VistaNoite): string {
 	return /^\d{2}:\d{2}:\d{2}$/.test(hora) ? hora : "sem horário";
 }
 
-export function textoIdade(consultadoEm: number | null | undefined, agora: number): string {
+function textoIdade(consultadoEm: number | null | undefined, agora: number): string {
 	if (consultadoEm == null || !Number.isFinite(consultadoEm)) return "ainda sem leitura";
 	const segundos = Math.max(0, Math.round((agora - consultadoEm) / 1000));
 	if (segundos < 60) return "agora há pouco";
 	return `há ${Math.floor(segundos / 60)} min`;
 }
 
-export function textoFaixaProxima(
+function textoFaixaProxima(
 	fase: FaseApuracao,
 	proxima: number | null | undefined,
 	agora: number,
@@ -261,7 +261,7 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 	return `${intro}<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div>${htmlEstimativas(vista)}</section>`;
 }
 
-export function textoMomento(momento: MomentoNoite): string {
+function textoMomento(momento: MomentoNoite): string {
 	const ap = Number.isFinite(momento.ap) ? `${pf.format(momento.ap)}% das seções` : "sem percentual";
 	const hora = /^\d{2}:\d{2}:\d{2}$/.test(momento.hora) ? momento.hora : "sem horário";
 	const margem =

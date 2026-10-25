@@ -14,7 +14,7 @@ import type {
 
 const PROTOCOLO = /^BR(\d{5})(\d{4})$/;
 
-export function registroId(protocolo: string): string {
+function registroId(protocolo: string): string {
 	const m = PROTOCOLO.exec(protocolo.trim());
 	if (!m) throw new Error(`protocolo inválido: ${protocolo}`);
 	return `BR-${m[1]}/${m[2]}`;

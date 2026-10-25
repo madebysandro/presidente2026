@@ -100,7 +100,7 @@ function htmlFonte(fonte: string): string {
 	return ` <a href="${escHtml(fonte)}" target="_blank" rel="noopener">Ver fonte</a>`;
 }
 
-export function htmlDetalhe(pesquisa: PesquisaPublicada): string {
+function htmlDetalhe(pesquisa: PesquisaPublicada): string {
 	const publicados = pesquisa.validosPublicados
 		? `; o instituto publicou ${n1.format(pesquisa.validosPublicados.flavio)} a ${n1.format(pesquisa.validosPublicados.lula)}`
 		: "";

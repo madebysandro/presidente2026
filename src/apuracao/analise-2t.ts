@@ -26,7 +26,7 @@ function mapaVotos(leitura: Leitura): Record<string, [number, number, number]> {
 	return leitura.c.presidente?.c ?? {};
 }
 
-export function liderLeitura(leitura: Leitura): string | null {
+function liderLeitura(leitura: Leitura): string | null {
 	const entradas = Object.entries(mapaVotos(leitura));
 	if (!entradas.length) return null;
 	entradas.sort((a, b) => b[1][0] - a[1][0] || a[1][2] - b[1][2]);

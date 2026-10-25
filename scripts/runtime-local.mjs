@@ -31,7 +31,7 @@ function classesSqlite(config) {
 	return nomes;
 }
 
-export function objetosDuraveis(config) {
+function objetosDuraveis(config) {
 	const sqlite = classesSqlite(config);
 	const objetos = {};
 	for (const binding of config.durable_objects?.bindings ?? []) {

@@ -2,7 +2,7 @@ import { pontos } from "../pontos-hist";
 import type { Cargo, Leitura } from "../tipos";
 
 /** Candidato citado na análise (defensor / perseguidor / tendência). */
-export type RefCandidatoAnalise = {
+type RefCandidatoAnalise = {
 	n: string;
 	nome: string;
 	votos: number;
@@ -16,7 +16,7 @@ export type TendenciaCandidato = {
 	ppPor10pct: number;
 };
 
-export type PrimeiroTurnoAnalise = {
+type PrimeiroTurnoAnalise = {
 	/** Fatia % do restante; ≤0 = maioria; >100 = fora. */
 	fatiaPct: number | null;
 	status: "ok" | "maioria" | "fora";
@@ -47,7 +47,7 @@ function pontosCargo(hist: Leitura[], id: string): Leitura[] {
 }
 
 /** Votos válidos a apurar, supondo o mesmo comparecimento nas seções restantes. */
-export function validosRestantes(cargo: Cargo): number | null {
+function validosRestantes(cargo: Cargo): number | null {
 	const f = cargo.totais.eleitoradoApurado / cargo.totais.eleitorado;
 	return f > 0 && f < 1
 		? cargo.totais.validos / f - cargo.totais.validos
@@ -55,7 +55,7 @@ export function validosRestantes(cargo: Cargo): number | null {
 }
 
 /** Regressão linear % votos × % apurado → p.p. a cada 10% de seções. */
-export function tendenciaCand(
+function tendenciaCand(
 	hist: Leitura[],
 	cargoId: string,
 	n: string,
@@ -84,7 +84,7 @@ function refDe(
 /**
  * Calcula a análise de um cargo majoritário a partir do estado atual e do histórico.
  */
-export function analiseMajoritaria(
+function analiseMajoritaria(
 	cargo: Cargo,
 	hist: Leitura[],
 ): AnaliseMajoritaria | null {

@@ -5,7 +5,7 @@
 
 export type EscopoApurado = { apurado: number };
 
-export function secoesTotalizadas(apurado: number): boolean {
+function secoesTotalizadas(apurado: number): boolean {
 	return apurado >= 100;
 }
 
@@ -13,7 +13,7 @@ export function secoesTotalizadas(apurado: number): boolean {
  * Verdadeiro só quando todos os ids/UFs exigidos estão presentes
  * e cada um tem `apurado >= 100` (pst/pstn já normalizados).
  */
-export function apuracaoTotalizada(
+function apuracaoTotalizada(
 	estado: {
 		cargos: Record<string, EscopoApurado | undefined>;
 		ufs?: Record<string, EscopoApurado | undefined>;
@@ -34,7 +34,7 @@ export function apuracaoTotalizada(
 }
 
 /** `tf` do TSE: totalização final. Ausente ou `"s"` libera; `"n"` bloqueia. */
-export function tfPermiteEncerrar(tf: unknown): boolean {
+function tfPermiteEncerrar(tf: unknown): boolean {
 	if (tf == null || tf === "") return true;
 	return String(tf).toLowerCase() === "s";
 }
