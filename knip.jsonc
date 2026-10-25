@@ -11,10 +11,12 @@
 		"public/js/ao-vivo.js",
 		"public/js/calendario.js",
 		"public/js/grafico.js",
+		"public/js/mapa.js",
 		"public/js/movimento.js",
 		"public/js/relogio.js",
-		// Declara os tipos de intencao.mjs para os consumidores TypeScript.
+		// Declaram os tipos de intencao.mjs e mapa-tom.mjs para os consumidores TypeScript.
 		"public/js/intencao.d.mts",
+		"public/js/mapa-tom.d.mts",
 		// O esbuild recebe estes caminhos como strings nos scripts de operação.
 		"scripts/ensaio-corpos.ts",
 		"scripts/fixture-pagina.ts",
