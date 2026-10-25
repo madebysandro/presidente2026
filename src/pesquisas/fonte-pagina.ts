@@ -42,6 +42,7 @@ export const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly s
 	"BR-03764/2026": ["Futura"],
 	"BR-07896/2026": ["França", "Franca"],
 	"BR-08251/2026": ["Ideia"],
+	"BR-09726/2026": ["Futura"],
 };
 
 /** Os dois números ocupam trechos diferentes. 50% e 50% exigem duas ocorrências. */
