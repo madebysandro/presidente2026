@@ -337,19 +337,21 @@ describe("calendário da reta final (#11)", () => {
 	it("cards, barras e destaque põem Lula à esquerda e Flávio à direita, fixo (#139)", async () => {
 		const html = pagina();
 		const datafolha = celula(html, "2026-10-08");
-		expect(datafolha).toContain('<span class="a-mini"><i style="width:47.87%"></i><i style="width:52.13%"></i></span>');
+		expect(datafolha).toContain('<span class="a-mini"><i class="a-fatia-l" style="width:47.87%"></i><i class="a-fatia-f" style="width:52.13%"></i></span>');
 		expect(datafolha).toContain("<small>47,9 a 52,1</small>");
 		expect(datafolha).toContain('aria-label="Datafolha: Lula 47,9%, Flávio 52,1%"');
 
 		const vivo = bloco(html, 'data-detalhe-vivo=""');
-		expect(vivo).toContain('<div class="a-barra"><i style="width:48.89%"></i><i style="width:51.11%"></i></div>');
+		expect(vivo).toContain('<div class="a-barra"><i class="a-fatia-l" style="width:48.89%"></i><i class="a-fatia-f" style="width:51.11%"></i></div>');
 		expect(vivo.indexOf('class="a-l"')).toBeGreaterThan(-1);
 		expect(vivo.indexOf('class="a-l"')).toBeLessThan(vivo.indexOf('class="a-f"'));
 		expect(vivo.indexOf("data-dvl")).toBeLessThan(vivo.indexOf("data-dvf"));
 
 		const css = await (await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css")).text();
-		expect(css).toMatch(/\.a-mini i:first-child, \.a-barra i:first-child \{ background: var\(--l\); \}/);
-		expect(css).toMatch(/\.a-mini i:last-child, \.a-barra i:last-child \{ background: var\(--f\); \}/);
+		// #142: a cor da fatia vem do candidato, não da posição.
+		expect(css).toMatch(/\.a-fatia-l \{ background: var\(--l\); \}/);
+		expect(css).toMatch(/\.a-fatia-f \{ background: var\(--f\); \}/);
+		expect(css).not.toMatch(/\.a-barra i:(first|last)-child/);
 		expect(regra(css, ".a-leg-pub::before")).toMatch(/var\(--l\) 52%, var\(--f\) 52%/);
 		expect(regra(css, ".a-det-num .a-l .a-mini-rosto")).toContain("margin-left: 0");
 		expect(regra(css, ".a-det-num .a-f .a-mini-rosto")).toContain("margin-right: 0");

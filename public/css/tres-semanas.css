@@ -301,8 +301,9 @@ body {
 .a-pesq:focus-visible { outline: 2px solid var(--f); }
 
 .a-mini, .a-barra { display: flex; gap: 2px; height: 6px; }
-.a-mini i:first-child, .a-barra i:first-child { background: var(--l); }
-.a-mini i:last-child, .a-barra i:last-child { background: var(--f); }
+/* #142: cor presa ao candidato, não à posição — Lula laranja, Flávio azul. */
+.a-fatia-l { background: var(--l); }
+.a-fatia-f { background: var(--f); }
 .a-barra { height: 10px; }
 .a-barra i { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
@@ -935,6 +936,35 @@ body {
 .a-cabo-vant.a-l { color: var(--l); }
 .a-cabo-vant.a-f { color: var(--f); }
 
+/* #143: vantagem ancorada no encontro das cores, junta preta pulsando. */
+.a-cabo-rotulo-encontro { margin-bottom: 30px; }
+.a-cabo-encontro { position: absolute; inset: 0; pointer-events: none; }
+.a-cabo-encontro .a-cabo-vant {
+	position: absolute;
+	bottom: calc(100% + 6px);
+	left: clamp(0px, calc(var(--x) - 5.5em), calc(100% - 11em));
+	width: 11em;
+	text-align: center;
+}
+.a-cabo-junta {
+	position: absolute;
+	top: -4px;
+	bottom: -4px;
+	left: var(--x);
+	width: 4px;
+	border-radius: 2px;
+	background: var(--tinta);
+	transform: translateX(-50%);
+	animation: a-junta 1.6s ease-in-out infinite;
+}
+@keyframes a-junta {
+	0%, 100% { box-shadow: 0 0 0 0 rgb(23 32 43 / 45%); }
+	50% { box-shadow: 0 0 0 6px rgb(23 32 43 / 0%); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.a-cabo-junta { animation: none; }
+}
+
 .a-placar p { margin-top: 6px; }
 
 .a-placar .a-rosto {
@@ -942,6 +972,16 @@ body {
 	height: 1.1em;
 	vertical-align: -0.18em;
 }
+
+/* #141: Lula colado à esquerda, Flávio espelhado e colado à direita (foto na borda). */
+.a-placar h1:has(> .a-l) {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.3em;
+}
+.a-placar h1 > .a-f { text-align: right; }
+.a-placar h1 > .a-f .a-rosto { margin-right: 0; margin-left: 0.18em; }
 
 .a-cabo-media {
 	position: absolute;
@@ -1060,6 +1100,9 @@ body {
 		white-space: normal;
 	}
 	.a-placar .a-rosto { width: 1.25em; height: 1.25em; margin: 0; }
+	/* #141: no celular a foto do Flávio volta pro topo da coluna, igual à do Lula. */
+	.a-placar h1 > .a-f { display: grid; justify-items: center; }
+	.a-placar h1 > .a-f .a-rosto { grid-row: 1; margin: 0; }
 	.a-placar .a-eleito { margin-left: 0; }
 	.a-placar p { margin-inline: auto; }
 }

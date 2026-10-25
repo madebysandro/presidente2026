@@ -198,6 +198,18 @@ describe("resultado final (#20)", () => {
 		expect(empate).not.toContain("data-eleito");
 	});
 
+	it("placar espelha o Flávio: foto depois do nome e do %, na borda direita (#141)", () => {
+		const aoVivo = vista({
+			fase: "ao_vivo",
+			apuracao: estado({ fase: "ao_vivo", encerrada: false, proximaConsulta: AGORA.getTime() + 60_000 }),
+		});
+		const h1 = htmlPlacar(aoVivo).match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
+		const [lula = "", flavio = ""] = h1.split('class="a-x"');
+		expect(lula.indexOf("a-rosto")).toBeLessThan(lula.indexOf("<b>"));
+		expect(flavio.indexOf("a-rosto")).toBeGreaterThan(flavio.indexOf("<b>"));
+		expect(flavio.trimEnd()).toMatch(/<img class="a-rosto"[^>]*><\/span><\/h1>$/);
+	});
+
 	it("ao vivo e pesquisas não mostram o carimbo nem o selo", () => {
 		const aoVivo = vista({
 			fase: "ao_vivo",

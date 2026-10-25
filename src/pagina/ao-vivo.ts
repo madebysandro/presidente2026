@@ -203,7 +203,7 @@ export function htmlPlacar(vista: VistaNoite): string {
 	const secoes = pctVisitante(vista.fase, cargo.apurado);
 	const selo = (numero: string) =>
 		seloEleito(numero, flavio?.votos ?? Number.NaN, lula?.votos ?? Number.NaN, vista.fase);
-	return `<div class="a-veredito a-placar"><h1><span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span> <span class="a-x">a</span> <span class="a-f">${rosto(FLAVIO)}${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}</span></h1><p>${votos(lula?.votos)} a ${votos(flavio?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
+	return `<div class="a-veredito a-placar"><h1><span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span> <span class="a-x">a</span> <span class="a-f">${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}${rosto(FLAVIO)}</span></h1><p>${votos(lula?.votos)} a ${votos(flavio?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
 /** Líder e |votosL − votosF| em votos válidos (#137). */
@@ -241,7 +241,12 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 			? "Na urna, resultado final"
 			: "Na urna agora";
 	const vantagem = zerado ? "" : htmlVantagemVotos(lula?.votos, flavio?.votos);
-	return `<p class="a-cabo-rotulo"><span>${textoUrna}</span>${vantagem}</p><div class="a-cabo-linha">${rosto(LULA).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo a-cabo-lf${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(FLAVIO).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	// #143: a vantagem mora no encontro laranja/azul, com a junta preta pulsando.
+	const encontro = largura
+		? `<div class="a-cabo-encontro" style="--x:${n2(100 - Number(largura))}%">${vantagem}<i class="a-cabo-junta" aria-hidden="true"></i></div>`
+		: "";
+	const comEncontro = encontro ? " a-cabo-rotulo-encontro" : "";
+	return `<p class="a-cabo-rotulo${comEncontro}"><span>${textoUrna}</span></p><div class="a-cabo-linha">${rosto(LULA).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo a-cabo-lf${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}${encontro}</div>${rosto(FLAVIO).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };
