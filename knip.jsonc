@@ -14,9 +14,10 @@
 		"public/js/mapa.js",
 		"public/js/movimento.js",
 		"public/js/relogio.js",
-		// Declaram os tipos de intencao.mjs e mapa-tom.mjs para os consumidores TypeScript.
+		// Declaram os tipos de intencao.mjs, mapa-tom.mjs e mapa.js para os consumidores TypeScript.
 		"public/js/intencao.d.mts",
 		"public/js/mapa-tom.d.mts",
+		"public/js/mapa.d.ts",
 		// O esbuild recebe estes caminhos como strings nos scripts de operação.
 		"scripts/ensaio-corpos.ts",
 		"scripts/fixture-pagina.ts",
