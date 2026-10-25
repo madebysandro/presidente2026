@@ -104,8 +104,8 @@ function textoFaixaProxima(
 	return `Próxima consulta em ${min} min ${seg} s`;
 }
 
-function rotuloFase(fase: FaseApuracao): string {
-	if (fase === "ao_vivo") return "Ao vivo";
+function rotuloFase(fase: FaseApuracao, pausada: boolean): string {
+	if (fase === "ao_vivo") return pausada ? "Pausada" : "Ao vivo";
 	if (fase === "encerrada") return "Encerrada";
 	return "Aguardando 17h";
 }
@@ -148,7 +148,7 @@ export function htmlFaixa(vista: VistaNoite): string {
 	);
 	const pausa = pausaDaFaixa(vista);
 	const attrPausa = pausa
-		? `${attrNumero("data-pausa-ate", pausa.ate)} data-pausa-meio="${escHtml(pausa.meio)}" data-pausa-dir="${escHtml(pausa.dir)}"`
+		? `${attrNumero("data-pausa-ate", pausa.ate)} data-pausa-meio="${escHtml(pausa.meio)}" data-pausa-dir="${escHtml(pausa.dir)}" data-pausada`
 		: "";
 	const extra = arquivoZerado(vista.apuracao)
 		? `<span data-faixa-extra>arquivo zerado</span>`
@@ -163,7 +163,7 @@ export function htmlFaixa(vista: VistaNoite): string {
 		: vista.fase === "encerrada"
 			? "Resultado final · 2º turno"
 			: proxima;
-	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)}${attrPausa} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong>${rotuloFase(vista.fase)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
+	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)}${attrPausa} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong data-faixa-rotulo>${rotuloFase(vista.fase, pausa != null)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
 }
 
 function rosto(lado: typeof FLAVIO | typeof LULA): string {

@@ -14,6 +14,9 @@ import { fetchWorker } from "./helpers/fetch-worker";
 import { forcarConsulta, limparPoller, stubPoller } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
 
+/** A página lê o relógio de parede: na pausa do TSE (17h30–19h de 25/10) a faixa diz Pausada (#129). */
+const FAIXA_AO_VIVO = /<strong data-faixa-rotulo>(?:Ao vivo|Pausada)<\/strong>/;
+
 function instalarCdn() {
 	instalarCdnPesquisas({
 		pesquisa: bytesDeDataUrl(dia0PesquisaUrl),
@@ -64,7 +67,7 @@ describe("GET / segue a fase do servidor (#18)", () => {
 
 		const html = await htmlPagina();
 		const h1 = html.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
-		expect(html).toContain("Ao vivo");
+		expect(html).toMatch(FAIXA_AO_VIVO);
 		expect(h1.indexOf("Flávio")).toBeGreaterThanOrEqual(0);
 		expect(h1.indexOf("Flávio")).toBeLessThan(h1.indexOf("Lula"));
 		expect(h1.indexOf('data-numero="22"')).toBeLessThan(h1.indexOf('data-numero="13"'));
@@ -91,7 +94,7 @@ describe("GET / segue a fase do servidor (#18)", () => {
 			faixa: string;
 		};
 		expect(corpo.fase).toBe("ao_vivo");
-		expect(corpo.faixa).toContain("Ao vivo");
+		expect(corpo.faixa).toMatch(FAIXA_AO_VIVO);
 		expect(corpo.miolo).toContain("virou de Flávio para Lula");
 		expect(corpo.miolo).not.toContain("<!doctype");
 		expect(JSON.stringify(corpo)).not.toMatch(/undefined|NaN/);

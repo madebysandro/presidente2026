@@ -57,6 +57,9 @@
 		const consulta = faixa.querySelector("[data-faixa-proxima]");
 		// Pausa do TSE (#124): os textos vêm do servidor; passado `data-pausa-ate`, volta o normal.
 		const pausada = fase === "ao_vivo" && agora < numeroAttr(faixa, "data-pausa-ate");
+		faixa.toggleAttribute("data-pausada", pausada);
+		const rotulo = faixa.querySelector("[data-faixa-rotulo]");
+		if (rotulo && fase === "ao_vivo") rotulo.textContent = pausada ? "Pausada" : "Ao vivo";
 		if (linha) {
 			linha.textContent = pausada
 				? faixa.getAttribute("data-pausa-meio") || ""

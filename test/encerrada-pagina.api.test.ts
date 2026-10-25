@@ -13,6 +13,9 @@ import { fetchWorker } from "./helpers/fetch-worker";
 import { forcarConsulta, lerAlarme, limparPoller, stubPoller } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
 
+/** A página lê o relógio de parede: na pausa do TSE (17h30–19h de 25/10) a faixa diz Pausada (#129). */
+const FAIXA_AO_VIVO = /<strong data-faixa-rotulo>(?:Ao vivo|Pausada)<\/strong>/;
+
 type ApuracaoApi = {
 	fase?: string;
 	encerrada?: boolean;
@@ -147,7 +150,7 @@ describe("fase encerrada na API e na página (#20)", () => {
 		expect(corpo.fase).toBe("ao_vivo");
 
 		const html = await htmlPagina();
-		expect(html).toContain("Ao vivo");
+		expect(html).toMatch(FAIXA_AO_VIVO);
 		expect(html).toContain("data-estimativas");
 		expect(html).not.toContain("Resultado final");
 		expect(html).not.toContain("✓ Eleito");

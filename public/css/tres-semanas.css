@@ -844,6 +844,11 @@ body {
 	animation: a-pulso-faixa 2s ease-out infinite;
 }
 
+.a-faixa[data-pausada] .a-faixa-ponto {
+	background: var(--suave);
+	animation: none;
+}
+
 @keyframes a-pulso-faixa {
 	from { box-shadow: 0 0 0 0 rgb(31 157 85 / 50%); }
 	to { box-shadow: 0 0 0 6px rgb(31 157 85 / 0%); }

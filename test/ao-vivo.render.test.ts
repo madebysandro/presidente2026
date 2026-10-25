@@ -271,7 +271,7 @@ describe("pausa do TSE até 19h (#124)", () => {
 				apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: FIM }),
 			}),
 		);
-		expect(html).toContain("Ao vivo");
+		expect(html).not.toContain(">Ao vivo<");
 		expect(html).toContain("Apuração do TSE pausada até 19h");
 		expect(html).toContain("Próxima consulta às 19h (Belém/Brasília)");
 		expect(html).toContain(`data-pausa-ate="${FIM}"`);
@@ -626,5 +626,52 @@ describe("gráfico da noite com espaço próprio (#123)", () => {
 		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*position:\s*relative/);
 		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*height:\s*\d+px/);
 		expect(css).toMatch(/\.a-noite \.a-plot svg\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
+	});
+});
+
+describe("pacote Critiquito (#129)", () => {
+	const FIM = Date.parse(PAUSA_TSE.fim);
+
+	async function asset(caminho: string): Promise<string> {
+		const res = await env.ASSETS.fetch(`https://presidente2026.test${caminho}`);
+		expect(res.status).toBe(200);
+		return res.text();
+	}
+
+	function regra(css: string, seletor: string): string {
+		const escapado = seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		return css.match(new RegExp(`(?:^|\\n)${escapado}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+	}
+
+	it("B2: com o TSE pausado a faixa diz Pausada, sem o Ao vivo", () => {
+		const agora = new Date("2026-10-25T18:00:00-03:00");
+		const pausada = htmlFaixa(
+			vista({ agora, apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: FIM }) }),
+		);
+		expect(pausada).toContain("<strong data-faixa-rotulo>Pausada</strong>");
+		expect(pausada).toContain(" data-pausada");
+		expect(pausada).not.toContain("Ao vivo");
+		expect(pausada).toContain("Apuração do TSE pausada até 19h");
+
+		const depois = new Date("2026-10-25T19:05:00-03:00");
+		const viva = htmlFaixa(vista({ agora: depois, apuracao: estado({ consultadoEm: depois.getTime() }) }));
+		expect(viva).toContain("<strong data-faixa-rotulo>Ao vivo</strong>");
+		expect(viva).not.toContain("data-pausada");
+	});
+
+	it("B2: o ponto da pausa é cinza e não pulsa, e o cliente devolve o Ao vivo às 19h", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const ponto = regra(css, '.a-faixa[data-pausada] .a-faixa-ponto');
+		expect(ponto).toMatch(/background:\s*var\(--suave\)/);
+		expect(ponto).toMatch(/animation:\s*none/);
+		expect(css.indexOf('.a-faixa[data-pausada] .a-faixa-ponto')).toBeGreaterThan(
+			css.indexOf('.a-faixa[data-fase="ao_vivo"] .a-faixa-ponto'),
+		);
+
+		const js = await asset("/js/ao-vivo.js");
+		expect(js).toContain("[data-faixa-rotulo]");
+		expect(js).toMatch(/toggleAttribute\("data-pausada", pausada\)/);
+		expect(js).toContain('"Pausada"');
+		expect(js).toContain('"Ao vivo"');
 	});
 });
