@@ -161,6 +161,8 @@ No GitHub: Settings → Secrets and variables → Actions → `CHAVE_IMPORT`. Se
 
 A chave do agente leva `401` em `POST /api/import`. `CHAVE_IMPORT` leva `401` em `/api/agente/*`. O corpo é `{ "registros": [ … ] }`, só nacionais. Estadual e ambígua que já estavam no DO ficam. Nacional que sumiu do recorte fica `removido do TSE`.
 
+Depois que o poller marca a apuração como encerrada, o arquivo do 2º turno congela (#86). A trava vem do aviso do poller: ele chama `Pesquisas.congelar()` e reentrega até o ack. As escritas do agente e o apply dos imports leem só essa trava local; os imports ainda perguntam ao poller antes do download, fora do lock. Protocolo, reentrega e janela conhecida em [docs/operacao/aviso-encerramento.md](docs/operacao/aviso-encerramento.md). O cron e o primeiro acesso não baixam o ZIP (log `resultado=congelado`; o primeiro acesso só loga o acesso que descobriu a trava, não cada página depois dele). `POST /api/import` responde `409 {"erro":"apuracao_encerrada"}`. O `scripts/plano-b.mjs` trata esse `409` como fim esperado: loga `apuração encerrada` e sai `0`, e a Action do plano B fica verde. Outro `409` ou erro continua vermelho. As escritas do agente respondem o mesmo `409` e entram na auditoria. As leituras públicas não mudam.
+
 Dry-run local, sem rede e sem chave:
 
 ```bash
@@ -173,8 +175,9 @@ Cloudflare → Workers & Pages → `presidente2026` → Observability. Um evento
 
 | Campo | Valores |
 | --- | --- |
-| `evento` | `import`, `poller`, `agente` |
-| `resultado` | import: `aplicado`, `nao_modificado`, `erro`; poller: `ok`, `erro` (os de `erro` saem em nível error) |
+| `evento` | `import`, `poller`, `aviso`, `trava`, `agente` |
+| `resultado` | import: `aplicado`, `nao_modificado`, `congelado`, `erro`; poller: `ok`, `erro`; aviso: `entregue`, `erro`; trava: `gravada`, `erro` (os de `erro` saem em nível error) |
+| `origem` | trava: `aviso` (o poller avisou), `reconciliacao` (o pull de um import achou a apuração encerrada) |
 | `motivo` | import: `cron`, `primeiro_acesso`, `plano_b` |
 | `rota` | agente: caminho do template, sem ids nem query (ex. `/api/agente/suspensoes/:registro`) |
 | `status` | agente: status HTTP da resposta |

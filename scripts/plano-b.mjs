@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
+import { desfechoDoPost } from "./plano-b-desfecho.mjs";
 
 const RAIZ = join(import.meta.dirname, "..");
 const args = new Set(process.argv.slice(2));
@@ -64,6 +65,6 @@ const resposta = await fetch(url, {
 	},
 	body: corpo,
 });
-const texto = await resposta.text();
-console.log(`${resposta.status} ${texto.slice(0, 300)}`);
-process.exit(resposta.ok ? 0 : 1);
+const desfecho = desfechoDoPost(resposta.status, await resposta.text());
+console.log(desfecho.mensagem);
+process.exit(desfecho.ok ? 0 : 1);

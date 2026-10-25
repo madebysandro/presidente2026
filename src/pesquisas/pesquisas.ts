@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { env } from "void/env";
 import { withRuntimeEnv } from "void/_env";
+import { nomePoller } from "../config/poller-nome";
 import { urlsRegistroTse } from "./fontes";
 import { parseCsvTse } from "./csv";
 import {
@@ -27,6 +28,7 @@ import type {
 	Changeset,
 	Classificacao,
 	ContagensImport,
+	ImportCongelado,
 	MetaImport,
 	MotivoImport,
 	OrigemZip,
@@ -53,6 +55,9 @@ const LIMITE_POR_CHAVE = 30;
 const LIMITE_POR_IP = 5;
 
 const MOTIVOS: ReadonlySet<string> = new Set(["cron", "primeiro_acesso", "teste", "plano_b"]);
+
+const CONGELADO: ImportCongelado = { kind: "congelado" };
+const CHAVE_ENCERRADA = "apuracao_encerrada";
 
 type LinhaRegistro = {
 	registro: string;
@@ -129,6 +134,12 @@ export class Pesquisas extends DurableObject<Env> {
 		return { ok: true };
 	}
 
+	/** Aviso do poller (#86). Só abre → encerra; o ack sai depois da escrita, então ack = trava durável. */
+	async congelar(): Promise<{ congelada: true }> {
+		this.travar("aviso");
+		return { congelada: true };
+	}
+
 	async alarm(): Promise<void> {
 		await this.ctx.blockConcurrencyWhile(async () => {
 			this.garantirEsquema();
@@ -143,9 +154,10 @@ export class Pesquisas extends DurableObject<Env> {
 		return { pronto: true, registros: this.contarRegistros() };
 	}
 
-	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset> {
+	async importarDoTse(opts: { motivo: MotivoImport }): Promise<Changeset | ImportCongelado> {
 		if (!MOTIVOS.has(opts.motivo)) throw new Error("motivo inválido");
 		return medirImport(opts.motivo, async () => {
+			if (await this.encerradaReconciliando()) return CONGELADO;
 			this.garantirEsquema();
 			const metaBase = this.lerMeta();
 			const lote = await this.prepararLote(metaBase);
@@ -176,6 +188,7 @@ export class Pesquisas extends DurableObject<Env> {
 		| { status: 401; corpo: { erro: "nao_autorizado" } }
 		| { status: 429; corpo: { erro: "limite" } }
 		| { status: 422; corpo: { erro: "recorte_invalido" } }
+		| RespostaEncerrada
 	> {
 		const autorizado = await this.importAutorizado(input.bearer);
 		const ip = input.ip.trim() || "desconhecido";
@@ -194,9 +207,11 @@ export class Pesquisas extends DurableObject<Env> {
 		if (portao !== "segue") return portao;
 		const lido = lerRecorte(input.corpo);
 		if ("erro" in lido) return { status: 422, corpo: { erro: "recorte_invalido" } };
+		await this.encerradaReconciliando();
 		const changeset = await medirImport("plano_b", async () => {
 			this.garantirEsquema();
 			return this.ctx.blockConcurrencyWhile(async () => {
+				if (this.encerrada()) return CONGELADO;
 				const aplicar = montarAplicar({
 					anteriores: this.lerRegistros(),
 					lidos: lido.registros,
@@ -215,6 +230,7 @@ export class Pesquisas extends DurableObject<Env> {
 				return aplicar;
 			});
 		});
+		if (changeset.kind === "congelado") return respostaEncerrada();
 		if (changeset.kind !== "aplicar") throw new Error("plano B não devolve 304");
 		return {
 			status: 200,
@@ -229,7 +245,10 @@ export class Pesquisas extends DurableObject<Env> {
 	async garantirImportInicial(): Promise<void> {
 		this.garantirEsquema();
 		if (this.contarRegistros() > 0 || this.lerMeta() !== null) return;
+		// Já congelado: cada página vazia logaria `congelado` de novo.
+		if (this.encerrada()) return;
 		await medirImport("primeiro_acesso", async () => {
+			if (await this.encerradaReconciliando()) return CONGELADO;
 			const lote = await this.prepararLote(null);
 			if (lote === null) throw new Error("304 sem import anterior");
 			return this.ctx.blockConcurrencyWhile(async () => {
@@ -288,7 +307,9 @@ export class Pesquisas extends DurableObject<Env> {
 		};
 	}
 
-	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset {
+	/** Chame dentro do lock. O poller pode ter encerrado durante o download. */
+	private aplicarLote(motivo: MotivoImport, lote: LoteImport): Changeset | ImportCongelado {
+		if (this.encerrada()) return CONGELADO;
 		this.garantirEsquema();
 		const metaAtual = this.lerMeta();
 		if (!metaAindaEhBase(lote.metaBase, metaAtual)) {
@@ -398,13 +419,14 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		return this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/suspensoes",
 				metodo: "POST",
-				exigeChave: true,
+				registro: registroDoCorpo(input.corpo),
+				corpo: input.corpo,
 			});
 			if (portao !== "segue") return portao;
 			const lido = lerJson(input.corpo);
@@ -453,13 +475,14 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		return this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/suspensoes",
 				metodo: "DELETE",
-				exigeChave: true,
+				registro: input.registro,
+				corpo: input.corpo,
 			});
 			if (portao !== "segue") return portao;
 			if (!input.registro) {
@@ -564,13 +587,14 @@ export class Pesquisas extends DurableObject<Env> {
 		const agora = relogioDe(input.agora);
 		const chaveValida = await this.chaveConfereBearer(input.bearer);
 		const passagem = await this.ctx.blockConcurrencyWhile(async () => {
-			const portao = await this.aplicarPortao({
+			const portao = await this.aplicarPortaoEscrita({
 				chaveValida,
 				ip: input.ip,
 				em: agora.toISOString(),
 				rota: "/api/agente/resultados",
 				metodo: "POST",
-				exigeChave: true,
+				registro: registroDoCorpo(input.corpo),
+				corpo: input.corpo,
 			});
 			if (portao === "segue") return { kind: "segue" as const };
 			return { kind: "fim" as const, resposta: portao };
@@ -600,6 +624,15 @@ export class Pesquisas extends DurableObject<Env> {
 			}
 		}
 		return this.ctx.blockConcurrencyWhile(async () => {
+			const encerrada = await this.recusarSeEncerrada({
+				ip: input.ip,
+				em: agora.toISOString(),
+				rota: "/api/agente/resultados",
+				metodo: "POST",
+				registro: lido.registro,
+				corpo: input.corpo,
+			});
+			if (encerrada !== "segue") return encerrada;
 			this.garantirEsquema();
 			const deNovo = this.contextoRegistro(lido.registro);
 			const finais = [...lido.motivos];
@@ -748,6 +781,64 @@ export class Pesquisas extends DurableObject<Env> {
 			metodo,
 		});
 		return { status: 422, corpo: { motivos } };
+	}
+
+	/** Trava local, gravada pelo aviso do poller. Leitura síncrona: escrita nenhuma depende do poller no ar. */
+	private encerrada(): boolean {
+		return this.ctx.storage.kv.get(CHAVE_ENCERRADA) === true;
+	}
+
+	/** Monotônica e idempotente: só a primeira gravação deixa rastro no log. */
+	private travar(origem: "aviso" | "reconciliacao"): void {
+		if (this.encerrada()) return;
+		this.ctx.storage.kv.put(CHAVE_ENCERRADA, true);
+		registrar({ evento: "trava", resultado: "gravada", origem });
+	}
+
+	/**
+	 * Pull dos imports, fora do lock: cobre o aviso perdido. Poller fora não
+	 * derruba o import; loga e segue sem trava. Nunca nas rotas do agente.
+	 */
+	private async encerradaReconciliando(): Promise<boolean> {
+		if (this.encerrada()) return true;
+		try {
+			const poller = this.env.POLLER.getByName(nomePoller(String(this.env.ELEICAO_FEDERAL)));
+			if (await poller.apuracaoEncerrada()) this.travar("reconciliacao");
+		} catch (erro) {
+			registrar({
+				evento: "trava",
+				resultado: "erro",
+				origem: "reconciliacao",
+				erro: erro instanceof Error ? erro.message : String(erro),
+			});
+		}
+		return this.encerrada();
+	}
+
+	/** Chame dentro do lock. Portão das escritas do agente: com a apuração encerrada, 409 na auditoria. */
+	private async aplicarPortaoEscrita(
+		input: EscritaAgente & { chaveValida: boolean },
+	): Promise<"segue" | RespostaNegacao | RespostaEncerrada> {
+		const portao = await this.aplicarPortao({ ...input, exigeChave: true });
+		if (portao !== "segue") return portao;
+		return this.recusarSeEncerrada(input);
+	}
+
+	/** Chame dentro do lock. */
+	private async recusarSeEncerrada(input: EscritaAgente): Promise<"segue" | RespostaEncerrada> {
+		if (!this.encerrada()) return "segue";
+		await this.gravarAuditoriaAgente({
+			em: input.em,
+			ip: input.ip || "desconhecido",
+			chaveValida: true,
+			registro: input.registro,
+			corpo: input.corpo,
+			status: 409,
+			motivos: ["apuracao_encerrada"],
+			rota: input.rota,
+			metodo: input.metodo,
+		});
+		return respostaEncerrada();
 	}
 
 	private registroAtivo(registro: string): RegistroPesquisas | null {
@@ -1310,7 +1401,7 @@ export class Pesquisas extends DurableObject<Env> {
 }
 
 /** Um evento por import. `null` = nada foi feito, nada a registrar. */
-async function medirImport<T extends Changeset | null>(
+async function medirImport<T extends Changeset | ImportCongelado | null>(
 	motivo: MotivoImport,
 	importar: () => Promise<T>,
 ): Promise<T> {
@@ -1409,12 +1500,28 @@ function numeroOuNulo(valor: number | null): number | null {
 	return Number(valor);
 }
 
+type EscritaAgente = {
+	ip: string;
+	em: string;
+	rota: "/api/agente/resultados" | "/api/agente/suspensoes";
+	metodo: "POST" | "DELETE";
+	registro: string | null;
+	corpo: string;
+};
+
+/** Depois do encerramento, o arquivo do 2º turno não muda mais (#86). */
+type RespostaEncerrada = {
+	status: 409;
+	corpo: { erro: "apuracao_encerrada"; detalhe: string };
+};
+
 export type RespostaResultado =
 	| { status: 201; corpo: { status: "publicado" } }
 	| { status: 200; corpo: { status: "substituido" } }
 	| { status: 401; corpo: { erro: "nao_autorizado" } }
 	| { status: 429; corpo: { erro: "limite" } }
-	| { status: 422; corpo: { motivos: MotivoRecusa[] } };
+	| { status: 422; corpo: { motivos: MotivoRecusa[] } }
+	| RespostaEncerrada;
 
 type PedidoAgente = {
 	bearer: string | null;
@@ -1430,12 +1537,14 @@ type RespostaSuspensao =
 	| { status: 201; corpo: { status: "suspensa" } }
 	| { status: 200; corpo: { status: "suspensa" } }
 	| RespostaNegacao
-	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } }
+	| RespostaEncerrada;
 
 type RespostaReativacao =
 	| { status: 200; corpo: { status: "reativada" } }
 	| RespostaNegacao
-	| { status: 422; corpo: { motivos: RecusaSuspensao[] } };
+	| { status: 422; corpo: { motivos: RecusaSuspensao[] } }
+	| RespostaEncerrada;
 
 type PedidoAuditoria = PedidoAgente & {
 	desde: string | null;
@@ -1505,6 +1614,16 @@ function caminhoProximo(desde: string | null, depois: number, limite: number): s
 	q.set("depois", String(depois));
 	if (limite !== 500) q.set("limite", String(limite));
 	return `/api/agente/auditoria?${q.toString()}`;
+}
+
+function respostaEncerrada(): RespostaEncerrada {
+	return {
+		status: 409,
+		corpo: {
+			erro: "apuracao_encerrada",
+			detalhe: "a apuração do 2º turno foi encerrada; pesquisas e resultados estão congelados",
+		},
+	};
 }
 
 function resposta401(): RespostaNegacao {
