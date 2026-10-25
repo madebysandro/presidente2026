@@ -271,7 +271,7 @@ describe("pausa do TSE até 19h (#124)", () => {
 				apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: FIM }),
 			}),
 		);
-		expect(html).toContain("Ao vivo");
+		expect(html).not.toContain(">Ao vivo<");
 		expect(html).toContain("Apuração do TSE pausada até 19h");
 		expect(html).toContain("Próxima consulta às 19h (Belém/Brasília)");
 		expect(html).toContain(`data-pausa-ate="${FIM}"`);
@@ -626,5 +626,138 @@ describe("gráfico da noite com espaço próprio (#123)", () => {
 		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*position:\s*relative/);
 		expect(css).toMatch(/\.a-noite \.a-plot\s*\{[^}]*height:\s*\d+px/);
 		expect(css).toMatch(/\.a-noite \.a-plot svg\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
+	});
+});
+
+describe("pacote Critiquito (#129)", () => {
+	const FIM = Date.parse(PAUSA_TSE.fim);
+
+	async function asset(caminho: string): Promise<string> {
+		const res = await env.ASSETS.fetch(`https://presidente2026.test${caminho}`);
+		expect(res.status).toBe(200);
+		return res.text();
+	}
+
+	function regra(css: string, seletor: string): string {
+		const escapado = seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		return css.match(new RegExp(`(?:^|\\n)${escapado}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+	}
+
+	it("B2: com o TSE pausado a faixa diz Pausada, sem o Ao vivo", () => {
+		const agora = new Date("2026-10-25T18:00:00-03:00");
+		const pausada = htmlFaixa(
+			vista({ agora, apuracao: estado({ consultadoEm: agora.getTime() - 120_000, proximaConsulta: FIM }) }),
+		);
+		expect(pausada).toContain("<strong data-faixa-rotulo>Pausada</strong>");
+		expect(pausada).toContain(" data-pausada");
+		expect(pausada).not.toContain("Ao vivo");
+		expect(pausada).toContain("Apuração do TSE pausada até 19h");
+
+		const depois = new Date("2026-10-25T19:05:00-03:00");
+		const viva = htmlFaixa(vista({ agora: depois, apuracao: estado({ consultadoEm: depois.getTime() }) }));
+		expect(viva).toContain("<strong data-faixa-rotulo>Ao vivo</strong>");
+		expect(viva).not.toContain("data-pausada");
+	});
+
+	it("B2: o ponto da pausa é cinza e não pulsa, e o cliente devolve o Ao vivo às 19h", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const ponto = regra(css, '.a-faixa[data-pausada] .a-faixa-ponto');
+		expect(ponto).toMatch(/background:\s*var\(--suave\)/);
+		expect(ponto).toMatch(/animation:\s*none/);
+		expect(css.indexOf('.a-faixa[data-pausada] .a-faixa-ponto')).toBeGreaterThan(
+			css.indexOf('.a-faixa[data-fase="ao_vivo"] .a-faixa-ponto'),
+		);
+
+		const js = await asset("/js/ao-vivo.js");
+		expect(js).toContain("[data-faixa-rotulo]");
+		expect(js).toMatch(/toggleAttribute\("data-pausada", pausada\)/);
+		expect(js).toContain('"Pausada"');
+		expect(js).toContain('"Ao vivo"');
+	});
+
+	it("W1/W5: no início da noite o plot encolhe e diz quanto já foi apurado", async () => {
+		const vazio = htmlGraficoNoite(vista({ historico: [] }));
+		expect(vazio).toContain('class="a-graf" data-inicio');
+		expect(vazio).toContain('class="a-noite-inicio"');
+		expect(vazio).not.toContain("a-graf-vazio");
+
+		const comeco = htmlGraficoNoite(vista({ historico: [leitura(0.25, 55, 45, "17:06:31")] }));
+		expect(comeco).toContain('class="a-graf" data-inicio');
+		expect(comeco).toContain("0,25% das seções apuradas. A linha cresce a cada leitura do TSE.");
+
+		const poucas = htmlGraficoNoite(
+			vista({ historico: [leitura(0.2, 55, 45, "17:06:31"), leitura(0.6, 54, 46, "17:10:00")] }),
+		);
+		expect(poucas).toContain('class="a-graf" data-inicio');
+
+		const trajetoria = htmlGraficoNoite(vista());
+		expect(trajetoria).not.toContain("data-inicio");
+		expect(trajetoria).not.toContain("a-noite-inicio");
+
+		const css = await asset("/css/tres-semanas.css");
+		expect(regra(css, ".a-noite .a-graf[data-inicio] .a-plot")).toMatch(/height:\s*1\d\dpx/);
+	});
+
+	it("W2: válidos que faltam saem inteiros em pt-BR", () => {
+		const base = estado();
+		const presidente = base.analise!.majoritarias!.presidente!;
+		const html = htmlEstimativas(
+			vista({
+				apuracao: estado({
+					analise: {
+						...base.analise,
+						majoritarias: { presidente: { ...presidente, validosAApurar: 77_710_256.461 } },
+					},
+				}),
+			}),
+		);
+		expect(html).toContain("<dd>77.710.256</dd>");
+		expect(html).not.toContain("77.710.256,461");
+	});
+
+	it("W3: os rostos do placar sobem sem mexer no veredito das pesquisas", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const placar = regra(css, ".a-placar .a-rosto");
+		const largura = Number(placar.match(/width:\s*([\d.]+)em/)?.[1]);
+		expect(largura).toBeGreaterThanOrEqual(1.1);
+		expect(largura).toBeLessThanOrEqual(1.25);
+		expect(placar).toMatch(/height:\s*[\d.]+em/);
+		expect(regra(css, ".a-rosto")).toMatch(/width:\s*0\.9em/);
+		expect(regra(css, ".a-rosto")).toMatch(/currentColor/);
+	});
+
+	it("W4: o cabo da noite engrossa e ganha o rótulo Na urna agora, sem perder a fatia do Flávio (#127)", async () => {
+		const cabo = htmlCaboApuracao(vista());
+		expect(cabo).toContain('<p class="a-cabo-rotulo">Na urna agora</p>');
+		expect(cabo.indexOf("a-cabo-rotulo")).toBeLessThan(cabo.indexOf("a-cabo-linha"));
+		expect(cabo).toContain('class="a-cabo-f" style="width:47.06%"');
+		expect(cabo).not.toContain("data-base");
+
+		const final = htmlCaboApuracao(
+			vista({ fase: "encerrada", apuracao: estado({ fase: "encerrada", encerrada: true }) }),
+		);
+		expect(final).toContain('<p class="a-cabo-rotulo">Na urna, resultado final</p>');
+
+		const zerado = htmlCaboApuracao(
+			vista({
+				apuracao: estado({
+					cargos: { presidente: cargo({ apurado: 0, candidatos: [candidato("22", 0, 0), candidato("13", 0, 0)] }) },
+				}),
+			}),
+		);
+		expect(zerado).toContain('<p class="a-cabo-rotulo">Na urna, ainda sem votos</p>');
+
+		const css = await asset("/css/tres-semanas.css");
+		const altura = Number(regra(css, ".a-cabo-trilha .a-cabo").match(/height:\s*(\d+)px/)?.[1]);
+		expect(altura).toBeGreaterThanOrEqual(16);
+		expect(altura).toBeLessThanOrEqual(18);
+		expect(regra(css, ".a-cabo")).toMatch(/height:\s*14px/);
+	});
+
+	it("W5: a noite tira ar sob a faixa e sob o H1", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		const faixa = regra(css, '.a-faixa:not([data-fase="pesquisas"])');
+		expect(Number(faixa.match(/margin-bottom:\s*(\d+)px/)?.[1])).toBeLessThanOrEqual(10);
+		expect(Number(regra(css, ".a-placar p").match(/margin-top:\s*(\d+)px/)?.[1])).toBeLessThanOrEqual(6);
 	});
 });

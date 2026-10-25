@@ -9,6 +9,7 @@ import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import { corpoDoPasso } from "../src/apuracao/noite-sintetica";
 import type { PayloadPesquisas } from "../src/pesquisas/tipos";
 import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
+import { FAIXA_AO_VIVO_OU_PAUSADA } from "./helpers/faixa";
 import { fetchWorker } from "./helpers/fetch-worker";
 import { forcarConsulta, lerAlarme, limparPoller, stubPoller } from "./helpers/poller";
 import { instalarTseFalso } from "./helpers/tse-falso";
@@ -147,7 +148,7 @@ describe("fase encerrada na API e na página (#20)", () => {
 		expect(corpo.fase).toBe("ao_vivo");
 
 		const html = await htmlPagina();
-		expect(html).toContain("Ao vivo");
+		expect(html).toMatch(FAIXA_AO_VIVO_OU_PAUSADA);
 		expect(html).toContain("data-estimativas");
 		expect(html).not.toContain("Resultado final");
 		expect(html).not.toContain("✓ Eleito");

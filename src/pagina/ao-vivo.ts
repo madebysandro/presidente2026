@@ -104,8 +104,8 @@ function textoFaixaProxima(
 	return `Próxima consulta em ${min} min ${seg} s`;
 }
 
-function rotuloFase(fase: FaseApuracao): string {
-	if (fase === "ao_vivo") return "Ao vivo";
+function rotuloFase(fase: FaseApuracao, pausada: boolean): string {
+	if (fase === "ao_vivo") return pausada ? "Pausada" : "Ao vivo";
 	if (fase === "encerrada") return "Encerrada";
 	return "Aguardando 17h";
 }
@@ -148,7 +148,7 @@ export function htmlFaixa(vista: VistaNoite): string {
 	);
 	const pausa = pausaDaFaixa(vista);
 	const attrPausa = pausa
-		? `${attrNumero("data-pausa-ate", pausa.ate)} data-pausa-meio="${escHtml(pausa.meio)}" data-pausa-dir="${escHtml(pausa.dir)}"`
+		? `${attrNumero("data-pausa-ate", pausa.ate)} data-pausa-meio="${escHtml(pausa.meio)}" data-pausa-dir="${escHtml(pausa.dir)}" data-pausada`
 		: "";
 	const extra = arquivoZerado(vista.apuracao)
 		? `<span data-faixa-extra>arquivo zerado</span>`
@@ -163,7 +163,7 @@ export function htmlFaixa(vista: VistaNoite): string {
 		: vista.fase === "encerrada"
 			? "Resultado final · 2º turno"
 			: proxima;
-	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)}${attrPausa} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong>${rotuloFase(vista.fase)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
+	return `<div class="a-faixa" data-faixa data-fase="${escHtml(vista.fase)}"${attrNumero("data-consultado", vista.apuracao.consultadoEm)}${attrNumero("data-proxima-em", vista.apuracao.proximaConsulta)}${attrPausa} data-hora-tse="${escHtml(hora)}"><span class="a-faixa-esq"><i class="a-faixa-ponto" aria-hidden="true"></i><strong data-faixa-rotulo>${rotuloFase(vista.fase, pausa != null)}</strong>${extra}</span><span class="a-faixa-meio" data-faixa-idade>${meio}</span><span class="a-faixa-dir" data-faixa-proxima>${direita}</span></div>`;
 }
 
 function rosto(lado: typeof FLAVIO | typeof LULA): string {
@@ -227,7 +227,12 @@ export function htmlCaboApuracao(vista: VistaNoite): string {
 	const rotulo = zerado
 		? "Ainda sem votos apurados. A marca é a média das pesquisas."
 		: `Flávio ${pctF}%, Lula ${pctL}%. A marca é a média das pesquisas.`;
-	return `<div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
+	const textoUrna = zerado
+		? "Na urna, ainda sem votos"
+		: vista.fase === "encerrada"
+			? "Na urna, resultado final"
+			: "Na urna agora";
+	return `<p class="a-cabo-rotulo">${textoUrna}</p><div class="a-cabo-linha">${rosto(FLAVIO).replace("a-rosto", "a-ponta")}<div class="a-cabo-trilha"><div class="a-cabo${zerado ? " a-cabo-vazio" : ""}" role="img" aria-label="${escHtml(rotulo)}">${barra}<em class="a-cabo-50"></em></div>${marca}</div>${rosto(LULA).replace("a-rosto", "a-ponta")}</div><p class="a-cabo-leg">${escHtml(legenda)}</p>`;
 }
 
 type PontoNoite = { ap: number; v: number };
@@ -265,9 +270,9 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 				? `<rect class="t-apurar" x="${n2(px(0))}" width="${n2(px(100) - px(0))}" y="0" height="100"/>`
 				: "";
 		const grafico = sombra
-			? `<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}</svg></div>${eixos}</div>`
+			? `<div class="a-graf" data-inicio><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}</svg></div>${eixos}</div>`
 			: eixos;
-		return `${intro}<p class="a-graf-vazio">A linha aparece a partir da 2ª leitura do TSE.</p>${grafico}${htmlEstimativas(vista)}</section>`;
+		return `${intro}<p class="a-noite-inicio">A linha aparece a partir da 2ª leitura do TSE.</p>${grafico}${htmlEstimativas(vista)}</section>`;
 	}
 	const pico = Math.max(2, ...pontos.map((ponto) => Math.abs(ponto.v)));
 	const lim = Math.ceil(pico / 2) * 2;
@@ -291,7 +296,11 @@ export function htmlGraficoNoite(vista: VistaNoite): string {
 				`<span class="t-virada" style="left:${n2(px(virada.ap))}%" title="virada"></span>`,
 		)
 		.join("");
-	return `${intro}<div class="a-graf"><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div>${htmlEstimativas(vista)}</section>`;
+	const inicio = pontos.length < 3 || ultimo.ap < 1;
+	const aviso = inicio
+		? `<p class="a-noite-inicio">${pf.format(ultimo.ap)}% das seções apuradas. A linha cresce a cada leitura do TSE.</p>`
+		: "";
+	return `${intro}${aviso}<div class="a-graf"${inicio ? " data-inicio" : ""}><div class="a-plot" role="img" aria-label="Vantagem de Flávio sobre Lula conforme as seções são apuradas"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${sombra}<path class="t-noite" d="${d}" fill="none" stroke-width="3" vector-effect="non-scaling-stroke"/>${marca}</svg>${viradas}</div>${eixos}</div>${htmlEstimativas(vista)}</section>`;
 }
 
 function textoMomento(momento: MomentoNoite): string {
@@ -378,5 +387,5 @@ export function htmlEstimativas(vista: VistaNoite): string {
 	const tendencia = tendencias.length
 		? `${tendencias.join(" e ")} a cada 10% de seções`
 		: "aguardando mais leituras";
-	return `<dl class="a-analise" data-estimativas><div><dt>Válidos que faltam</dt><dd>${nf.format(analise.validosAApurar)}</dd><dd>Supõem que as seções que faltam se parecem com as já apuradas.</dd></div><div><dt>Para virar</dt><dd>${virar}</dd></div><div><dt>Tendência</dt><dd>${escHtml(tendencia)}</dd></div></dl>`;
+	return `<dl class="a-analise" data-estimativas><div><dt>Válidos que faltam</dt><dd>${nf.format(Math.round(analise.validosAApurar))}</dd><dd>Supõem que as seções que faltam se parecem com as já apuradas.</dd></div><div><dt>Para virar</dt><dd>${virar}</dd></div><div><dt>Tendência</dt><dd>${escHtml(tendencia)}</dd></div></dl>`;
 }
