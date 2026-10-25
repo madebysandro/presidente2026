@@ -769,3 +769,55 @@ describe("pacote Critiquito (#129)", () => {
 		expect(Number(regra(css, ".a-placar p").match(/margin-top:\s*(\d+)px/)?.[1])).toBeLessThanOrEqual(6);
 	});
 });
+
+describe("placar lado a lado no celular (#135)", () => {
+	async function css(): Promise<string> {
+		const res = await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css");
+		expect(res.status).toBe(200);
+		return res.text();
+	}
+
+	function regraMovel(folha: string, seletor: string): string {
+		const escapado = seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const blocos = folha.match(/@media \(max-width: 760px\) \{(?:[^{}]*\{[^}]*\})*[^{}]*\}/g) ?? [];
+		for (const bloco of blocos) {
+			const achado = bloco.match(new RegExp(`\\n\\t${escapado}\\s*\\{([^}]*)\\}`));
+			if (achado) return achado[1];
+		}
+		return "";
+	}
+
+	it("Lula e Flávio dividem a linha em duas colunas iguais, com o a no meio, e o bloco fica centrado", async () => {
+		const folha = await css();
+		const h1 = regraMovel(folha, ".a-placar h1:has(> .a-l)");
+		expect(h1).toMatch(/display:\s*grid/);
+		expect(h1).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\) auto minmax\(0, 1fr\)/);
+		expect(regraMovel(folha, ".a-placar")).toMatch(/text-align:\s*center/);
+		expect(regraMovel(folha, ".a-placar p")).toMatch(/margin-inline:\s*auto/);
+		const lado = regraMovel(folha, ".a-placar h1 > .a-l,\n\t.a-placar h1 > .a-f");
+		expect(lado).toMatch(/flex-direction:\s*column/);
+		expect(lado).toMatch(/white-space:\s*normal/);
+	});
+
+	it("a ordem é fixa: Lula à esquerda e Flávio à direita, sem inverter por quem lidera", async () => {
+		const folha = await css();
+		expect(folha).not.toMatch(/\.a-placar[^{]*\{[^}]*(?:\border:|row-reverse|direction:\s*rtl|grid-column)/);
+		for (const [l, f] of [
+			[60, 40],
+			[40, 60],
+		]) {
+			const placar = htmlPlacar(
+				vista({
+					apuracao: estado({
+						cargos: {
+							presidente: cargo({ candidatos: [candidato("22", f * 100_000, f), candidato("13", l * 100_000, l)] }),
+						},
+					}),
+				}),
+			);
+			const h1 = placar.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
+			expect(h1.indexOf('class="a-l"')).toBeLessThan(h1.indexOf('class="a-x"'));
+			expect(h1.indexOf('class="a-x"')).toBeLessThan(h1.indexOf('class="a-f"'));
+		}
+	});
+});
