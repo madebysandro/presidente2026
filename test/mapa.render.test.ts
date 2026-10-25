@@ -273,3 +273,61 @@ describe("o mapa na página (#131)", () => {
 		expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^}]*\.a-br-uf/);
 	});
 });
+
+describe("mapa no celular (#138)", () => {
+	function regraEm(folha: string, media: string, seletor: string): string {
+		const escMedia = media.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const escapado = seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const blocos = folha.match(new RegExp(`@media ${escMedia} \\{(?:[^{}]*\\{[^}]*\\})*[^{}]*\\}`, "g")) ?? [];
+		for (const bloco of blocos) {
+			const achado = bloco.match(new RegExp(`\\n\\t${escapado}\\s*\\{([^}]*)\\}`));
+			if (achado) return achado[1];
+		}
+		return "";
+	}
+
+	it("WM3: no touch a dica é só Toque num estado, e o passe o mouse fica para quem tem hover", async () => {
+		const html = htmlMapaBrasil(vista());
+		const intro = html.match(/<h2 id="a-br-titulo">[^<]*<\/h2><p>([\s\S]*?)<\/p>/)?.[1] ?? "";
+		const semMouse = intro.replace(/<span class="a-br-so-mouse">[\s\S]*?<\/span>/, "");
+		expect(semMouse).toContain("Toque num estado");
+		expect(semMouse).not.toMatch(/mouse/i);
+		expect(intro).toContain('<span class="a-br-so-mouse"> ou passe o mouse</span>');
+		const css = await asset("/css/tres-semanas.css");
+		expect(regraEm(css, "(hover: none)", ".a-br-so-mouse")).toMatch(/display:\s*none/);
+	});
+
+	it("WM4: chips das 27 UFs sob o mapa, em ordem de sigla, com o lado de quem lidera", () => {
+		const html = htmlMapaBrasil(vista());
+		const chips = [...html.matchAll(/<button type="button" class="a-br-chip" data-uf-chip="([a-z]{2})" data-lado="([a-z]*)" aria-pressed="false" aria-label="([^"]*)">([A-Z]{2})<\/button>/g)];
+		expect(chips).toHaveLength(27);
+		const siglas = chips.map((chip) => chip[1]);
+		expect(siglas).toEqual([...siglas].sort());
+		const sp = chips.find((chip) => chip[1] === "sp")!;
+		expect(sp[2]).toBe("f");
+		expect(sp[3]).toBe("São Paulo: Lula 47,70%, Flávio 52,30%, 12,50% apurado");
+		expect(sp[4]).toBe("SP");
+		expect(chips.find((chip) => chip[1] === "ba")![2]).toBe("l");
+		expect(chips.find((chip) => chip[1] === "mg")![2]).toBe("");
+		expect(html).toContain('<div class="a-br-chips" role="group" aria-label="Escolha um estado">');
+		expect(html.indexOf('class="a-br-quadro"')).toBeLessThan(html.indexOf('class="a-br-chips"'));
+		expect(html.indexOf('class="a-br-chips"')).toBeLessThan(html.indexOf('class="a-br-lado"'));
+	});
+
+	it("WM4: os chips só aparecem no celular e têm alvo de toque", async () => {
+		const css = await asset("/css/tres-semanas.css");
+		expect(css).toMatch(/\n\.a-br-chips \{ display: none; \}/);
+		expect(regraEm(css, "(max-width: 760px)", ".a-br-chips")).toMatch(/display:\s*grid/);
+		const chip = regraEm(css, "(max-width: 760px)", ".a-br-chip");
+		expect(Number(chip.match(/min-height:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(36);
+		expect(regraEm(css, "(max-width: 760px)", '.a-br-chip[data-lado="l"]')).toContain("var(--l)");
+		expect(regraEm(css, "(max-width: 760px)", '.a-br-chip[data-lado="f"]')).toContain("var(--f)");
+		expect(regraEm(css, "(max-width: 760px)", '.a-br-chip[aria-pressed="true"]')).toMatch(/background/);
+	});
+
+	it("WM4: o cliente liga o chip ao mesmo detalhe e atualiza o lado a cada leitura", async () => {
+		const js = await asset("/js/mapa.js");
+		expect(js).toContain("[data-uf-chip]");
+		expect(js).toMatch(/aria-pressed/);
+	});
+});

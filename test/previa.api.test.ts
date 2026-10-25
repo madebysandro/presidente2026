@@ -111,7 +111,7 @@ describe("imagem da prévia (#66)", () => {
 		expect(publicado.status).toBe(201);
 
 		const html = await (await fetchWorker("http://presidente2026.test/")).text();
-		expect(meta(html, "og:description")).toBe("Flávio 52,1% x Lula 47,9%");
+		expect(meta(html, "og:description")).toBe("Lula 47,9% x Flávio 52,1%");
 		expect(meta(html, "og:image") ?? "").toContain("http://presidente2026.test/og.png?v=");
 		expect(meta(html, "og:image") ?? "").not.toContain("sem-d");
 

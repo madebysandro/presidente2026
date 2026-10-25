@@ -14,6 +14,10 @@ class No {
 	dataset: Record<string, string> = {};
 	classes = new Set<string>();
 	innerHTML = "";
+	attrs = new Map<string, string>();
+	setAttribute = (nome: string, valor: string) => this.attrs.set(nome, valor);
+	getAttribute = (nome: string) => this.attrs.get(nome) ?? null;
+	removeAttribute = (nome: string) => this.attrs.delete(nome);
 	classList = {
 		add: (c: string) => this.classes.add(c),
 		remove: (...cs: string[]) => {
@@ -93,6 +97,14 @@ function marcadas(): string[] {
 	return mapa.querySelectorAll(".a-br-uf.on").map((no) => no.dataset.uf);
 }
 
+function chip(sigla: string): No {
+	return mapa.querySelector(`[data-uf-chip="${sigla}"]`) as No;
+}
+
+function apertados(): string[] {
+	return mapa.querySelectorAll("[data-uf-chip]").filter((no) => no.getAttribute("aria-pressed") === "true").map((no) => no.dataset.ufChip);
+}
+
 function det(): No {
 	return mapa.querySelector("[data-mapa-det]") as No;
 }
@@ -103,9 +115,11 @@ beforeEach(async () => {
 		(sigla) => new No(["a-br-uf", "a-br-l"], { uf: sigla, nome: sigla.toUpperCase(), pctL: "55", pctF: "45" }),
 	);
 	const rotulos = ["sp", "ba"].map((sigla) => new No([], { rotulo: sigla }));
+	const chips = ["ba", "sp"].map((sigla) => new No(["a-br-chip"], { ufChip: sigla, lado: "l" }));
+	const grupo = new No(["a-br-chips"]).add(...chips);
 	const detalhe = new No([], { mapaDet: "" });
 	detalhe.innerHTML = DICA;
-	mapa = new No(["a-br"], { mapaBr: "" }).add(...ufs, ...rotulos, detalhe);
+	mapa = new No(["a-br"], { mapaBr: "" }).add(...ufs, ...rotulos, grupo, detalhe);
 	fora = new No(["a-placar"]);
 	const documento = new No().add(mapa, fora);
 	vi.stubGlobal("Element", No);
@@ -174,5 +188,68 @@ describe("toque na UF do mapa (#134)", () => {
 		expect(marcadas()).toEqual([]);
 		expect(mapa.classes.has("a-br-foco")).toBe(false);
 		expect(det().innerHTML).toBe(DICA);
+	});
+});
+
+describe("chips de UF sob o mapa no celular (#138 WM4)", () => {
+	it("tocar o chip seleciona a mesma UF do mapa e abre o mesmo detalhe", () => {
+		clicar(chip("sp"));
+		expect(marcadas()).toEqual(["sp"]);
+		expect(apertados()).toEqual(["sp"]);
+		expect(mapa.classes.has("a-br-foco")).toBe(true);
+		expect(det().innerHTML).toContain("SP");
+	});
+
+	it("tocar de novo o chip desmarca, como o segundo toque no mapa (#134)", () => {
+		clicar(chip("sp"));
+		clicar(chip("sp"));
+		expect(marcadas()).toEqual([]);
+		expect(apertados()).toEqual([]);
+		expect(det().innerHTML).toBe(DICA);
+	});
+
+	it("chip e mapa dividem a seleção: chip, depois o path da mesma UF, desmarca", () => {
+		clicar(chip("ba"));
+		clicar(uf("ba"));
+		expect(marcadas()).toEqual([]);
+		expect(apertados()).toEqual([]);
+	});
+
+	it("tocar no mapa aperta o chip da UF e trocar de chip troca a seleção", () => {
+		clicar(uf("ba"));
+		expect(apertados()).toEqual(["ba"]);
+		clicar(chip("sp"));
+		expect(marcadas()).toEqual(["sp"]);
+		expect(apertados()).toEqual(["sp"]);
+	});
+
+	it("Escape e clique fora soltam o chip", () => {
+		clicar(chip("sp"));
+		disparar("keydown", { key: "Escape" });
+		expect(apertados()).toEqual([]);
+		clicar(chip("ba"));
+		clicar(fora);
+		expect(apertados()).toEqual([]);
+	});
+
+	it("o hover do mouse noutra UF não aperta o chip dela", () => {
+		clicar(chip("sp"));
+		disparar("pointerover", { target: uf("ba"), pointerType: "mouse" });
+		expect(apertados()).toEqual(["sp"]);
+	});
+
+	it("cada leitura do poller atualiza o lado e o aria-label do chip", () => {
+		vi.stubGlobal("matchMedia", () => ({ matches: true }));
+		const candidatos = (votosF: number, votosL: number) => [
+			{ n: "22", votos: votosF, pct: (votosF / (votosF + votosL)) * 100 },
+			{ n: "13", votos: votosL, pct: (votosL / (votosF + votosL)) * 100 },
+		];
+		disparar("apuracao:leitura", {
+			detail: { ufs: { sp: { apurado: 10, candidatos: candidatos(600, 400) }, ba: { apurado: 0, candidatos: [] } } },
+		});
+		expect(chip("sp").dataset.lado).toBe("f");
+		expect(chip("sp").getAttribute("aria-label")).toBe("SP: Lula 40,00%, Flávio 60,00%, 10,00% apurado");
+		expect(chip("ba").dataset.lado).toBe("");
+		expect(chip("ba").getAttribute("aria-label")).toBe("BA: sem seções apuradas");
 	});
 });

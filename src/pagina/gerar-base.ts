@@ -6,7 +6,7 @@ type BuscaAssets = {
 	fetch(input: URL): Promise<Response>;
 };
 
-const SEM: Cartao = { esquerda: "flavio", placar: null, convite: true };
+const SEM: Cartao = { esquerda: "lula", placar: null, convite: true };
 
 /** Cartão sem média e sem a contagem de dias, já na paleta do Worker. */
 export async function baseSemBruta(assets: BuscaAssets, requestUrl: string): Promise<Uint8Array> {

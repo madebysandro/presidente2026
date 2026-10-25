@@ -94,8 +94,8 @@ function selecionar(registro, origem) {
 		if (!calmo() && fatias.length === 2 && Number.isFinite(deVf) && Number.isFinite(deVl)) {
 			const alvo1 = fatias[0].style.width;
 			const alvo2 = fatias[1].style.width;
-			fatias[0].style.width = `${deVf}%`;
-			fatias[1].style.width = `${deVl}%`;
+			fatias[0].style.width = `${deVl}%`;
+			fatias[1].style.width = `${deVf}%`;
 			requestAnimationFrame(() => {
 				fatias[0].style.width = alvo1;
 				fatias[1].style.width = alvo2;
