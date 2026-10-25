@@ -114,7 +114,7 @@
 		if (faixa && typeof corpo.faixa === "string") faixa.outerHTML = corpo.faixa;
 		const trocaMiolo = mudouFase || (aoVivo && mudouVersao);
 		if (trocaMiolo && miolo && typeof corpo.miolo === "string") {
-			// O mapa (#131) atravessa a troca e guarda a UF tocada.
+			// O mapa atravessa a troca e guarda a UF tocada.
 			const mapa = miolo.querySelector("[data-mapa-br]");
 			miolo.innerHTML = corpo.miolo;
 			const novo = miolo.querySelector("[data-mapa-br]");

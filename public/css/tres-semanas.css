@@ -1173,7 +1173,6 @@ body {
 	.a-lados li { padding: 10px 12px; }
 }
 
-/* Mapa do Brasil no ao vivo (#131): seção própria entre o cabo e a grade da noite. */
 .a-br {
 	grid-template-columns: minmax(0, 1fr) 280px;
 	column-gap: 28px;
@@ -1349,7 +1348,6 @@ body {
 .a-br-cor-l { background: var(--l); }
 .a-br-cor-vazio { background: color-mix(in srgb, var(--regua) 55%, var(--papel)); }
 
-/* O cabo da noite (#131): Lula à esquerda, a fatia do Flávio encosta na direita. */
 .a-cabo-lf { justify-content: flex-end; }
 
 @media (max-width: 860px) {

@@ -202,7 +202,7 @@ export function htmlGeografiaLateral(vista: VistaNoite): string {
 	return `${htmlExterior(vista)}${htmlComparecimento(vista)}`;
 }
 
-/** Abaixo da grade, na largura toda (#16): colégios e a comparação dos turnos. O mapa (#131) substitui a grade de UFs. */
+/** Abaixo da grade, na largura toda (#16): colégios e a comparação dos turnos. */
 export function htmlGeografiaCheia(vista: VistaNoite): string {
 	return `${htmlColegios(vista)}${htmlTransferencia(vista)}`;
 }
