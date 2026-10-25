@@ -10,6 +10,7 @@ import {
 	viradasDoHistorico,
 } from "../apuracao/analise-2t";
 import { alvosCiclo, chaveTf, urlDoAlvo } from "../apuracao/escopos";
+import { fimDaPausa } from "../apuracao/pausa-tse";
 import { configTseDeEnv, type ConfigTse } from "../config/tse";
 import { SIGLAS_UF } from "../config/ufs";
 import { colegioMudou, normalizarColegio } from "../dominio/cargos/colegio";
@@ -208,9 +209,21 @@ export class PollerApuracao extends DurableObject<Env> {
 		}
 
 		const alarme = await this.ctx.storage.getAlarm();
+		const agora = await this.agora();
+		const fimPausa = fimDaPausa(agora);
+		if (fimPausa != null) {
+			if (alarme !== fimPausa) {
+				await this.ctx.storage.setAlarm(fimPausa);
+				await this.ctx.storage.delete(CHAVE_ESCADA);
+			}
+			if (estado.proximaConsulta !== fimPausa) {
+				estado.proximaConsulta = fimPausa;
+				await this.ctx.storage.put(CHAVE_ESTADO, estado);
+			}
+			return;
+		}
 		if (alarme != null) return;
 
-		const agora = await this.agora();
 		const espera = limitarEsperaMs(
 			30,
 			agora,
@@ -391,6 +404,10 @@ export class PollerApuracao extends DurableObject<Env> {
 		} else if (mudou) {
 			await this.ctx.storage.delete(CHAVE_ESCADA);
 			esperaSegundos = Math.max(30, maxAgeCiclo || 60);
+		} else if (fimDaPausa(agora) != null) {
+			// Na pausa a escada não sobe, para as 19h voltarem no primeiro degrau.
+			await this.ctx.storage.delete(CHAVE_ESCADA);
+			esperaSegundos = 0;
 		} else {
 			const degrau =
 				(await this.ctx.storage.get<number>(CHAVE_ESCADA)) ?? 0;

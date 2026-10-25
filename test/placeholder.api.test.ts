@@ -1,7 +1,8 @@
 /**
  * Aceite #7 (CSP, sem Tela 2) e #10 (topo da fase pesquisas no lugar do placeholder).
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ABERTURA_2T_MS } from "../src/apuracao/abertura";
 import dia0ContratanteUrl from "../fixtures/pesquisas-tse/fixture_dia0_contratante.zip?inline";
 import dia0PesquisaUrl from "../fixtures/pesquisas-tse/fixture_dia0_pesquisa.zip?inline";
 import { bytesDeDataUrl, instalarCdnPesquisas } from "./helpers/cdn-pesquisas";
@@ -9,7 +10,12 @@ import { fetchWorker } from "./helpers/fetch-worker";
 import { lerAlarme } from "./helpers/poller";
 
 describe("Página pública (#7, #10)", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it("serve o topo das pesquisas com CSP e nosniff, sem Tela 2", async () => {
+		vi.spyOn(Date, "now").mockReturnValue(ABERTURA_2T_MS - 24 * 3_600_000);
 		instalarCdnPesquisas({
 			pesquisa: bytesDeDataUrl(dia0PesquisaUrl),
 			contratante: bytesDeDataUrl(dia0ContratanteUrl),

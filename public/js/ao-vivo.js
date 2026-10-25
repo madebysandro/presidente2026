@@ -55,15 +55,21 @@
 		const hora = faixa.getAttribute("data-hora-tse") || "sem horário";
 		const linha = faixa.querySelector("[data-faixa-idade]");
 		const consulta = faixa.querySelector("[data-faixa-proxima]");
+		// Pausa do TSE (#124): os textos vêm do servidor; passado `data-pausa-ate`, volta o normal.
+		const pausada = fase === "ao_vivo" && agora < numeroAttr(faixa, "data-pausa-ate");
 		if (linha) {
-			linha.textContent = fase === "pesquisas"
-				? "Primeiros resultados às 17:00"
-				: `Dados do TSE ${hora} · ${idade(numeroAttr(faixa, "data-consultado"), agora)}`;
+			linha.textContent = pausada
+				? faixa.getAttribute("data-pausa-meio") || ""
+				: fase === "pesquisas"
+					? "Primeiros resultados às 17:00"
+					: `Dados do TSE ${hora} · ${idade(numeroAttr(faixa, "data-consultado"), agora)}`;
 		}
 		if (consulta) {
-			consulta.textContent = fase === "encerrada"
-				? "Resultado final · 2º turno"
-				: proxima(fase, numeroAttr(faixa, "data-proxima-em"), agora);
+			consulta.textContent = pausada
+				? faixa.getAttribute("data-pausa-dir") || ""
+				: fase === "encerrada"
+					? "Resultado final · 2º turno"
+					: proxima(fase, numeroAttr(faixa, "data-proxima-em"), agora);
 		}
 	}
 
