@@ -330,6 +330,20 @@ describe("placar e cabo da apuração (#18)", () => {
 		expect(cabo).not.toMatch(/undefined|NaN/);
 	});
 
+	it("o balanço não zera a fatia do Flávio no cabo da apuração (#127)", async () => {
+		const cabo = htmlCaboApuracao(vista());
+		expect(cabo).not.toContain("data-base");
+		expect(cabo).not.toContain("data-margem");
+
+		const jsRes = await env.ASSETS.fetch("https://presidente2026.test/js/movimento.js");
+		expect(jsRes.status).toBe(200);
+		const js = await jsRes.text();
+		const balanco = js.match(/function balanco\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+		expect(balanco).toMatch(/hasAttribute\("data-base"\)/);
+		expect(balanco).toMatch(/hasAttribute\("data-margem"\)/);
+		expect(balanco.indexOf("hasAttribute")).toBeLessThan(balanco.indexOf("animate("));
+	});
+
 	it("arquivo zerado não inventa um placar", () => {
 		const v = vista({
 			apuracao: estado({
