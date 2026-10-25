@@ -898,3 +898,53 @@ describe("vantagem em votos na barra Na urna agora (#137)", () => {
 		expect(linha.indexOf('data-numero="13"')).toBeLessThan(linha.indexOf('data-numero="22"'));
 	});
 });
+
+describe("faixa e âncora no celular (#138)", () => {
+	async function folha(): Promise<string> {
+		const res = await env.ASSETS.fetch("https://presidente2026.test/css/tres-semanas.css");
+		expect(res.status).toBe(200);
+		return res.text();
+	}
+
+	function blocosMoveis(css: string): string[] {
+		return css.match(/@media \(max-width: 760px\) \{(?:[^{}]*\{[^}]*\})*[^{}]*\}/g) ?? [];
+	}
+
+	function regraMovel(css: string, seletor: string): string {
+		const escapado = seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		for (const bloco of blocosMoveis(css)) {
+			const achado = bloco.match(new RegExp(`\\n\\t${escapado}\\s*\\{([^}]*)\\}`));
+			if (achado) return achado[1];
+		}
+		return "";
+	}
+
+	it("BM1: no celular a próxima consulta aparece inteira numa segunda linha, sem ellipsis", async () => {
+		const css = await folha();
+		for (const bloco of blocosMoveis(css)) {
+			expect(bloco).not.toMatch(/\.a-faixa[^{]*\.a-faixa-dir\s*\{[^}]*display:\s*none/);
+		}
+		const dir = regraMovel(css, ".a-faixa-dir");
+		expect(dir).toMatch(/grid-column:\s*1 \/ -1/);
+		expect(dir).toMatch(/white-space:\s*normal/);
+		const meio = regraMovel(css, ".a-faixa-meio");
+		expect(meio).toMatch(/white-space:\s*normal/);
+		expect(meio).toMatch(/text-overflow:\s*clip/);
+		expect(regraMovel(css, ".a-faixa")).toMatch(/height:\s*auto/);
+
+		const html = htmlFaixa(vista());
+		expect(html).toContain('<span class="a-faixa-dir" data-faixa-proxima>Próxima consulta em 1 min 30 s</span>');
+		expect(html).toContain("Dados do TSE 18:40:00 · há 2 min");
+	});
+
+	it("WM2: a rolagem e a âncora param abaixo da faixa grudada, no desktop e no celular", async () => {
+		const css = await folha();
+		const html = css.match(/\nhtml \{([^}]*)\}/)?.[1] ?? "";
+		const desktop = Number(html.match(/scroll-padding-top:\s*(\d+)px/)?.[1]);
+		const alturaFaixa = Number(css.match(/\n\.a-faixa \{[^}]*\n\theight:\s*(\d+)px/)?.[1]);
+		expect(alturaFaixa).toBe(44);
+		expect(desktop).toBeGreaterThanOrEqual(alturaFaixa + 8);
+		const movel = Number(regraMovel(css, "html").match(/scroll-padding-top:\s*(\d+)px/)?.[1]);
+		expect(movel).toBeGreaterThanOrEqual(72);
+	});
+});

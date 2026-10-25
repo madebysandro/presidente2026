@@ -1,6 +1,6 @@
 /**
  * Mapa do Brasil no ao vivo. Passar o mouse, tocar ou focar uma UF mostra o detalhe no painel ao lado;
- * tocar de novo a UF selecionada desmarca.
+ * tocar de novo a UF selecionada desmarca. No celular, os chips sob o mapa fazem o mesmo que tocar a UF.
  * O ao-vivo.js entrega cada leitura de /api/apuracao no evento `apuracao:leitura`.
  */
 import { contaUfs, descreverUf, p2 } from "./mapa-tom.mjs";
@@ -38,6 +38,9 @@ function mostrar(uf) {
 	if (!mapa) return;
 	for (const marcado of mapa.querySelectorAll(".on")) marcado.classList.remove("on");
 	mapa.classList.toggle("a-br-foco", Boolean(uf));
+	for (const chip of mapa.querySelectorAll("[data-uf-chip]")) {
+		chip.setAttribute("aria-pressed", String(chip.dataset.ufChip === tocada));
+	}
 	const det = mapa.querySelector("[data-mapa-det]");
 	if (!det) return;
 	if (det.dataset.dica == null) det.dataset.dica = det.innerHTML;
@@ -58,6 +61,11 @@ function ufDoAlvo(alvo) {
 	return alvo instanceof Element ? alvo.closest("[data-mapa-br] .a-br-uf") : null;
 }
 
+function ufDoChip(alvo) {
+	const chip = alvo instanceof Element ? alvo.closest("[data-mapa-br] [data-uf-chip]") : null;
+	return chip ? raiz()?.querySelector(`.a-br-uf[data-uf="${chip.dataset.ufChip}"]`) ?? null : null;
+}
+
 document.addEventListener("pointerover", (evento) => {
 	const uf = ufDoAlvo(evento.target);
 	if (uf && evento.pointerType === "mouse") mostrar(uf);
@@ -69,7 +77,7 @@ document.addEventListener("pointerout", (evento) => {
 });
 
 document.addEventListener("click", (evento) => {
-	const uf = ufDoAlvo(evento.target);
+	const uf = ufDoChip(evento.target) ?? ufDoAlvo(evento.target);
 	if (uf) {
 		tocada = tocada === uf.dataset.uf ? null : uf.dataset.uf;
 		mostrar(tocada ? uf : null);
@@ -117,6 +125,11 @@ document.addEventListener("apuracao:leitura", (evento) => {
 		const sigla = uf.dataset.uf;
 		const novo = descreverUf(uf.dataset.nome || sigla, ufs[sigla]);
 		Object.assign(uf.dataset, novo.dados);
+		const chip = mapa.querySelector(`[data-uf-chip="${sigla}"]`);
+		if (chip) {
+			chip.dataset.lado = novo.lado ?? "";
+			chip.setAttribute("aria-label", novo.aria);
+		}
 		const mudouCor = !uf.classList.contains(novo.classe) || (uf.getAttribute("style") || "") !== novo.estilo;
 		if (!mudouCor && uf.getAttribute("aria-label") === novo.aria) continue;
 		uf.classList.remove("a-br-f", "a-br-l", "a-br-vazio", "a-br-empate");
