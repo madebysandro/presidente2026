@@ -13,6 +13,10 @@ describe("apelido Futura na confirmação da fonte", () => {
 		expect(confirmarHtml(soFutura, "BR-03764/2026", "100% Cidades", totais, null)).toBe(true);
 	});
 
+	it("BR-09726/2026 confirma quando a página cita só Futura", () => {
+		expect(confirmarHtml(soFutura, "BR-09726/2026", "100% Cidades", totais, null)).toBe(true);
+	});
+
 	it("outro registro do 100% Cidades recusa página que cita só Futura", () => {
 		expect(confirmarHtml(soFutura, "BR-06715/2026", "100% Cidades", totais, null)).toBe(false);
 	});
