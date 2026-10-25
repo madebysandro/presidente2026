@@ -378,5 +378,5 @@ export function htmlEstimativas(vista: VistaNoite): string {
 	const tendencia = tendencias.length
 		? `${tendencias.join(" e ")} a cada 10% de seções`
 		: "aguardando mais leituras";
-	return `<dl class="a-analise" data-estimativas><div><dt>Válidos que faltam</dt><dd>${nf.format(analise.validosAApurar)}</dd><dd>Supõem que as seções que faltam se parecem com as já apuradas.</dd></div><div><dt>Para virar</dt><dd>${virar}</dd></div><div><dt>Tendência</dt><dd>${escHtml(tendencia)}</dd></div></dl>`;
+	return `<dl class="a-analise" data-estimativas><div><dt>Válidos que faltam</dt><dd>${nf.format(Math.round(analise.validosAApurar))}</dd><dd>Supõem que as seções que faltam se parecem com as já apuradas.</dd></div><div><dt>Para virar</dt><dd>${virar}</dd></div><div><dt>Tendência</dt><dd>${escHtml(tendencia)}</dd></div></dl>`;
 }

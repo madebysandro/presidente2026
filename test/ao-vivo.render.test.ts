@@ -674,4 +674,21 @@ describe("pacote Critiquito (#129)", () => {
 		expect(js).toContain('"Pausada"');
 		expect(js).toContain('"Ao vivo"');
 	});
+
+	it("W2: válidos que faltam saem inteiros em pt-BR", () => {
+		const base = estado();
+		const presidente = base.analise!.majoritarias!.presidente!;
+		const html = htmlEstimativas(
+			vista({
+				apuracao: estado({
+					analise: {
+						...base.analise,
+						majoritarias: { presidente: { ...presidente, validosAApurar: 77_710_256.461 } },
+					},
+				}),
+			}),
+		);
+		expect(html).toContain("<dd>77.710.256</dd>");
+		expect(html).not.toContain("77.710.256,461");
+	});
 });
