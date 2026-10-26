@@ -24,6 +24,8 @@ type ApuracaoApi = {
 			presidente?: {
 				validosAApurar: number | null;
 				tendencias: unknown[];
+				foraDeAlcance?: boolean;
+				defensor?: { n: string };
 			};
 		};
 	};
@@ -155,5 +157,37 @@ describe("fase encerrada na API e na página (#20)", () => {
 		expect(html).not.toContain("data-pesquisas-urnas");
 		expect(html).not.toContain("data-analise-final");
 		expect(html).not.toContain("até a votação");
+	});
+
+	it("ao vivo com a virada fora de alcance anuncia Lula matematicamente eleito sem encerrar nem parar o poller (#145)", async () => {
+		tse.usarNoiteSintetica([
+			corpoDoPasso({
+				apurado: 99.67,
+				votos22: 4_825_000,
+				votos13: 5_175_000,
+				tf: "n",
+				pcn: "72,0",
+				hora: "21:15:00",
+			}),
+		]);
+		const agora = ABERTURA_2T_MS + 4 * 60 * 60 * 1000;
+		await stubPoller().fixarAgora(agora);
+		await forcarConsulta();
+
+		const dados = await lerApuracao();
+		expect(dados.fase).toBe("ao_vivo");
+		expect(dados.encerrada).toBeFalsy();
+		expect(dados.analise?.majoritarias?.presidente?.foraDeAlcance).toBe(true);
+		expect(dados.analise?.majoritarias?.presidente?.defensor?.n).toBe("13");
+		expect(dados.proximaConsulta).toBeGreaterThan(agora);
+
+		const html = await htmlPagina();
+		expect(html).toMatch(FAIXA_AO_VIVO_OU_PAUSADA);
+		expect(html).toContain('data-eleito="13"');
+		expect(html).toContain("Matematicamente eleito");
+		expect(html).not.toContain('data-eleito="22"');
+		expect(html).not.toContain("✓ Eleito");
+		expect(html).not.toContain("Resultado final");
+		expect(html).toContain("data-estimativas");
 	});
 });

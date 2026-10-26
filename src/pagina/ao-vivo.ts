@@ -181,10 +181,17 @@ export function vencedorPorVotos(votos22: number, votos13: number): "22" | "13" 
 	return null;
 }
 
-function seloEleito(numero: string, votos22: number, votos13: number, fase: FaseApuracao): string {
-	if (fase !== "encerrada") return "";
+/** #145: ao vivo, a virada fora de alcance já elege o líder, sem encerrar a apuração. */
+function eleitoMatematico(vista: VistaNoite, vencedor: string): boolean {
+	const analise = vista.apuracao.analise?.majoritarias?.presidente;
+	return analise?.foraDeAlcance === true && analise.defensor.n === vencedor;
+}
+
+function seloEleito(numero: string, votos22: number, votos13: number, vista: VistaNoite): string {
 	if (vencedorPorVotos(votos22, votos13) !== numero) return "";
-	return `<span class="a-eleito" data-eleito="${numero}">✓ Eleito</span>`;
+	if (vista.fase === "encerrada") return `<span class="a-eleito" data-eleito="${numero}">✓ Eleito</span>`;
+	if (!eleitoMatematico(vista, numero)) return "";
+	return `<span class="a-eleito" data-eleito="${numero}" data-eleito-matematico>Matematicamente eleito</span>`;
 }
 
 function pctVisitante(fase: FaseApuracao, n: number | undefined): string {
@@ -202,7 +209,7 @@ export function htmlPlacar(vista: VistaNoite): string {
 	const votos = (n: number | undefined) => (n != null && Number.isFinite(n) ? nf.format(n) : "—");
 	const secoes = pctVisitante(vista.fase, cargo.apurado);
 	const selo = (numero: string) =>
-		seloEleito(numero, flavio?.votos ?? Number.NaN, lula?.votos ?? Number.NaN, vista.fase);
+		seloEleito(numero, flavio?.votos ?? Number.NaN, lula?.votos ?? Number.NaN, vista);
 	return `<div class="a-veredito a-placar"><h1><span class="a-l">${rosto(LULA)}${LULA.nome} <b>${pctVisitante(vista.fase, lula?.pct)}%</b>${selo(LULA.numero)}</span> <span class="a-x">a</span> <span class="a-f">${FLAVIO.nome} <b>${pctVisitante(vista.fase, flavio?.pct)}%</b>${selo(FLAVIO.numero)}${rosto(FLAVIO)}</span></h1><p>${votos(lula?.votos)} a ${votos(flavio?.votos)} votos válidos · ${secoes}% das seções apuradas</p></div>`;
 }
 
