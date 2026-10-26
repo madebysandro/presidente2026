@@ -1,7 +1,7 @@
 /**
  * Bindings do Worker. Os nomes de recurso acompanham `void.config.ts` e `void.lock.json`.
- * `LIMITE_AGENTE_*` ficam opcionais e fora desses arquivos até o Void suportar
- * rate limit com pinned secrets (#64). O Durable Object limita sem eles.
+ * `LIMITE_AGENTE_*` ficam opcionais e fora desses arquivos por escolha do repo (#64):
+ * o contador do Durable Object no ar é o teto. A #462 fechou; o void@1.2.1 trata `rate-limit`.
  * `void prepare` gera rotas e tsconfig em `.void/`. `void/env` traz o runtime.
  * Esta interface é o contrato dos bindings; a Void não emite esse arquivo.
  */

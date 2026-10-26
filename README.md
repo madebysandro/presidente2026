@@ -46,7 +46,7 @@ CPU do Worker: `limits.cpu_ms` = `300000` (5 min). O plano Free corta em 10 ms e
 | Chave válida | 30 a cada 60 s | contador no Durable Object |
 | IP sem chave válida | 5 a cada 60 s | contador no Durable Object |
 
-Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do DO é o teto global e fica no mesmo lock da auditoria. `POST /api/import` debita o mesmo balde de IP (5 a cada 60 s). `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` voltam ao `void.config.ts` quando o Void suportar rate limit com pinned secrets (#64). No Void 1.1.11 esse upload falha, então o config fica sem esses bindings. `bindingDeixaPassar` trata o binding como opcional: sem ele, o DO decide. Toda rota em `/api/agente/*` passa por esse portão. A chave é conferida antes do lock. No `401` e no `429` a auditoria guarda o motivo e o IP, não o corpo.
+Acima do teto: `429` com `retry-after: 60`, também na auditoria. O contador do DO é o teto global e fica no mesmo lock da auditoria. `POST /api/import` debita o mesmo balde de IP (5 a cada 60 s). `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` ficam fora do `void.config.ts` por escolha do repo (#64): o contador do Durable Object no ar é o teto, e `scripts/pre-deploy.mjs` recusa `ratelimits`. A voidzero-dev/void#462 fechou em 2026-10-20 (`1781bde`); este lock é `void@1.2.1` e trata o case `rate-limit`. `bindingDeixaPassar` trata o binding como opcional: sem ele, o DO decide. Toda rota em `/api/agente/*` passa por esse portão. A chave é conferida antes do lock. No `401` e no `429` a auditoria guarda o motivo e o IP, não o corpo.
 
 | Rota | Autenticação | Resposta |
 | --- | --- | --- |
@@ -188,7 +188,7 @@ A auditoria do import não tem `DELETE`: fica legível até 31/12/2026. A do age
 
 ## Desenvolvimento
 
-Requer **Node.js 24.x** (Void 1.1.11).
+Requer **Node.js 24.x** (Void ^1.2.1 / 1.2.1).
 
 ```bash
 git clone https://github.com/madebysandro/presidente2026.git
@@ -241,7 +241,7 @@ No painel, cada versão criada por `npx void deploy` mostra `void:{"schema":2,..
 
 Neste Worker o deploy grava `preserve: true`. O rollback de hoje não restaura triggers pelo snapshot: move o tráfego e mantém rotas e crons. Sem o JSON, o deploy seguinte segue sem esse snapshot. Se o config passar a omitir `routes`, `workers_dev` ou `preview_urls`, `resolvePreservedTraffic` devolve null e o deploy para com `traffic-preservation-unavailable`.
 
-Não há flag, chave de `void.config.ts` nem variável de ambiente para uma nota humana. `deploy.cloudflare` só aceita `mode`. `WORKERS_CI` no Void só detecta CI. O Workers Builds injeta `WORKERS_CI_COMMIT_SHA` e `WORKERS_CI_BRANCH`. A doc não lista `WORKERS_CI_COMMIT_MESSAGE`. O `cf` 1.0.0-beta.17 que este lock instala só preenche `workers/commit_sha` no upload de preview, e lê `GITHUB_SHA`, `CI_COMMIT_SHA`, `CIRCLE_SHA1` ou `COMMIT_SHA`. O fallback `git log -1 --format=%B` também é só do preview, e só quando ninguém passou `--message`. O Void sempre passa `--message` no deploy. No modo `atomic` o upload manda `annotations` só com `workers/message`.
+Não há flag, chave de `void.config.ts` nem variável de ambiente para uma nota humana. `deploy.cloudflare` só aceita `mode`. `WORKERS_CI` no Void só detecta CI. O Workers Builds injeta `WORKERS_CI_COMMIT_SHA` e `WORKERS_CI_BRANCH`. A doc não lista `WORKERS_CI_COMMIT_MESSAGE`. O `cf` 1.0.0-beta.18 que este lock instala só preenche `workers/commit_sha` no upload de preview, e lê `GITHUB_SHA`, `CI_COMMIT_SHA`, `CIRCLE_SHA1` ou `COMMIT_SHA`. O fallback `git log -1 --format=%B` também é só do preview, e só quando ninguém passou `--message`. O Void sempre passa `--message` no deploy. No modo `atomic` o upload manda `annotations` só com `workers/message`.
 
 `workers/tag` cabe 100 bytes. O JSON deste Worker, com as duas migrações e a rota `presidente2026.win`, tem 353 bytes. A versão é imutável. O `scripts/pre-deploy.mjs` recusa `scripts.deploy` diferente de `void deploy --platform cloudflare` e recusa `scripts.predeploy` e `scripts.postdeploy`, porque `npm run deploy` rodaria esses ganchos. O mesmo script continua exigindo `previews: {}` e a ponte `.wrangler/deploy/config.json` que o `npm run build` regrava.
 
@@ -289,7 +289,7 @@ Preview de branch fica ligado. O comando do Workers Builds, fora da `main`, é `
 
 A produção da `main` segue `npx void deploy --platform cloudflare`. Esse comando apaga a ponte, refaz o `vite build` com `VOID_CLOUDFLARE_DEPLOY_BUILD=1` e publica o Worker. Não roda `wrangler preview`. O bloco `previews` não entra nos campos de tráfego que o Void trava (`routes`, `workers_dev`, `preview_urls`).
 
-Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora até o Void subir rate limit com pinned secrets (#64).
+Domínio: `presidente2026.win` (`custom_domain`). Sem `workers.dev` (`workers_dev: false` e `preview_urls: false` no `void.config.ts`). O mesmo config leva `limits.cpu_ms` 300000. Os bindings de rate limit ficam de fora por escolha do repo (#64): o contador do Durable Object no ar é o teto, e a denylist recusa `ratelimits`. Não é bug aberto do Void 1.1.11 — a voidzero-dev/void#462 fechou em 2026-10-20 (`1781bde`); este lock é `void@1.2.1` e trata o case `rate-limit`.
 
 Docs Void: [Quickstart](https://void.cloud/guide/quickstart), [Cloudflare](https://void.cloud/integrations/cloudflare), [Deployment](https://void.cloud/guide/deployment), [Durable State](https://void.cloud/guide/durable-state).
 

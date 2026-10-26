@@ -66,9 +66,9 @@ export default defineConfig({
 			binding: "ASSETS",
 			run_worker_first: true,
 		},
-		// #64: sem LIMITE_AGENTE_CHAVE / LIMITE_AGENTE_IP. O Void 1.1.11
-		// não sobe rate limit com pinned secrets. O teto global fica no
-		// Durable Object. Os bindings voltam quando o Void suportar isso.
+		// #64: sem LIMITE_AGENTE_CHAVE / LIMITE_AGENTE_IP. Escolha do repo:
+		// o contador do Durable Object no ar é o teto, e bindingsRecusados
+		// recusa ratelimits. A #462 fechou; o void@1.2.1 trata rate-limit.
 		cache: { enabled: true },
 		observability: {
 			enabled: true,
