@@ -20,8 +20,8 @@ O que a spec D0 apontava, e como está hoje:
 
 | Gap da spec | Hoje |
 | --- | --- |
-| Rate limit binding | Fora do `void.config.ts` (#64). O Void 1.1.11 não sobe rate limit com pinned secrets, então `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` ficam de fora. O contador no Durable Object continua sendo o limite global. Os bindings voltam quando o Void suportar rate limit com pinned secrets. |
-| vitest-pool-workers | Trocado pelo `@cloudflare/vitest-plugin` 1.4.5, que aceita Vitest 4.1 e 5. O pool 0.23 avaliava o runner do Vitest 5 dentro do workerd e quebrava com `Unexpected identifier 'file'`. |
+| Rate limit binding | Fora do `void.config.ts` por escolha do repo (#64). `LIMITE_AGENTE_CHAVE` e `LIMITE_AGENTE_IP` continuam ausentes e a denylist `bindingsRecusados` recusa `ratelimits`: o contador do Durable Object no ar é o teto global. A voidzero-dev/void#462 fechou em 2026-10-20 (`1781bde`); este lock é `void@1.2.1` e trata o case `rate-limit`. Não é bug aberto do Void 1.1.11. |
+| vitest-pool-workers | Trocado pelo `@cloudflare/vitest-plugin` 1.4.7, que aceita Vitest 4.1 e 5. O pool 0.23 avaliava o runner do Vitest 5 dentro do workerd e quebrava com `Unexpected identifier 'file'`. |
 | Workers Builds | Produção na `main` com `npx void deploy`. Preview de branch fica ligado. `cloudflare.previews` é `{}` e o `npm run build` regrava `.wrangler/deploy/config.json`, que o `wrangler preview` segue até `dist/ssr/wrangler.json`. |
 
 Adiar de novo não cabe: a troca já aconteceu. Reabrir a decisão só se a Void deixar de publicar a `main` ou de falar com o Durable Object.
