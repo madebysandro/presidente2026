@@ -18,9 +18,6 @@ O recorte versionado é o de Presidente: Brasil, 27 UFs e exterior.
 | `2026-10-04T23-17-25-721Z` | Meio da noite |
 | `2026-10-05T00-01-02-086Z` | Mais recente da cópia |
 
-Também: `ele-c.json` (config oficial do TSE). O gravador guardou o arquivo na
-raiz da gravação, sem linha própria de ETag/cache-control no `indice.jsonl`.
-
 ## O que os testes exercitam
 
 - Avanço da apuração (Presidente em 3 leituras, até a tendência).

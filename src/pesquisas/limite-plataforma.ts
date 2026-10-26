@@ -1,8 +1,8 @@
 /**
  * Rate Limiting binding (D8 / #15).
- * Sem o binding — produção no Void 1.1.11, testes e dev — devolve true
- * e o contador do DO decide. Os bindings voltam quando o Void suportar
- * rate limit com pinned secrets (#64).
+ * Sem o binding — escolha do repo, testes e dev — devolve true
+ * e o contador do DO decide. A ausência não é bug aberto do Void 1.1.11:
+ * a #462 fechou e o void@1.2.1 trata `rate-limit`. Os nomes ficam opcionais (#64).
  * Com o binding, a plataforma também precisa deixar passar.
  */
 export async function bindingDeixaPassar(

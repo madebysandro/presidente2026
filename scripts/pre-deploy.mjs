@@ -12,7 +12,7 @@ const MOTIVO_MENSAGEM =
 	"a anotação workers/message é o estado schema 2 do Void 1.1.11; um wrapper pode gravar outro texto e o deploy seguinte deixa de ler o snapshot";
 
 const MOTIVO =
-	"o Void 1.1.11 não sobe esse binding com pinned secrets; bindingsFromOutput cai no default do switch";
+	"escolha do repo: o contador do Durable Object no ar é o teto; a denylist não é bug aberto do Void 1.1.11 (a #462 fechou; void@1.2.1 trata rate-limit)";
 
 const MOTIVO_PREVIEWS =
 	"o wrangler preview do Workers Builds segue .wrangler/deploy/config.json até dist/ssr/wrangler.json; o bloco tem de ser {} para não copiar binding de produção";
@@ -32,7 +32,7 @@ export function recusarBindings({ configText, lock, buildJson }) {
 	for (const chave of bindingsRecusados) {
 		if (typeof configText === "string" && propriedadeNoConfig(chave, configText)) {
 			erros.push(
-				`void.config.ts declara ${chave} (${MOTIVO}; o teto do agente fica no Durable Object até o Void suportar isso)`,
+				`void.config.ts declara ${chave} (${MOTIVO})`,
 			);
 		}
 		if (
