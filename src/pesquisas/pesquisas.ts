@@ -1475,11 +1475,7 @@ function metaAindaEhBase(
 /** Se só um dos ZIPs mudou, o outro 304 não traz bytes. Busca esse de novo. */
 async function corpoGarantido(url: string, busca: BuscaZip): Promise<CorpoZip> {
 	if (busca.kind === "corpo") return busca;
-	const deNovo = await buscarZip(url, null, null);
-	if (deNovo.kind === "nao_modificado") {
-		throw new Error(`TSE não devolveu o ZIP ${url}`);
-	}
-	return deNovo;
+	return (await buscarZip(url, null, null)) as CorpoZip;
 }
 
 function lerContratantes(json: string): string[] {
