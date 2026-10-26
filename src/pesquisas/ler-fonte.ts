@@ -26,9 +26,7 @@ export async function lerFonte(urlInicial: string): Promise<LeituraFonte> {
 		}
 		if (resposta.status >= 300 && resposta.status < 400) {
 			const destino = resposta.headers.get("location");
-			if (!destino || salto === 3) {
-				return { ok: false, detalhe: "redirecionamento inválido" };
-			}
+			if (!destino || salto === 3) break;
 			let proxima: URL;
 			try {
 				proxima = new URL(destino, atual);
