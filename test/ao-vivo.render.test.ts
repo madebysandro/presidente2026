@@ -955,3 +955,105 @@ describe("faixa e âncora no celular (#138)", () => {
 		expect(movel).toBeGreaterThanOrEqual(72);
 	});
 });
+
+describe("vitória matemática ao vivo (#145)", () => {
+	function analiseFora(
+		defensor: "13" | "22",
+		foraDeAlcance = true,
+	): NonNullable<EstadoApuracao["analise"]> {
+		const perseguidor = defensor === "13" ? "22" : "13";
+		return {
+			majoritarias: {
+				presidente: {
+					defensor: { n: defensor, nome: defensor, votos: 5_175_000, pct: 51.75 },
+					perseguidor: { n: perseguidor, nome: perseguidor, votos: 4_825_000, pct: 48.25 },
+					vantagemVotos: 350_000,
+					vantagemPp: 3.5,
+					evolucaoVantagemPp: [],
+					validosAApurar: 33_000,
+					margemParaVirarPp: foraDeAlcance ? 1_060 : 80,
+					foraDeAlcance,
+					primeiroTurno: null,
+					tendencias: [],
+				},
+			},
+		};
+	}
+
+	function placarCom(votos22: number, votos13: number, analise: EstadoApuracao["analise"]) {
+		const v = vista({
+			apuracao: estado({
+				cargos: {
+					presidente: cargo({
+						apurado: 99.67,
+						candidatos: [candidato("22", votos22, 48.25), candidato("13", votos13, 51.75)],
+					}),
+				},
+				analise,
+			}),
+		});
+		const h1 = htmlPlacar(v).match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? "";
+		const [lula = "", flavio = ""] = h1.split('class="a-x"');
+		return { v, lula, flavio };
+	}
+
+	it("com a virada fora de alcance, o placar anuncia Lula matematicamente eleito e a faixa segue Ao vivo", () => {
+		const { v, lula, flavio } = placarCom(4_825_000, 5_175_000, analiseFora("13"));
+		expect(lula).toContain('data-eleito="13"');
+		expect(lula).toContain("data-eleito-matematico");
+		expect(lula).toContain("Matematicamente eleito");
+		expect(lula).not.toContain("✓ Eleito");
+		expect(flavio).not.toContain("data-eleito");
+		expect(flavio).not.toContain("Matematicamente eleito");
+
+		const faixa = htmlFaixa(v);
+		expect(faixa).toMatch(/<strong data-faixa-rotulo>Ao vivo<\/strong>/);
+		expect(faixa).toContain("Próxima consulta em");
+		expect(faixa).not.toContain("Encerrada");
+		expect(faixa).not.toContain("Resultado final");
+	});
+
+	it("Flávio recebe o mesmo anúncio se for ele o defensor fora de alcance", () => {
+		const { lula, flavio } = placarCom(5_175_000, 4_825_000, analiseFora("22"));
+		expect(flavio).toContain('data-eleito="22"');
+		expect(flavio).toContain("Matematicamente eleito");
+		expect(lula).not.toContain("data-eleito");
+	});
+
+	it("sem fora de alcance, com empate ou com defensor diferente do líder em votos, não anuncia", () => {
+		const alcance = placarCom(4_825_000, 5_175_000, analiseFora("13", false));
+		expect(alcance.lula + alcance.flavio).not.toContain("data-eleito");
+
+		const empate = placarCom(5_000_000, 5_000_000, analiseFora("13"));
+		expect(empate.lula + empate.flavio).not.toContain("data-eleito");
+
+		const divergente = placarCom(4_825_000, 5_175_000, analiseFora("22"));
+		expect(divergente.lula + divergente.flavio).not.toContain("data-eleito");
+
+		const semAnalise = placarCom(4_825_000, 5_175_000, undefined);
+		expect(semAnalise.lula + semAnalise.flavio).not.toContain("data-eleito");
+	});
+
+	it("encerrada continua com o selo oficial ✓ Eleito, sem o matemático", () => {
+		const html = htmlPlacar(
+			vista({
+				fase: "encerrada",
+				apuracao: estado({
+					fase: "encerrada",
+					encerrada: true,
+					cargos: {
+						presidente: cargo({
+							apurado: 100,
+							candidatos: [candidato("22", 4_825_000, 48.25), candidato("13", 5_175_000, 51.75)],
+						}),
+					},
+					analise: analiseFora("13"),
+				}),
+			}),
+		);
+		expect(html).toContain('data-eleito="13"');
+		expect(html).toContain("✓ Eleito");
+		expect(html).not.toContain("Matematicamente eleito");
+		expect(html).not.toContain("data-eleito-matematico");
+	});
+});
