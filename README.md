@@ -227,7 +227,7 @@ O modo em `void.config.ts` é `atomic`, temporário enquanto o Cloudflare APIErr
 
 ### Build vermelho e bump do void
 
-Um merge por vez na `main`: o próximo espera o Workers Builds do anterior terminar. Dois merges com 7 s de diferença abriram dois `void deploy` do mesmo Worker, e um deles falhou (#83, triagem em [docs/operacao/workers-builds-83.md](docs/operacao/workers-builds-83.md)).
+Um merge por vez na `main`: o próximo espera o Workers Builds do anterior terminar. Dois merges com 7 s de diferença abriram dois `void deploy` do mesmo Worker, e um deles falhou (#83, triagem em [docs/operacao/workers-builds-83.md](docs/operacao/workers-builds-83.md)). O mesmo `deployment-changed` cortou `aca55529` (#149, issue #150): o `npm run build` passou e a build de `d52043a6` (#148) provavelmente ficou no ar.
 
 Quando o `Workers Builds: presidente2026` da `main` falha, o workflow `Alerta Workers Builds` abre a issue `Workers Builds falhou na main` (ou comenta na aberta), atribui ao dono da regra `*` do [CODEOWNERS](.github/CODEOWNERS) e menciona esse dono no corpo. Feche a issue com a causa registrada.
 
