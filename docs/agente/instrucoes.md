@@ -47,7 +47,7 @@ Depois que a apuração do 2º turno encerra, o site vira arquivo. Publicar, sub
 
 - Só registros nacionais da lista de pendentes, depois da liberação efetiva.
 - Pesquisa com fim de campo em 25/10/2026: o servidor recusa antes das 17h de Brasília (`antes_da_liberacao`). Não insista antes das 17h.
-- A página-fonte tem de mostrar o nome do instituto e um par de números (totais de Flávio e Lula, ou os válidos publicados).
+- A página-fonte tem de mostrar o instituto (ou o apelido do registro) e cada percentual do par (totais ou válidos publicados) associado ao próprio candidato. O texto normalizado tem de ter `flavio` e `lula`. O dono do percentual é o nome mais próximo. No empate, o dono é o nome que vem antes. Números soltos ou invertidos não confirmam.
 - Substituir sem `"substituir": true` devolve `ja_publicado`. Com `true`, a resposta é 200 e o resultado anterior fica no histórico. `substituidoEm` aparece em `GET /api/pesquisas`.
 - Pesquisa suspensa some de publicadas, média, calendário e vêm aí.
 
@@ -82,7 +82,7 @@ Reativar: `DELETE /api/agente/suspensoes/BR-02949/2026` com corpo `{"motivo":"de
 | `falta_margem_confianca` | O registro não tem margem ou confiança. Envie os dois na faixa. |
 | `fonte_invalida` | Use https de domínio aceito, sem usuário nem senha na URL. |
 | `fonte_inacessivel` | A página não abriu. Procure outra fonte, de preferência no Poder360. |
-| `fonte_nao_confirma` | A página não mostra o instituto e o par de números. Procure outra matéria. |
+| `fonte_nao_confirma` | A página não associa cada percentual do par (totais ou válidos publicados) ao próprio candidato, ou não mostra o instituto nem o apelido do registro. Números soltos ou invertidos não confirmam. Procure outra matéria. |
 | `nao_autorizado` | A chave não foi aceita. Não repita em loop. |
 | `apuracao_encerrada` | A apuração encerrou e o arquivo está congelado. Não repita. Termine. |
 | `decisao_invalida` | A URL da decisão tem de ser https. |
