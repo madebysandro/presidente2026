@@ -45,12 +45,44 @@ const APELIDOS_INSTITUTO_POR_REGISTRO: Readonly<Record<string, readonly string[]
 	"BR-09726/2026": ["Futura"],
 };
 
-/** Os dois números ocupam trechos diferentes. 50% e 50% exigem duas ocorrências. */
-function parPresente(texto: string, a: number, b: number): boolean {
-	const fa = ocorrencias(texto, a);
-	if (a === b) return fa.length >= 2;
-	const fb = ocorrencias(texto, b);
-	return fa.length > 0 && fb.length > 0;
+type Candidato = "flavio" | "lula";
+
+interface Mencao {
+	readonly candidato: Candidato;
+	readonly inicio: number;
+	readonly fim: number;
+}
+
+function mencoes(texto: string): Mencao[] {
+	return [...texto.matchAll(/(?<![a-z0-9])(flavio|lula)(?![a-z0-9])/g)].map((achado) => ({
+		candidato: achado[1] as Candidato,
+		inicio: achado.index,
+		fim: achado.index + achado[0].length,
+	}));
+}
+
+/** Dono do percentual é o nome mais próximo. Empate fica com o nome que vem antes. */
+function dono(nomes: readonly Mencao[], indice: number): Candidato | null {
+	let melhor: Candidato | null = null;
+	let distancia = Number.POSITIVE_INFINITY;
+	for (const nome of nomes) {
+		const d = nome.fim <= indice ? indice - nome.fim : nome.inicio - indice;
+		if (d < distancia) {
+			distancia = d;
+			melhor = nome.candidato;
+		}
+	}
+	return melhor;
+}
+
+function atribuido(texto: string, nomes: readonly Mencao[], n: number, candidato: Candidato): boolean {
+	return ocorrencias(texto, n).some((indice) => dono(nomes, indice) === candidato);
+}
+
+/** Cada percentual precisa estar junto do próprio candidato: Flávio com `flavio`, Lula com `lula`. */
+function parPresente(texto: string, flavio: number, lula: number): boolean {
+	const nomes = mencoes(texto);
+	return atribuido(texto, nomes, flavio, "flavio") && atribuido(texto, nomes, lula, "lula");
 }
 
 /** Apelido entra como palavra. "futuramente" e "futuras" não valem "Futura". */
@@ -65,7 +97,8 @@ export function paginaConfirma(
 	html: string,
 	registro: string,
 	instituto: string,
-	pares: ReadonlyArray<readonly [number, number]>,
+	/** Cada par é `[flavio, lula]`. */
+	pares: ReadonlyArray<readonly [flavio: number, lula: number]>,
 ): boolean {
 	const texto = textoDaPagina(html);
 	const apelidos = APELIDOS_INSTITUTO_POR_REGISTRO[registro] ?? [];
