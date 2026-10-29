@@ -31,10 +31,10 @@ describe("apelido Futura na confirmação da fonte", () => {
 	it("Datafolha segue exigindo o próprio nome e ignora Futura", () => {
 		const datafolha = { flavio: 49, lula: 45 };
 		expect(
-			confirmarHtml("<p>Datafolha 49% e 45%</p>", "BR-02949/2026", "Datafolha", datafolha, null),
+			confirmarHtml("<p>Datafolha: Flávio 49% e Lula 45%</p>", "BR-02949/2026", "Datafolha", datafolha, null),
 		).toBe(true);
 		expect(
-			confirmarHtml("<p>Futura 49% e 45%</p>", "BR-02949/2026", "Datafolha", datafolha, null),
+			confirmarHtml("<p>Futura: Flávio 49% e Lula 45%</p>", "BR-02949/2026", "Datafolha", datafolha, null),
 		).toBe(false);
 	});
 
@@ -110,5 +110,32 @@ describe("apelido Ideia na confirmação da fonte", () => {
 		expect(
 			confirmarHtml(soMeioIdeia, "BR-00650/2026", institutoBoasIdeias, totaisIdeia, null),
 		).toBe(false);
+	});
+});
+
+describe("percentual associado ao candidato", () => {
+	const pagina = "<p>Datafolha: Flávio 49%, Lula 45%.</p>";
+
+	it("recusa percentuais invertidos entre os candidatos", () => {
+		expect(confirmarHtml(pagina, "BR-02949/2026", "Datafolha", { flavio: 45, lula: 49 }, null)).toBe(false);
+	});
+
+	it("aceita percentuais na ordem publicada", () => {
+		expect(confirmarHtml(pagina, "BR-02949/2026", "Datafolha", { flavio: 49, lula: 45 }, null)).toBe(true);
+	});
+
+	it("aceita a forma '49,2% de Lula' com o percentual antes do nome", () => {
+		const html = "<p>Datafolha: Flávio 49% contra 45% de Lula.</p>";
+		expect(confirmarHtml(html, "BR-02949/2026", "Datafolha", { flavio: 49, lula: 45 }, null)).toBe(true);
+		expect(confirmarHtml(html, "BR-02949/2026", "Datafolha", { flavio: 45, lula: 49 }, null)).toBe(false);
+	});
+
+	it("recusa números soltos sem nome de candidato", () => {
+		expect(confirmarHtml("<p>Datafolha 49% e 45%</p>", "BR-02949/2026", "Datafolha", { flavio: 49, lula: 45 }, null)).toBe(false);
+	});
+
+	it("empate 50/50 exige um percentual para cada candidato", () => {
+		expect(confirmarHtml("<p>Datafolha: Flávio 50%, Lula 50%.</p>", "BR-02949/2026", "Datafolha", { flavio: 50, lula: 50 }, null)).toBe(true);
+		expect(confirmarHtml("<p>Datafolha: Flávio 50%, 50% indecisos. Lula 40%.</p>", "BR-02949/2026", "Datafolha", { flavio: 50, lula: 50 }, null)).toBe(false);
 	});
 });
