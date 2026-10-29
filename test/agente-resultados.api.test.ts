@@ -233,7 +233,7 @@ describe("POST /api/agente/resultados (#9)", () => {
 		await runInDurableObject(stub(), async (_inst, state) => {
 			state.storage.sql.exec("DELETE FROM suspensoes");
 		});
-		servir("https://www.metropoles.com/s97", "<p>Datafolha 48% e 45%</p>");
+		servir("https://www.metropoles.com/s97", "<p>Datafolha: Flávio 48% e Lula 45%</p>");
 		const s97 = await post(
 			corpoBase({
 				fonte: "https://www.metropoles.com/s97",
@@ -244,7 +244,7 @@ describe("POST /api/agente/resultados (#9)", () => {
 		);
 		expect(s97.status).toBe(201);
 
-		servir("https://www.metropoles.com/s103", "<p>AtlasIntel 50% e 49%</p>");
+		servir("https://www.metropoles.com/s103", "<p>AtlasIntel: Flávio 50% e Lula 49%</p>");
 		const s103 = await post(
 			corpoBase({
 				registro: "BR-03663/2026",
@@ -256,7 +256,7 @@ describe("POST /api/agente/resultados (#9)", () => {
 		);
 		expect(s103.status).toBe(201);
 
-		servir("https://www.metropoles.com/exato", "<p>Ipespe 50% e 50%</p>");
+		servir("https://www.metropoles.com/exato", "<p>Ipespe: Flávio 50% e Lula 50%</p>");
 		const exato = await post(
 			corpoBase({
 				registro: "BR-00933/2026",
@@ -331,7 +331,7 @@ describe("POST /api/agente/resultados (#9)", () => {
 			{ ip: "203.0.113.42" },
 		);
 		expect(espaco.status).toBe(201);
-		servir("https://www1.folha.uol.com.br/datafolha-virgula", "<p>Datafolha 49,0% e 45,0%</p>");
+		servir("https://www1.folha.uol.com.br/datafolha-virgula", "<p>Datafolha: Flávio 49,0% e Lula 45,0%</p>");
 		const virgula = await post(
 			corpoBase({
 				registro: "BR-00466/2026",
