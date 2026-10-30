@@ -1,9 +1,11 @@
 version: 2
 # package.json overrides pin undici 7.30.1 and sharp 0.35.5.
-# Ceiling: @cloudflare/vitest-plugin@1.4.7 vendors miniflare 5.20261019.2-beta
-# with undici 7.29.1. sharp there is already 0.35.5. The undici override stays
-# necessary because that miniflare still declares 7.29.1. Drop it when that
-# miniflare ships 7.30.1.
+# Ceiling, still declaring undici 7.29.1: direct devDependency
+# miniflare@5.20261012.0-beta; miniflare@5.20261012.1-beta under void, cf, and
+# @cloudflare/runtime-types; @cloudflare/workers-auth@0.14.1 and
+# @cloudflare/workers-utils@0.47.3. @cloudflare/vitest-plugin@1.4.8 already
+# vendors miniflare@5.20261023.0-beta, which declares undici 7.30.1.
+# Keep the undici override. It is the documented contract while that ceiling holds.
 updates:
   - package-ecosystem: npm
     directory: "/"
