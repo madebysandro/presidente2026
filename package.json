@@ -40,7 +40,7 @@
 		"@cloudflare/vitest-plugin": "^1.4.12",
 		"@msw/cloudflare": "^0.2.0",
 		"@shuding/opentype.js": "^1.4.0-beta.0",
-		"@types/node": "^26.6.5",
+		"@types/node": "^26.6.6",
 		"esbuild": "0.28.2",
 		"knip": "^6.44.1",
 		"miniflare": "5.20261012.0-beta",
