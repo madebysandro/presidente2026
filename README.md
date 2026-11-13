@@ -269,7 +269,7 @@ Para o gate de verify, o código do Void precisa conseguir ler deployments/versi
 | Root directory | `/` |
 | Build command | `npm run build` |
 | Deploy command | `npx void deploy --platform cloudflare` (ou `npm run deploy`) |
-| Node.js | `24.21` ([`.nvmrc`](.nvmrc)) |
+| Node.js | `24.22` ([`.nvmrc`](.nvmrc)) |
 | Preview builds | ligados. O bloco é `previews: {}`. A ponte é `.wrangler/deploy/config.json` |
 | API token | token do Builds (Create new token se stale) |
 

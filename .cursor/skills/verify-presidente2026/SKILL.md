@@ -11,7 +11,7 @@ O servidor é o `npm run dev` do `package.json` (`vite` com `voidPlugin`). Isso 
 
 ## Launch
 
-Na raiz do repositório, com Node `>= 24.21` e dependências instaladas (`npm ci`):
+Na raiz do repositório, com Node `>= 24.22` e dependências instaladas (`npm ci`):
 
 ```bash
 node .cursor/skills/verify-presidente2026/verificar.mjs launch --port 5173
@@ -29,7 +29,7 @@ O log do Vite fica nesse arquivo de `/tmp`. Ele pode conter o gatilho local do V
 node .cursor/skills/verify-presidente2026/verificar.mjs doctor --base http://127.0.0.1:5173
 ```
 
-Só leitura. Confere Node `>= 24.21`, o Chrome em `CHROME_PATH` ou `/usr/bin/google-chrome`, e o `GET /` acima. Sai com código 1 se a instância não vale a pena dirigir. Rodar de novo sempre que a página não parecer a deste repositório.
+Só leitura. Confere Node `>= 24.22`, o Chrome em `CHROME_PATH` ou `/usr/bin/google-chrome`, e o `GET /` acima. Sai com código 1 se a instância não vale a pena dirigir. Rodar de novo sempre que a página não parecer a deste repositório.
 
 ## Drive
 
