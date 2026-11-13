@@ -7,7 +7,7 @@
 - Produto: `presidente2026.win`, só Presidente nacional do 2º turno (eleição `6258`). O painel do 1º turno (`apuracao.madebysandro.app`) é outro repo.
 - Fidelidade visual (fase pesquisas): branch `prototipo/pesquisas`, commit `b1fe8ea`, direção A · Três semanas. Checklist em `docs/prototipo/README.md`.
 - Guardrail: barra rosa, variantes B/C do protótipo de pesquisas, Three.js, mascotes e confetti ficam de fora.
-- Stack: Void (`void` + Vite). Config em `void.config.ts` / `void.lock.json`. Docs: https://void.cloud. Node `24.21`. Root `/`.
+- Stack: Void (`void` + Vite). Config em `void.config.ts` / `void.lock.json`. Docs: https://void.cloud. Node `24.22`. Root `/`.
 - Deploy: só o Void no Workers Builds da `main`, modo `atomic`. Sem deploy manual, sem `wrangler deploy` e sem `wrangler preview` na conta. A mensagem da versão (`workers/message`) é o estado schema 2 do Void 1.1.11; o `scripts.deploy` fica `void deploy --platform cloudflare`, sem wrapper. Preview de branch fica ligado: `cloudflare.previews` é `{}` e o `npm run build` regrava `.wrangler/deploy/config.json`, a ponte que o `wrangler preview` segue até `dist/ssr/wrangler.json`. Build `npm run build`. Plano B e cliques: README → Deploy.
 - Secrets: só `npx void secret put`. Nunca a CLI `cf` ou `wrangler`, e nunca imprimir valores.
 - Rate limit: não repor `LIMITE_AGENTE_*` no `void.config.ts`. A denylist `bindingsRecusados` (`ratelimits`) é escolha do repo: o contador do Durable Object no ar é o teto. A voidzero-dev/void#462 fechou em 2026-10-20 (`1781bde`); este lock é `void@1.2.1` e trata o case `rate-limit`.

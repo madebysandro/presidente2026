@@ -10,7 +10,7 @@ npm test
 npm run build
 ```
 
-Node.js 24.21, como no CI.
+Node.js 24.22, como no CI.
 
 ## Código sem uso
 

@@ -57,8 +57,8 @@ function ambiente() {
 
 function exigirNode() {
 	const [maior, menor] = process.versions.node.split(".").map(Number);
-	if (maior < 24 || (maior === 24 && menor < 21)) {
-		throw new Error(`Node ${process.versions.node} não serve. O repositório pede Node >= 24.21.`);
+	if (maior < 24 || (maior === 24 && menor < 22)) {
+		throw new Error(`Node ${process.versions.node} não serve. O repositório pede Node >= 24.22.`);
 	}
 }
 

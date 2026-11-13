@@ -8,7 +8,7 @@ Este diretório é a fonte do comportamento que o visitante vê. Ler o índice a
 - Esse comando é `npm run dev` (Vite + Void/Miniflare). Não é `wrangler` e não fala com a conta Cloudflare.
 - Estado em `.void/` nesta árvore. Não subir outra instância no mesmo diretório.
 - `node .cursor/skills/verify-presidente2026/verificar.mjs doctor --base http://127.0.0.1:5173` com `ok: true`.
-- Node `>= 24.21` e Chrome em `CHROME_PATH` ou `/usr/bin/google-chrome`.
+- Node `>= 24.22` e Chrome em `CHROME_PATH` ou `/usr/bin/google-chrome`.
 
 ## Driving conventions
 
